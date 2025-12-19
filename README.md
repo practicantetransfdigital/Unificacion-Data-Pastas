@@ -78,6 +78,7 @@ La aplicación está diseñada bajo una **arquitectura de tres capas**, aprovech
 
 ## Estructura del Proyecto
 
+```text
 /
 ├── Code.js
 │   ├── Funciones backend
@@ -98,8 +99,7 @@ La aplicación está diseñada bajo una **arquitectura de tres capas**, aprovech
 │
 └── README.md
     └── Documentación del proyecto
-
-
+```
 
 ---
 
