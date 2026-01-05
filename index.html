@@ -111,9 +111,9 @@
             <!-- Tarjeta de Login (se mantiene y se desplaza) -->
             <div class="login-container">
                 <div class="login-logo">
-                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRvdptdCHB1bOarb5mxM-jRVL2XWq6FdYKUcA&s" alt="DORIA">
+                    <img src="https://alimentosdoria.com/wp-content/uploads/2023/01/logo-doria.png" alt="DORIA">
                 </div>
-                <h1 class="login-title">Reportes PASTAS</h1>
+                <h1 class="login-title">Reportes Pastas</h1>
                 <p class="login-subtitle">Ingrese su cedula para continuar</p>
 
                 <form id="loginForm" onsubmit="handleLogin(event)">
@@ -360,20 +360,20 @@
                                             <option value="Manufactura - Empaque Encartonadora PC">Manufactura -Empaque Encartonadora PC</option>
                                             <option value="Manufactura - Empaque Linea Vaso">Manufactura - Empaque Linea Vaso</option>
                                             <option value="Edificio Información Manufactura">Edificio Información Manufactura</option>
-                                            <option value="Manufactura - Empaque Celdas Robóticas">Manufactura - Empaque Celdas Robóticas</option>
-                                            <option value="Ingenieria y Montajes">Ingenieria y Montajes</option>
-                                            <option value="Servicios Tecnicos">Servicios Tecnicos</option>
+                                            <option value="Manufactura - Empaque Celdas Róboticas">Manufactura - Empaque Celdas Róboticas</option>
+                                            <option value="Ingeniería y Montajes">Ingeniería y Montajes</option>
+                                            <option value="Servicios Técnicos">Servicios Técnicos</option>
                                             <option value="Metrología">Metrología</option>
                                             <option value="SDM">SDM</option>
-                                            <option value="Empaques especiales">Empaques especiales (CEMPA)</option>
+                                            <option value="Empaques especiales (CEMPA)">Empaques especiales (CEMPA)</option>
                                             <option value="Logistica CEDI A">Logistica CEDI A</option>
                                             <option value="Logistica CEDI B">Logistica CEDI B</option>
                                             <option value="Laboratorio I+D">Laboratorio I+D</option>
                                             <option value="Edificio Administrativo">Edificio Administrativo</option>
                                             <option value="Lockers vinculados Edificio Administrativo">Lockers vinculados Edificio Administrativo</option>
                                             <option value="Exteriores">Exteriores</option>
-                                            <option value="Plantas de tratamiento de aguas Residuales">Plantas de tratamiento de aguas Residuales (PTAR)</option>
-                                            <option value="Plantas de tratamiento de agua Potable">Plantas de tratamiento de agua Potable (PTAP)</option>
+                                            <option value="Plantas de tratamiento de aguas Residuales (PTAR)">Plantas de tratamiento de aguas Residuales (PTAR)</option>
+                                            <option value="Plantas de tratamiento de agua Potable (PTAP)">Plantas de tratamiento de agua Potable (PTAP)</option>
                                             <option value="Bodega de excedentes industriales">Bodega de excedentes industriales</option>
                                             <option value="Zonas de contratistas">Zonas de contratistas</option>
                                             <option value="Portería">Portería</option>
@@ -1268,7 +1268,7 @@
     id="searchByName"
     placeholder="Buscar por responsable..."
     oninput="applyCombinedFilters()"
-    style="padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; flex: 1;"
+    style="padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; flex: 1; font-size: 11px;"
   />
 
                     </div>
@@ -1321,23 +1321,27 @@
                 <div class="board-header">
                     <h1>T.A</h1>
                     <div class="board-actions">
-                        <button class="refresh-btn" onclick="loadTarjetasReports()">
+            <button class="refresh-btn" onclick="loadTarjetasReports()">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
                     <path d="M21 3v5h-5"/>
                     <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
                     <path d="M3 21v-5h5"/>
                 </svg>
-                
             </button>
-                        <select id="tarjetaPrioridadFilter" onchange="applyTarjetaPrioridadFilter()">
+
+            <button class="refresh-btn" onclick="openStatsForTarjetas()">
+                <i class="fa-solid fa-chart-pie"></i>
+            </button>
+
+            <select id="tarjetaPrioridadFilter" onchange="applyTarjetaPrioridadFilter()">
                 <option value="all">Todas las prioridades</option>
                 <option value="Alta">Alta</option>
                 <option value="Media">Media</option>
                 <option value="Baja">Baja</option>
             </select>
 
-                        <select id="filtroResponsable" onchange="applyTarjetaFilters()">
+        <select id="filtroResponsable" onchange="applyTarjetaFilters()">
             <option value="">Todos los responsables</option>
             <option value="Jefe del Area Seleccionada">Jefe del Area Seleccionada</option>
             <option value="Jefe Aseguramiento de Calidad">Jefe Aseguramiento de Calidad</option>
@@ -1392,23 +1396,23 @@
                 <option value="Manufactura - Empaque MQ 19">Manufactura - Empaque MQ 19</option>
                 <option value="Manufactura - Empaque MQ 20">Manufactura - Empaque MQ 20</option>
                 <option value="Manufactura - Empaque MQ 21">Manufactura - Empaque MQ 21</option>
-                <option value="Manufactura - Empaque Encartonadora PC">Manufactura -Empaque Encartonadora PC</option>
+                <option value="Manufactura - Empaque Encartonadora PC">Manufactura - Empaque Encartonadora PC</option>
                 <option value="Manufactura - Empaque Linea Vaso">Manufactura - Empaque Linea Vaso</option>
                 <option value="Edificio Información Manufactura">Edificio Información Manufactura</option>
-                <option value="Manufactura - Empaque Celdas Robóticas">Manufactura - Empaque Celdas Robóticas</option>
-                <option value="Ingenieria y Montajes">Ingenieria y Montajes</option>
-                <option value="Servicios Tecnicos">Servicios Tecnicos</option>
+                <option value="Manufactura - Empaque Celdas Róboticas">Manufactura - Empaque Celdas Róboticas</option>
+                <option value="Ingeniería y Montajes">Ingeniería y Montajes</option>
+                <option value="Servicios Técnicos">Servicios Técnicos</option>
                 <option value="Metrología">Metrología</option>
                 <option value="SDM">SDM</option>
-                <option value="Empaques especiales">Empaques especiales (CEMPA)</option>
+                <option value="Empaques especiales (CEMPA)">Empaques especiales (CEMPA)</option>
                 <option value="Logistica CEDI A">Logistica CEDI A</option>
                 <option value="Logistica CEDI B">Logistica CEDI B</option>
                 <option value="Laboratorio I+D">Laboratorio I+D</option>
                 <option value="Edificio Administrativo">Edificio Administrativo</option>
                 <option value="Lockers vinculados Edificio Administrativo">Lockers vinculados Edificio Administrativo</option>
                 <option value="Exteriores">Exteriores</option>
-                <option value="Plantas de tratamiento de aguas Residuales">Plantas de tratamiento de aguas Residuales (PTAR)</option>
-                <option value="Plantas de tratamiento de agua Potable">Plantas de tratamiento de agua Potable (PTAP)</option>
+                <option value="Plantas de tratamiento de aguas Residuales (PTAR)">Plantas de tratamiento de aguas Residuales (PTAR)</option>
+                <option value="Plantas de tratamiento de agua Potable (PTAP)">Plantas de tratamiento de agua Potable (PTAP)</option>
                 <option value="Bodega de excedentes industriales">Bodega de excedentes industriales</option>
                 <option value="Zonas de contratistas">Zonas de contratistas</option>
                 <option value="Portería">Portería</option>
@@ -1422,7 +1426,15 @@
             id="searchCreator"
             placeholder="Buscar por creador..."
             onkeyup="applyTarjetaFilters()"
-            style="padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; flex: 1; max-width: 145px;"
+            style="padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; flex: 1; max-width: 145px; font-size: 11px;"
+        >
+
+        <input
+            type="text"
+            id="searchNombreResponsable"
+            placeholder="Nombre de responsable..."
+            onkeyup="applyTarjetaFilters()"
+            style="padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; flex: 1; max-width: 145px; font-size: 11px;"
         >
                     </div>
                 </div>
@@ -1617,12 +1629,6 @@
                 </svg>
                 Plan de Acción
             </button>
-                        <button class="modal-tab-btn" onclick="cambiarTabCiclo('seguimiento')">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                Seguimiento
-            </button>
                     </div>
 
                     <!-- TAB: Información General -->
@@ -1683,41 +1689,6 @@
                         <div class="info-section-block">
                             <h4>Plantilla 5W+2H</h4>
                             <div class="plan-resumen-table" id="modalCicloPlanAccion"></div>
-                        </div>
-                    </div>
-
-                    <!-- TAB: Seguimiento -->
-                    <div class="modal-tab-content" id="tab-seguimiento">
-                        <div class="seguimiento-form-box">
-                            <h4>Actualizar Estado</h4>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label class="form-label">Nuevo Estado</label>
-                                    <select class="form-select" id="nuevoEstadoCiclo">
-                            <option value="Abierto">Abierto</option>
-                            <option value="En Progreso">En Progreso</option>
-                            <option value="Implementado">Implementado</option>
-                            <option value="Cerrado">Cerrado</option>
-                        </select>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Comentario</label>
-                                <textarea class="form-textarea" id="comentarioCiclo" placeholder="Agregue un comentario sobre el cambio de estado o avance del ciclo..." rows="3"></textarea>
-                            </div>
-                            <button type="button" class="btn-guardar-seguimiento" onclick="guardarSeguimientoCiclo()">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
-                        <polyline points="17,21 17,13 7,13 7,21"/>
-                        <polyline points="7,3 7,8 15,8"/>
-                    </svg>
-                    Guardar Seguimiento
-                </button>
-                        </div>
-
-                        <div class="historial-section">
-                            <h4>Historial de Seguimiento</h4>
-                            <div class="timeline-wrapper" id="timelineCiclo"></div>
                         </div>
                     </div>
                 </div>
@@ -1837,12 +1808,20 @@
                 <option value="N2">N2</option>
                 <option value="Tarjetas de Anormalidades">Tarjetas de Anormalidades</option>
                 <option value="Anormalidades Criticas">Anormalidades Criticas</option>
-                <option value="Ciclos de mejora">Ciclos de mejora</option>
+                <option value="Ciclos de Mejora">Ciclos de Mejora</option>
             </select>
                         <select id="consolidadoProcesoFilter" onchange="filterConsolidadoByProcess()">
                 <option value="all">Todos los procesos</option>
                 
             </select>
+            <input
+                type="text"
+                id="consolidadoRespoSearch"
+                placeholder="Buscar por responsable..."
+                oninput="filterConsolidadoByRespo()"
+                style="padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; flex: 1; max-width: 280px;"
+            />
+
                         <input
                 type="text"
                 id="consolidadoSearch"
@@ -1862,6 +1841,8 @@
     </div>
 
     <?!= include('JavaScript'); ?>
+    <?!= include('Optimization'); ?>
+    <?!= include('Indicators'); ?>
 </body>
 
 </html>

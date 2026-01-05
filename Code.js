@@ -948,37 +948,102 @@ function sendEmailToResponsable(responsableEmail, data, fotosLinks, creadorEmail
 
 function getTarjetasReports() {
   try {
+    console.log('🔍 Iniciando getTarjetasReports...');
+    
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SHEETS.REPORTES_TARJETAS);
-    if (!sheet) return [];
+    if (!sheet) {
+      console.log('❌ Hoja no encontrada:', SHEETS.REPORTES_TARJETAS);
+      return [];
+    }
 
     const data = sheet.getDataRange().getValues();
+    console.log('📊 Filas totales:', data.length);
+    
     const tarjetas = [];
 
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
-      if (!row[0]) continue;
+      
+      // Verificar que row exista y tenga al menos 1 elemento
+      if (!row || row.length === 0 || !row[0]) continue;
 
       // Convertir fotos de Drive a Base64
       let fotosBase64 = [];
       if (row[12]) { // Columna 13: fotos
         try {
           const urls = JSON.parse(row[12]);
-          fotosBase64 = urls.map(url => {
-            const idMatch = url.match(/id=([a-zA-Z0-9_-]+)/);
-            if (!idMatch) return '';
-            const file = DriveApp.getFileById(idMatch[1]);
-            const blob = file.getBlob();
-            return "data:" + blob.getContentType() + ";base64," + Utilities.base64Encode(blob.getBytes());
-          });
+          if (Array.isArray(urls)) {
+            fotosBase64 = urls.map(url => {
+              try {
+                const idMatch = url.match(/id=([a-zA-Z0-9_-]+)/);
+                if (!idMatch) return '';
+                const file = DriveApp.getFileById(idMatch[1]);
+                const blob = file.getBlob();
+                return "data:" + blob.getContentType() + ";base64," + Utilities.base64Encode(blob.getBytes());
+              } catch (e) {
+                console.error('Error procesando foto:', e);
+                return '';
+              }
+            }).filter(foto => foto !== '');
+          }
         } catch (e) {
+          console.error('Error parseando JSON de fotos:', e);
           fotosBase64 = [];
+        }
+      }
+
+      // MANEJO SEGURO DEL ID - CRÍTICO
+      let tarjetaId;
+      try {
+        tarjetaId = row[16];
+        if (!tarjetaId) {
+          // Si no hay ID en row[16], crear uno basado en fecha
+          if (row[10]) {
+            const fecha = new Date(row[10]);
+            if (!isNaN(fecha.getTime())) {
+              tarjetaId = 'TAR-' + fecha.getTime();
+            } else {
+              tarjetaId = 'TAR-' + new Date().getTime();
+            }
+          } else {
+            tarjetaId = 'TAR-' + new Date().getTime();
+          }
+        }
+      } catch (e) {
+        console.error('Error generando ID para fila', i, ':', e);
+        tarjetaId = 'TAR-' + new Date().getTime(); // Fallback
+      }
+
+      // Fecha de creación segura
+      let fechaCreacion = "";
+      try {
+        if (row[10]) {
+          const fecha = new Date(row[10]);
+          if (!isNaN(fecha.getTime())) {
+            fechaCreacion = Utilities.formatDate(fecha, Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss");
+          }
+        }
+      } catch (e) {
+        console.error('Error procesando fecha creación fila', i, ':', e);
+      }
+
+      // Fecha de cierre segura (si existe)
+      let fechaCierreTarjeta = "";
+      if (row.length > 24 && row[24]) {
+        try {
+          const fechaCierre = new Date(row[24]);
+          if (!isNaN(fechaCierre.getTime())) {
+            fechaCierreTarjeta = Utilities.formatDate(fechaCierre, Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss");
+          }
+        } catch (e) {
+          console.error('Error procesando fecha cierre fila', i, ':', e);
         }
       }
 
       tarjetas.push({
         rowIndex: i + 1,
-        id: row[16] || 'TAR-' + new Date(row[10]).getTime(),
+        id: tarjetaId,
         zonaRiesgo: row[0] || "",
         nombreCedula: row[1] || "",
         ubicacion: row[2] || "",
@@ -988,24 +1053,31 @@ function getTarjetasReports() {
         problemaAsociado: row[6] || "",
         sistemaGestion: row[7] || "",
         responsableSolucion: row[8] || "",
+        responsableNombreVisualizarReporte: row[18] || "",
         generadaPor: row[9] || "",
-        fechaCreacion: row[10] ? Utilities.formatDate(new Date(row[10]), Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss") : "",
+        fechaCreacion: fechaCreacion,
         estado: row[11] || "Abierta",
         fotos: fotosBase64,
         comentarioCierre: row[13] || "",
         responsableCierre: row[14] || "",
-        requiereSAP: row[15] || "No"
+        requiereSAP: row[15] || "No",
+        fechaCierreTarjeta: fechaCierreTarjeta
       });
     }
 
-    // Ordenar por prioridad
-    const prioridadOrden = { "Alta": 1, "Media": 2, "Baja": 3 };
-    tarjetas.sort((a, b) => (prioridadOrden[a.prioridad] || 999) - (prioridadOrden[b.prioridad] || 999));
+    console.log('✅ Tarjetas procesadas:', tarjetas.length);
+    
+    // Ordenar por prioridad solo si hay tarjetas
+    if (tarjetas.length > 0) {
+      const prioridadOrden = { "Alta": 1, "Media": 2, "Baja": 3 };
+      tarjetas.sort((a, b) => (prioridadOrden[a.prioridad] || 999) - (prioridadOrden[b.prioridad] || 999));
+    }
 
     return tarjetas;
 
   } catch (error) {
-    Logger.log("❌ Error al obtener tarjetas Base64: " + error);
+    console.error("❌ Error CRÍTICO en getTarjetasReports:", error);
+    console.error("❌ Stack trace:", error.stack);
     return [];
   }
 }
@@ -1013,18 +1085,24 @@ function getTarjetasReports() {
 /**
  * Cierra una tarjeta de anormalidad con un comentario
  */
-function closeTarjetaReport(rowIndex, comentario, responsableCierre) {
+function closeTarjetaReport(rowIndex, comentario, responsableCierre, fechaCierreTarjeta = null) {
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SHEETS.REPORTES_TARJETAS);
-
+    
     if (!sheet) {
       throw new Error('La hoja de tarjetas no existe');
     }
 
+    // Usar la fecha pasada como parámetro o la fecha actual
+    const fechaCierre = fechaCierreTarjeta 
+      ? Utilities.formatDate(new Date(fechaCierreTarjeta), Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss")
+      : Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss");
+    
     sheet.getRange(rowIndex, 12).setValue('Cerrada');
     sheet.getRange(rowIndex, 14).setValue(comentario);
     sheet.getRange(rowIndex, 15).setValue(responsableCierre);
+    sheet.getRange(rowIndex, 25).setValue(fechaCierre);
 
     return {
       success: true,
@@ -1422,12 +1500,13 @@ function getConsolidadoReports() {
     const n2 = getN2Reports();
     const tarjetas = getTarjetasReports();
     const maquinas = getMaquinasReports();
+    const ciclos = getCiclosMejora();
 
     return {
       n2: n2,
       tarjetas: tarjetas,
       maquinas: maquinas,
-      ciclos: []
+      ciclos: ciclos
     };
 
   } catch (error) {
@@ -1623,22 +1702,52 @@ function submitCicloMejora(formData) {
     const analisis5PorquesStr = formData.analisis5Porques ?
       JSON.stringify(formData.analisis5Porques) : '';
 
-    // <CHANGE> Datos del foco de mejora
+    // 🔥 CORRECCIÓN: GUARDAR PLAN DE ACCIÓN LIMPIO
     const focoMejora = formData.focoMejora || {};
     const tipoFoco = focoMejora.tipo || '';
     const datosFocoStr = JSON.stringify(focoMejora);
-    const planAccionStr = formData.planAccion ? JSON.stringify(formData.planAccion) : '';
+    
+    let planAccionStr = '';
+    if (formData.planAccion && Array.isArray(formData.planAccion)) {
+      // Limpiar el array antes de convertirlo a string
+      const planAccionLimpio = formData.planAccion.map(accion => {
+        return {
+          cual: (accion.cual || '').replace(/["'\\$%]/g, ''),
+          que: (accion.que || '').replace(/["'\\$%]/g, ''),
+          donde: (accion.donde || '').replace(/["'\\$%]/g, ''),
+          quien: (accion.quien || '').replace(/["'\\$%]/g, ''),
+          como: (accion.como || '').replace(/["'\\$%]/g, ''),
+          cuando: (accion.cuando || '').replace(/["'\\$%]/g, ''),
+          cuanto: (accion.cuanto || '').replace(/["'\\$%]/g, '')
+        };
+      });
+      
+      planAccionStr = JSON.stringify(planAccionLimpio);
+      console.log('[Backend] Plan acción guardado (limpio):', planAccionStr.substring(0, 200));
+    }
 
     const rowData = [
-      cicloId, fechaRegistro, formData.nombreCiclo || '',
-      formData.avisoMantenimiento || '', formData.proceso || '',
-      formData.equipoMaquina || '', formData.lider || '',
+      cicloId, 
+      fechaRegistro, 
+      formData.nombreCiclo || '',
+      formData.avisoMantenimiento || '', 
+      formData.proceso || '',
+      formData.equipoMaquina || '', 
+      formData.lider || '',
       formData.integrantes || '',
-      tipoFoco, datosFocoStr,
-      formData.defecto || '',
-      causasAmbiente, causasMano, causasMateriales,
-      causasTiempo, causasMetodo, causasMaquina,
-      analisis5PorquesStr, planAccionStr, 'Abierto', formData.creadoPor || ''
+      tipoFoco, 
+      datosFocoStr,
+      (formData.defecto || '').replace(/["'\\$%]/g, ''), // Limpiar defecto también
+      causasAmbiente, 
+      causasMano, 
+      causasMateriales,
+      causasTiempo, 
+      causasMetodo, 
+      causasMaquina,
+      analisis5PorquesStr, 
+      planAccionStr,
+      'Abierto', 
+      formData.creadoPor || ''
     ];
 
     const nextRow = sheet.getLastRow() + 1;
@@ -1726,7 +1835,7 @@ function getCiclosMejora() {
       // Saltar filas completamente vacías
       if (!row[0] && !row[1] && !row[2]) continue;
 
-      // CONVERTIR FECHA A STRING ISO - IMPORTANTE
+      // CONVERTIR FECHA A STRING ISO
       let fechaStr = '';
       try {
         if (row[1] instanceof Date) {
@@ -1738,9 +1847,70 @@ function getCiclosMejora() {
         fechaStr = '';
       }
 
+      // 🔥 DIAGNÓSTICO: Ver el plan de acción crudo
+      let planAccionStr = String(row[18] || '').trim();
+      console.log(`[Backend] Fila ${i+1} - Plan acción CRUDO (primeros 500 chars):`, 
+                  planAccionStr.substring(0, 500));
+      console.log(`[Backend] Fila ${i+1} - Plan acción longitud:`, planAccionStr.length);
+      
+      let planAccionParseado = [];
+      
+      if (planAccionStr && planAccionStr !== '') {
+  try {
+    // 1. Limpiar caracteres básicos
+    planAccionStr = planAccionStr
+      .replace(/^[\x00-\x1F]+/, '')
+      .trim();
+    
+    // 2. DIAGNÓSTICO: Ver el JSON exacto
+    console.log(`[Backend] JSON antes de parsear (primeros 500 chars):`, 
+                planAccionStr.substring(0, 500));
+    
+    // 3. Intentar parsear directamente primero
+    try {
+      planAccionParseado = JSON.parse(planAccionStr);
+      console.log(`[Backend] Parseado directo exitoso, ${planAccionParseado.length} acciones`);
+    } catch (parseError1) {
+      console.log(`[Backend] Primer intento falló: ${parseError1.message}`);
+      
+      // 4. Intentar con función de reparación
+      try {
+        planAccionParseado = repararJSONPlanAccion(planAccionStr);
+        console.log(`[Backend] JSON reparado exitoso, ${planAccionParseado.length} acciones`);
+      } catch (parseError2) {
+        console.error(`[Backend] Segundo intento falló: ${parseError2.message}`);
+        
+        // 5. Último intento: extraer solo el array manualmente
+        try {
+          // Buscar el array completo entre [ y ]
+          const inicio = planAccionStr.indexOf('[');
+          const fin = planAccionStr.lastIndexOf(']');
+          
+          if (inicio !== -1 && fin !== -1 && fin > inicio) {
+            const jsonExtraido = planAccionStr.substring(inicio, fin + 1);
+            // Limpiar escapes de barras invertidas
+            const jsonLimpio = jsonExtraido.replace(/\\\\/g, '\\');
+            planAccionParseado = JSON.parse(jsonLimpio);
+            console.log(`[Backend] Extracción manual exitosa, ${planAccionParseado.length} acciones`);
+          } else {
+            throw new Error('No se encontró array en el string');
+          }
+        } catch (parseError3) {
+          console.error(`[Backend] Tercer intento falló: ${parseError3.message}`);
+          planAccionParseado = [];
+        }
+      }
+    }
+  } catch (error) {
+    console.error(`❌ Error procesando plan de acción en fila ${i+1}:`, error);
+    planAccionParseado = [];
+  }
+
+      }
+
       const ciclo = {
         id: String(row[0] || '').trim(),
-        fecha: fechaStr, // <-- Usar string ISO en lugar de objeto Date
+        fecha: fechaStr,
         nombre: String(row[2] || '').trim(),
         aviso: String(row[3] || '').trim(),
         proceso: String(row[4] || '').trim(),
@@ -1757,7 +1927,7 @@ function getCiclosMejora() {
         causasMetodo: String(row[15] || '').trim(),
         causasMaquina: String(row[16] || '').trim(),
         analisis5Porques: String(row[17] || '').trim(),
-        planAccion: String(row[18] || '').trim(),
+        planAccion: planAccionParseado,
         estado: String(row[19] || 'Abierto').trim(),
         creadoPor: String(row[20] || '').trim()
       };
@@ -1766,28 +1936,39 @@ function getCiclosMejora() {
     }
 
     console.log('[Backend] Ciclos procesados:', ciclos.length);
-    console.log('[Backend] Primer ciclo (para verificar):', JSON.stringify(ciclos[0]));
+    
+    // Mostrar detalles del primer ciclo para diagnóstico
+    if (ciclos.length > 0) {
+      console.log('[Backend] Primer ciclo ID:', ciclos[0].id);
+      console.log('[Backend] Primer ciclo - planAccion tipo:', typeof ciclos[0].planAccion);
+      console.log('[Backend] Primer ciclo - planAccion es array?', Array.isArray(ciclos[0].planAccion));
+      if (Array.isArray(ciclos[0].planAccion)) {
+        console.log('[Backend] Primer ciclo - acciones:', ciclos[0].planAccion.length);
+        if (ciclos[0].planAccion.length > 0) {
+          console.log('[Backend] Primera acción:', JSON.stringify(ciclos[0].planAccion[0]).substring(0, 200));
+        }
+      }
+    }
 
-    // Asegurar que el array no esté vacío antes de ordenar
+    // Ordenar por fecha descendente
     if (ciclos.length > 1) {
       ciclos.sort((a, b) => {
         try {
           const dateA = a.fecha ? new Date(a.fecha).getTime() : 0;
           const dateB = b.fecha ? new Date(b.fecha).getTime() : 0;
-          return dateB - dateA; // Descendente
+          return dateB - dateA;
         } catch (e) {
           return 0;
         }
       });
     }
 
-    // DEVOLVER EXPLÍCITAMENTE EL ARRAY
     return ciclos;
 
   } catch (error) {
     console.error('[Backend] ERROR en getCiclosMejora:', error);
     console.error('[Backend] Stack trace:', error.stack);
-    return []; // Siempre devolver array
+    return [];
   }
 }
 
@@ -1925,3 +2106,363 @@ function guardarSeguimientoCiclo(seguimiento) {
     };
   }
 }
+
+function getAccionesCausa(cicloId, idCausa) {
+  try {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('AccionesCausa');
+    if (!sheet) return [];
+    
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) return [];
+    
+    const acciones = [];
+    const idCausaNum = parseInt(idCausa);
+    
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const rowCicloId = row[0] ? row[0].toString().trim() : '';
+      const rowIdCausa = row[1] !== undefined ? parseInt(row[1]) : null;
+      
+      if (rowCicloId === cicloId.toString() && rowIdCausa === idCausaNum) {
+        const accion = {
+          que: row[2] || '',
+          donde: row[3] || '',
+          quien: row[4] || '',
+          como: row[5] || '',
+          cuando: row[6] ? new Date(row[6]).toISOString() : null,
+          cuanto: row[7] || '',
+          estado: row[8] || 'pendiente',
+          fechaCreacion: row[9] ? new Date(row[9]).toISOString() : new Date().toISOString(),
+          autor: row[10] || 'Sistema'
+        };
+        
+        acciones.push(accion);
+      }
+    }
+    
+    console.log(`Acciones encontradas para Ciclo:${cicloId}, Causa:${idCausa}:`, acciones.length);
+    return acciones;
+    
+  } catch (error) {
+    console.error('Error en getAccionesCausa:', error);
+    return [];
+  }
+}
+
+function guardarAccionCausa(accionData) {
+  try {
+    console.log('Guardando acción 5W+2H:', accionData);
+    
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName('AccionesCausa');
+    
+    // Si no existe la hoja, crearla con nuevas columnas
+    if (!sheet) {
+      console.log('Creando nueva hoja AccionesCausa con estructura 5W+2H');
+      sheet = ss.insertSheet('AccionesCausa');
+      
+      const headers = [
+        'Ciclo ID',
+        'ID Causa',
+        'QUÉ (Descripción)',
+        'DÓNDE',
+        'QUIÉN (Responsable)',
+        'CÓMO',
+        'CUÁNDO (Fecha Límite)',
+        'CUÁNTO (Recursos/Costo)',
+        'Estado',
+        'Fecha Creación',
+        'Autor'
+      ];
+      
+      sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+      sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
+      sheet.setFrozenRows(1);
+    }
+    
+    // Crear nueva fila con todos los campos
+    const newRow = [
+      accionData.cicloId,
+      parseInt(accionData.idCausa),
+      accionData.que || '',
+      accionData.donde || '',
+      accionData.quien || '',
+      accionData.como || '',
+      accionData.cuando || '',
+      accionData.cuanto || '',
+      accionData.estado || 'pendiente',
+      new Date(),
+      accionData.autor || 'Usuario'
+    ];
+    
+    console.log('Nueva fila 5W+2H:', newRow);
+    
+    // Agregar fila
+    sheet.appendRow(newRow);
+    
+    return {
+      success: true,
+      message: 'Acción 5W+2H guardada correctamente',
+      accion: accionData
+    };
+    
+  } catch (error) {
+    console.error('Error en guardarAccionCausa:', error);
+    return {
+      success: false,
+      message: error.toString()
+    };
+  }
+}
+
+
+function eliminarAccionCausa(cicloId, idCausa, indexAccion) {
+  try {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('AccionesCausa');
+    if (!sheet) return { success: false, message: 'Hoja no encontrada' };
+    
+    const data = sheet.getDataRange().getValues();
+    let contador = 0;
+    let filaAEliminar = -1;
+    
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      if (row[0] === cicloId && row[1] == idCausa) {
+        if (contador == indexAccion) {
+          filaAEliminar = i + 1; // +1 porque getValues() empieza en 0 pero las filas en 1
+          break;
+        }
+        contador++;
+      }
+    }
+    
+    if (filaAEliminar > 0) {
+      sheet.deleteRow(filaAEliminar);
+      return { success: true, message: 'Acción eliminada' };
+    }
+    
+    return { success: false, message: 'Acción no encontrada' };
+  } catch (error) {
+    console.error('Error en eliminarAccionCausa:', error);
+    return { success: false, message: error.toString() };
+  }
+}
+
+function getContadorAccionesCausa(cicloId, idCausa) {
+  try {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('AccionesCausa');
+    if (!sheet) return 0;
+    
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) return 0;
+    
+    let contador = 0;
+    const idCausaNum = parseInt(idCausa);
+    
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const rowCicloId = row[0] || '';
+      const rowIdCausa = parseInt(row[1]) || 0;
+      
+      if (rowCicloId.toString() === cicloId.toString() && rowIdCausa === idCausaNum) {
+        contador++;
+      }
+    }
+    
+    return contador;
+  } catch (error) {
+    console.error('Error en getContadorAccionesCausa:', error);
+    return 0;
+  }
+}
+
+function crearHojaAccionesCausa() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.insertSheet('AccionesCausa');
+  
+  const headers = [
+    'Ciclo ID',
+    'ID Causa',
+    'Descripción',
+    'Responsable',
+    'Fecha Límite',
+    'Estado',
+    'Fecha Creación',
+    'Autor'
+  ];
+  
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
+  
+  return sheet;
+}
+
+// ========== FUNCIONES SEGUIMIENTO POR ACCIÓN-CAUSA ==========
+
+/**
+ * Obtiene el historial de seguimiento de una acción específica dentro de una causa
+ */
+function getHistorialAccionCausa(cicloId, causaIndex) {
+  try {
+    console.log('🔍 Buscando historial para acción-causa - Ciclo:', cicloId, 'CausaIndex:', causaIndex);
+    
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('CICLOS_HISTORIAL');
+    
+    if (!sheet) {
+      console.log('📭 Hoja de historial no encontrada');
+      return [];
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    console.log('📊 Datos en hoja de historial:', data.length, 'filas');
+    
+    if (data.length <= 1) {
+      console.log('📭 Hoja de historial vacía o solo encabezados');
+      return [];
+    }
+    
+    const historial = [];
+    const causaIndexNum = parseInt(causaIndex);
+    
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const rowCicloId = String(row[0] || '').trim();
+      const rowCausaIndex = row[1] !== undefined ? parseInt(row[1]) : -1;
+      
+      // Buscar registros para este ciclo Y esta causa específica
+      // Si row[1] está vacío, significa que es un seguimiento general del ciclo
+      // Si row[1] tiene valor, es un seguimiento específico de una causa
+      if (rowCicloId === cicloId && rowCausaIndex === causaIndexNum) {
+        const registro = {
+          cicloId: rowCicloId,
+          causaIndex: rowCausaIndex,
+          fecha: row[2] ? row[2].toISOString() : new Date().toISOString(),
+          estado: String(row[3] || ''),
+          comentario: String(row[4] || ''),
+          autor: String(row[5] || 'Sistema')
+        };
+        
+        console.log('✅ Registro encontrado para acción-causa:', registro);
+        historial.push(registro);
+      }
+    }
+    
+    console.log('📋 Total registros encontrados para acción-causa:', historial.length);
+    
+    // Ordenar por fecha descendente (más reciente primero)
+    historial.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+    
+    return historial;
+    
+  } catch (error) {
+    console.error('💥 Error crítico en getHistorialAccionCausa:', error);
+    return [];
+  }
+}
+
+/**
+ * Guarda un seguimiento para una acción específica dentro de una causa
+ */
+function guardarSeguimientoAccionCausa(seguimiento) {
+  try {
+    console.log('💾 Guardando seguimiento para acción-causa:', seguimiento);
+    
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    
+    // 1. Verificar y preparar la hoja CICLOS_HISTORIAL
+    let historialSheet = ss.getSheetByName('CICLOS_HISTORIAL');
+    if (!historialSheet) {
+      console.log('📝 Creando nueva hoja de historial');
+      historialSheet = ss.insertSheet('CICLOS_HISTORIAL');
+      // Actualizar encabezados para incluir Causa Index
+      historialSheet.appendRow(['Ciclo ID', 'Causa Index', 'Fecha', 'Estado', 'Comentario', 'Autor', 'Tipo']);
+      historialSheet.getRange(1, 1, 1, 7).setBackground('#0f307f').setFontColor('#ffffff').setFontWeight('bold');
+    } else {
+      // Verificar si la hoja tiene los encabezados correctos
+      const headers = historialSheet.getRange(1, 1, 1, historialSheet.getLastColumn()).getValues()[0];
+      if (!headers.includes('Causa Index')) {
+        // Agregar columna Causa Index si no existe
+        historialSheet.insertColumnAfter(1);
+        historialSheet.getRange(1, 2).setValue('Causa Index');
+        historialSheet.getRange(1, 1, 1, historialSheet.getLastColumn()).setBackground('#0f307f').setFontColor('#ffffff').setFontWeight('bold');
+      }
+    }
+    
+    const fechaActual = new Date();
+    
+    // Agregar registro al historial
+    historialSheet.appendRow([
+      seguimiento.cicloId,
+      parseInt(seguimiento.causaIndex),
+      fechaActual,
+      seguimiento.estado,
+      seguimiento.comentario,
+      seguimiento.autor || 'Usuario desconocido',
+      'Acción-Causa' // Tipo para diferenciar de seguimientos generales del ciclo
+    ]);
+    
+    // Formatear la fecha en la hoja
+    const lastRow = historialSheet.getLastRow();
+    historialSheet.getRange(lastRow, 3).setNumberFormat('dd/mm/yyyy hh:mm');
+    
+    console.log('✅ Seguimiento de acción-causa guardado en CICLOS_HISTORIAL, fila:', lastRow);
+    
+    // 2. También necesitamos modificar la función getHistorialCiclo para que ignore registros de acción-causa
+    // (Eso se hará en esa función)
+    
+    return {
+      success: true,
+      message: 'Seguimiento guardado correctamente',
+      detalles: {
+        historialRow: lastRow,
+        fecha: fechaActual.toISOString()
+      }
+    };
+    
+  } catch (error) {
+    console.error('❌ Error en guardarSeguimientoAccionCausa:', error);
+    return {
+      success: false,
+      message: 'Error al guardar seguimiento: ' + error.toString()
+    };
+  }
+}
+
+/**
+ * Obtiene el estado actual de una acción específica
+ */
+function getEstadoAccionCausa(cicloId, causaIndex) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('CICLOS_HISTORIAL');
+    
+    if (!sheet) return 'Abierto';
+    
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) return 'Abierto';
+    
+    const causaIndexNum = parseInt(causaIndex);
+    let ultimoEstado = 'Abierto';
+    
+    // Buscar el último estado registrado para esta acción
+    for (let i = data.length - 1; i >= 1; i--) {
+      const row = data[i];
+      const rowCicloId = String(row[0] || '').trim();
+      const rowCausaIndex = row[1] !== undefined ? parseInt(row[1]) : -1;
+      
+      // Solo considerar registros específicos de esta causa
+      if (rowCicloId === cicloId && rowCausaIndex === causaIndexNum) {
+        ultimoEstado = String(row[3] || 'Abierto');
+        break;
+      }
+    }
+    
+    return ultimoEstado;
+    
+  } catch (error) {
+    console.error('Error en getEstadoAccionCausa:', error);
+    return 'Abierto';
+  }
+}
+

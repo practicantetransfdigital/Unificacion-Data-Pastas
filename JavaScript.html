@@ -19,6 +19,7 @@
 
     let tarjetasData = [];
     let selectedFilesN2 = [];
+    let accionCausaActual = null;
 
        function handleLogin(event) {
         event.preventDefault();
@@ -1884,10 +1885,17 @@ function loadTarjetasReports() {
  */
 function showTarjetasLoadingSpinner() {
     const containers = ['abiertas-cards', 'cerradas-cards'];
+    
     containers.forEach(containerId => {
         const container = document.getElementById(containerId);
         if (container) {
-            container.innerHTML = '<div class="loading-spinner-tarjetas">Cargando tarjetas...</div>';
+            container.innerHTML = `
+                <div class="loading-spinner-tarjetas">
+                    ${Array(6).fill(0).map(() => `
+                        <div class="skeleton-card-simple"></div>
+                    `).join('')}
+                </div>
+            `;
         }
     });
 }
@@ -1955,9 +1963,6 @@ function displayTarjetasReports(tarjetas) {
     
 }
 
-/**
- * Crea una tarjeta visual
- */
 function createTarjetaCard(tarjeta, isCerrada) {
   const card = document.createElement('div');
   card.className = 'report-card tarjeta-card';
@@ -2030,6 +2035,7 @@ const editButtonHtml = !isCerrada ? `
             </span>
             ${editButtonHtml}
         </div>
+        <div style="margin-bottom: 4px;"><strong>Responsable especifico:</strong> ${tarjeta.responsableNombreVisualizarReporte || 'Desconocido'}</div>
         <div style="margin-bottom: 4px;"><strong>Creada por:</strong> ${tarjeta.nombreCedula || 'Desconocido'}</div>
         <div style="margin-bottom: 4px;"><strong>Problema asociado:</strong> ${tarjeta.problemaAsociado || 'N/A'}</div>
         <div style="margin-bottom: 4px;"><strong>Sistema de gestión:</strong> ${tarjeta.sistemaGestion || 'N/A'}</div>
@@ -2098,7 +2104,6 @@ const editButtonHtml = !isCerrada ? `
   return card;
 }
 
-
 // Función para ampliar imagen al hacer click
 function expandImage(url) {
   console.log("🔍 Expandir imagen:", url.substring(0, 50) + "...");
@@ -2157,6 +2162,7 @@ function viewTarjetaDetails(rowIndex) {
         <strong>Problema Asociado:</strong> ${tarjeta.problemaAsociado}\n <br><br>
         ${tarjeta.sistemaGestion ? `<strong>Sistema de Gestión:</strong> ${tarjeta.sistemaGestion}\n <br><br>` : ''}
         <strong>Responsable:</strong> ${tarjeta.responsableSolucion}\n <br><br>
+        <strong>Responsable especifico:</strong> ${tarjeta.responsableNombreVisualizarReporte}\n <br><br>
         <strong>Generada por:</strong> ${tarjeta.nombreCedula}\n <br><br>
         <strong>Fecha de Creación:</strong> ${formatDate(tarjeta.fechaCreacion)}\n <br><br>
         <strong>Estado:</strong> ${tarjeta.estado}
@@ -2165,6 +2171,7 @@ function viewTarjetaDetails(rowIndex) {
     if (tarjeta.estado === 'Cerrada') {
         detallesHTML += `\n <br><br><strong>Comentario de Cierre:</strong> ${tarjeta.comentarioCierre || 'N/A'}`;
         detallesHTML += `\n <br><br><strong>Cerrada por:</strong> ${tarjeta.responsableCierre || 'N/A'}`;
+        detallesHTML += `\n <br><br><strong>Fecha de cierre:</strong> ${tarjeta.fechaCierreTarjeta|| 'N/A'}`;
     }
 
     showAlert('info', 'Detalles de la Tarjeta', detallesHTML, 10000);
@@ -2382,6 +2389,7 @@ function applyTarjetaFilters() {
     const filtroZona = document.getElementById('filtroZona')?.value || "";
     const filtroRiesgo = document.getElementById('filtroRiesgo')?.value || "";
     const searchCreator = document.getElementById('searchCreator')?.value?.toLowerCase().trim() || "";
+    const searchNombreResponsable = document.getElementById('searchNombreResponsable')?.value?.toLowerCase().trim() || "";
 
     // 🔹 Fuente base segura
     const tarjetas = Array.isArray(window.tarjetasBase) ? window.tarjetasBase : [];
@@ -2396,6 +2404,13 @@ function applyTarjetaFilters() {
             return creador.includes(searchCreator);
         });
     }
+
+    if (searchNombreResponsable) {
+    filtradas = filtradas.filter(t => {
+        const responsable = String(t.responsableNombreVisualizarReporte || '').toLowerCase();
+        return responsable.includes(searchNombreResponsable.toLowerCase());
+    });
+}
 
     // 2. Filtro por RESPONSABLE
     if (filtroResponsable) {
@@ -3380,7 +3395,6 @@ function handleConsolidadoError(error) {
     }
 }
 
-// <CHANGE> Mostrar reportes consolidados agrupados por proceso - OPTIMIZADO
 function displayConsolidadoReportsByProcess(data) {
     const container = document.getElementById('consolidadoContainer');
     if (!container) {
@@ -3419,10 +3433,19 @@ function displayConsolidadoReportsByProcess(data) {
         });
     }
     
+    // Agrupar Ciclos por proceso
+    if (data.ciclos && Array.isArray(data.ciclos)) {
+        data.ciclos.forEach(report => {
+            const proceso = report.proceso || 'Sin proceso';
+            if (!reportesPorProceso[proceso]) reportesPorProceso[proceso] = [];
+            reportesPorProceso[proceso].push({ type: 'ciclo', ...report });
+        });
+    }
+    
     container.innerHTML = '';
     
     if (Object.keys(reportesPorProceso).length === 0) {
-        container.innerHTML = `<div class="consolidado-empty"><h3>📭 No hay reportes</h3><p>No se encontraron reportes en el sistema</p></div>`;
+        container.innerHTML = `<div class="consolidado-empty"><h3> No hay reportes</h3><p>No se encontraron reportes en el sistema</p></div>`;
         return;
     }
     
@@ -3439,6 +3462,7 @@ function displayConsolidadoReportsByProcess(data) {
         const resumenN2 = reportes.filter(r => r.type === 'n2').length;
         const resumenTarjetas = reportes.filter(r => r.type === 'tarjeta').length;
         const resumenMaquinas = reportes.filter(r => r.type === 'maquina').length;
+        const resumenCiclos = reportes.filter(r => r.type === 'ciclo').length; // Nuevo
         const totalCount = reportes.length;
         
         const header = document.createElement('div');
@@ -3447,9 +3471,10 @@ function displayConsolidadoReportsByProcess(data) {
             <div class="consolidado-proceso-name">${proceso}</div>
             <div class="consolidado-proceso-stats">
                 <span>Total: <strong>${totalCount}</strong></span>
-                <span>N2: <strong>${resumenN2}</strong></span>
-                <span>Tarjetas: <strong>${resumenTarjetas}</strong></span>
-                <span>Máquinas: <strong>${resumenMaquinas}</strong></span>
+                ${resumenN2 > 0 ? `<span>N2: <strong>${resumenN2}</strong></span>` : ''}
+                ${resumenTarjetas > 0 ? `<span>Tarjetas: <strong>${resumenTarjetas}</strong></span>` : ''}
+                ${resumenMaquinas > 0 ? `<span>Máquinas: <strong>${resumenMaquinas}</strong></span>` : ''}
+                ${resumenCiclos > 0 ? `<span>Ciclos: <strong>${resumenCiclos}</strong></span>` : ''}
             </div>
         `;
         procesoSection.appendChild(header);
@@ -3471,6 +3496,8 @@ function createConsolidadoReportItem(report) {
     
     let tipo = '', badgeClass = '', titulo = '', descricao = '';
     let nombrePersona = '';
+    let nombreRespo = '';
+    let infoExtra = '';
     
     if (report.type === 'n2') {
         tipo = 'N2';
@@ -3478,38 +3505,106 @@ function createConsolidadoReportItem(report) {
         titulo = report.proceso + " - " + (report.zonaProceso || '');
         descricao = report.anormalidad || '';
         nombrePersona = report.nombreCedula || 'Sin nombre';
+        // Para N2 usamos liderResponsable
+        nombreRespo = report.liderResponsable || 'Sin responsable';
+        infoExtra = `
+            <div class="consolidado-report-extra">
+                <span class="extra-item">Zona: ${report.zonaProceso || 'N/A'}</span>
+                <span class="extra-item">Proceso Resp.: ${report.procesoResponsable || 'N/A'}</span>
+            </div>
+        `;
     } else if (report.type === 'tarjeta') {
         tipo = 'Tarjeta';
         badgeClass = 'tarjeta';
         titulo = report.zonaRiesgo + " - " + (report.ubicacion || '');
         descricao = report.descripcionProblema || '';
         nombrePersona = report.nombreCedula || 'Sin nombre';
+        // CORRECCIÓN: Para tarjetas usamos responsableNombreVisualizarReporte
+        nombreRespo = report.responsableNombreVisualizarReporte || 'Sin responsable';
+        infoExtra = `
+            <div class="consolidado-report-extra">
+                <span class="extra-item">Prioridad: ${report.prioridad || 'N/A'}</span>
+                <span class="extra-item">Tipo Riesgo: ${report.tipoRiesgo || 'N/A'}</span>
+            </div>
+        `;
     } else if (report.type === 'maquina') {
         tipo = 'Máquina';
         badgeClass = 'maquina';
         titulo = report.proceso + " - " + (report.areaProceso || '');
         descricao = report.anormalidad || '';
         nombrePersona = report.nombreCedula || report.mecanicoResponsable || 'Sin nombre';
+        nombreRespo = report.mecanicoResponsable || 'Sin responsable';
+        infoExtra = `
+            <div class="consolidado-report-extra">
+                <span class="extra-item">Área: ${report.areaProceso || 'N/A'}</span>
+                <span class="extra-item">Criticidad: ${report.criticidad || 'N/A'}</span>
+            </div>
+        `;
+    } else if (report.type === 'ciclo') {
+        tipo = 'Ciclos de Mejora';
+        badgeClass = 'ciclo';
+        titulo = report.nombreCiclo || report.id || 'Ciclo sin nombre';
+        descricao = report.defecto || report.descripcion || 'Sin descripción';
+        nombrePersona = report.creadoPor || report.lider || 'Sin líder';
+        nombreRespo = report.lider || 'Sin responsable';
+        
+        // Extraer tipo de foco (si está en datosFoco)
+        let tipoFoco = 'No especificado';
+        let focoDetalle = '';
+        
+        if (report.datosFoco) {
+            try {
+                const datosFoco = JSON.parse(report.datosFoco);
+                if (datosFoco.tipo === 'indicador') {
+                    tipoFoco = 'Indicador';
+                    focoDetalle = datosFoco.nombreKPI || 'KPI no especificado';
+                } else if (datosFoco.tipo === 'proceso') {
+                    tipoFoco = 'Proceso';
+                    focoDetalle = datosFoco.procesoSimplificar || 'Proceso no especificado';
+                } else if (datosFoco.tipo === 'error') {
+                    tipoFoco = 'Error';
+                    focoDetalle = datosFoco.declaracionProblema || 'Error no especificado';
+                }
+            } catch (e) {
+                tipoFoco = 'Error en datos';
+            }
+        }
+        
+        infoExtra = `
+            <div class="consolidado-report-extra">
+                <span class="extra-item">Foco: ${tipoFoco}</span>
+                <span class="extra-item">Equipo: ${report.equipo || 'N/A'}</span>
+                <span class="extra-item">Aviso: ${report.aviso || 'N/A'}</span>
+            </div>
+            ${focoDetalle ? `<div class="foco-detalle" style="font-size: 12px; color: #666; margin-top: 4px;">${focoDetalle}</div>` : ''}
+        `;
     }
     
-    const fecha = report.fechaRegistro || report.fechaCreacion || '';
+    const fecha = report.fechaRegistro || report.fechaCreacion || report.fecha || '';
     const estado = report.estado || 'Abierto';
-    const estadoColor = estado === 'Completado' || estado === 'Cerrada' || estado === 'Cerrado' ? '#28a745' : '#6c757d';
+    const estadoColor = estado === 'Completado' || estado === 'Cerrada' || estado === 'Cerrado' || estado === 'Implementado' ? '#28a745' : 
+                       estado === 'En Progreso' || estado === 'En Progreso' ? '#007bff' : 
+                       estado === 'En Revision' ? '#fd7e14' : '#6c757d';
     
     item.innerHTML = `
         <div class="consolidado-report-header">
             <div class="consolidado-report-type ${badgeClass}">${tipo}</div>
             <div class="consolidado-person-name" style="display:none;">${nombrePersona}</div>
+            <div class="consolidado-respo-name" style="display:none;">${nombreRespo}</div>
         </div>
         <div class="consolidado-report-title">${titulo}</div>
         <div style="font-size: 13px; color: #94a3b8; line-height: 1.2; margin: 4px 0;">${descricao || '(Sin desc.)'}</div>
+        ${infoExtra}
         <div class="consolidado-report-meta">
             <span style="color: ${estadoColor}; font-weight: 600;">${estado}</span>
             <span>${fecha ? fecha.split(' ')[0] : 'S/F'}</span>
         </div>
         <div class="consolidado-report-person">
-             ${nombrePersona}
+            <strong>Persona que reporta:</strong> ${nombrePersona}
         </div>
+        ${nombreRespo !== nombrePersona ? `<div class="consolidado-report-person">
+            <strong>Responsable:</strong> ${nombreRespo}
+        </div>` : ''}
     `;
     
     return item;
@@ -3521,7 +3616,6 @@ function clearEmptyMessages() {
     emptyMessages.forEach(msg => msg.remove());
 }
 
-// <CHANGE> Función de filtro actualizada para trabajar con procesos
 function filterConsolidadoByName() {
     const selectedProceso = document.getElementById('consolidadoProcesoFilter').value;
     const selectedType = document.getElementById('ConsolidadoFilter').value;
@@ -3537,12 +3631,10 @@ function filterConsolidadoByName() {
         const procesoName = section.querySelector('.consolidado-proceso-name').textContent;
         const reportItems = section.querySelectorAll('.consolidado-report-item');
         
-        // Verificar si el proceso coincide con el filtro
         const matchesProceso = selectedProceso === 'all' || procesoName === selectedProceso;
         
         let hasVisibleReports = false;
         
-        // Filtrar cada reporte individualmente
         reportItems.forEach(item => {
             const tipoReporte = item.querySelector('.consolidado-report-type')?.textContent.trim() || '';
             const nombrePersona = item.querySelector('.consolidado-person-name')?.textContent.toLowerCase() || '';
@@ -3550,11 +3642,11 @@ function filterConsolidadoByName() {
             const matchesType = selectedType === 'all' || 
                                (selectedType === 'N2' && tipoReporte === 'N2') ||
                                (selectedType === 'Tarjetas de Anormalidades' && tipoReporte === 'Tarjeta') ||
-                               (selectedType === 'Anormalidades Criticas' && tipoReporte === 'Máquina');
+                               (selectedType === 'Anormalidades Criticas' && tipoReporte === 'Máquina') ||
+                               (selectedType === 'Ciclos de Mejora' && tipoReporte === 'Ciclos de Mejora'); // Nuevo
             
             const matchesName = searchTerm === '' || nombrePersona.includes(searchTerm);
             
-            // Mostrar u ocultar cada reporte individualmente
             if (matchesProceso && matchesType && matchesName) {
                 item.style.display = 'block';
                 hasVisibleReports = true;
@@ -3563,7 +3655,6 @@ function filterConsolidadoByName() {
             }
         });
         
-        // Mostrar/ocultar la sección completa
         if (matchesProceso && hasVisibleReports) {
             section.style.display = 'block';
             visibles++;
@@ -3577,21 +3668,79 @@ function filterConsolidadoByName() {
     }
 }
 
+function filterConsolidadoByRespo() {
+    const selectedProceso = document.getElementById('consolidadoProcesoFilter').value;
+    const selectedType = document.getElementById('ConsolidadoFilter').value;
+    const searchTerm = document.getElementById('consolidadoSearch').value.toLowerCase();
+    const respoSearchTerm = document.getElementById('consolidadoRespoSearch').value.toLowerCase(); // Nuevo: búsqueda por responsable
+    
+    const container = document.getElementById('consolidadoContainer');
+    const procesoSections = container.querySelectorAll('.consolidado-proceso-section');
+    
+    clearEmptyMessages();
+    
+    let visibles = 0;
+    
+    procesoSections.forEach(section => {
+        const procesoName = section.querySelector('.consolidado-proceso-name').textContent;
+        const reportItems = section.querySelectorAll('.consolidado-report-item');
+        
+        const matchesProceso = selectedProceso === 'all' || procesoName === selectedProceso;
+        
+        let hasVisibleReports = false;
+        
+        reportItems.forEach(item => {
+            const tipoReporte = item.querySelector('.consolidado-report-type')?.textContent.trim() || '';
+            const nombrePersona = item.querySelector('.consolidado-person-name')?.textContent.toLowerCase() || '';
+            const nombreRespo = item.querySelector('.consolidado-respo-name')?.textContent.toLowerCase() || '';
+            
+            const matchesType = selectedType === 'all' || 
+                               (selectedType === 'N2' && tipoReporte === 'N2') ||
+                               (selectedType === 'Tarjetas de Anormalidades' && tipoReporte === 'Tarjeta') ||
+                               (selectedType === 'Anormalidades Criticas' && tipoReporte === 'Máquina') ||
+                               (selectedType === 'Ciclos de Mejora' && tipoReporte === 'Ciclos de Mejora');
+            
+            // Búsqueda por nombre de persona
+            const matchesName = searchTerm === '' || nombrePersona.includes(searchTerm);
+            
+            // NUEVO: Búsqueda por responsable
+            const matchesRespo = respoSearchTerm === '' || nombreRespo.includes(respoSearchTerm);
+            
+            // Combinar todos los filtros
+            if (matchesProceso && matchesType && matchesName && matchesRespo) {
+                item.style.display = 'block';
+                hasVisibleReports = true;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+        
+        if (matchesProceso && hasVisibleReports) {
+            section.style.display = 'block';
+            visibles++;
+        } else {
+            section.style.display = 'none';
+        }
+    });
+    
+    if (visibles === 0) {
+        showConsolidadoEmptyMessageWithRespo(selectedProceso, selectedType, searchTerm, respoSearchTerm);
+    }
+}
+
 function applyTypesFilter() {
     filterConsolidadoByName();
+    filterConsolidadoByRespo();
 }
 
 let procesosDisponibles = [];
 
-// <CHANGE> Función para cargar procesos en el filtro
 function loadProcesosFilter(data) {
     const procesoFilter = document.getElementById('consolidadoProcesoFilter');
     if (!procesoFilter) return;
     
-    // Limpiar opciones existentes (excepto "Todos los procesos")
     procesoFilter.innerHTML = '<option value="all">Todos los procesos/zonas</option>';
     
-    // Extraer todos los procesos únicos de los datos
     const procesosSet = new Set();
     
     // Procesar N2
@@ -3601,7 +3750,7 @@ function loadProcesosFilter(data) {
         });
     }
     
-    // Procesar Tarjetas (usar zonaRiesgo como proceso)
+    // Procesar Tarjetas
     if (data.tarjetas && Array.isArray(data.tarjetas)) {
         data.tarjetas.forEach(report => {
             if (report.zonaRiesgo) procesosSet.add(report.zonaRiesgo);
@@ -3615,18 +3764,21 @@ function loadProcesosFilter(data) {
         });
     }
     
-    // Convertir Set a Array y ordenar alfabéticamente
+    // Procesar Ciclos (NUEVO)
+    if (data.ciclos && Array.isArray(data.ciclos)) {
+        data.ciclos.forEach(report => {
+            if (report.proceso) procesosSet.add(report.proceso);
+        });
+    }
+    
     procesosDisponibles = Array.from(procesosSet).sort();
     
-    // Agregar opciones al select
     procesosDisponibles.forEach(proceso => {
         const option = document.createElement('option');
         option.value = proceso;
         option.textContent = proceso;
         procesoFilter.appendChild(option);
     });
-    
-    console.log('📊 Procesos disponibles:', procesosDisponibles);
 }
 
 function filterConsolidadoByProcess() {
@@ -3657,7 +3809,8 @@ function filterConsolidadoByProcess() {
             const matchesType = selectedType === 'all' || 
                                (selectedType === 'N2' && tipoReporte === 'N2') ||
                                (selectedType === 'Tarjetas de Anormalidades' && tipoReporte === 'Tarjeta') ||
-                               (selectedType === 'Anormalidades Criticas' && tipoReporte === 'Máquina');
+                               (selectedType === 'Anormalidades Criticas' && tipoReporte === 'Máquina'); 
+                               (selectedType === 'Ciclos de Mejora' && tipoReporte === 'Ciclos de Mejora');
             
             const matchesName = searchTerm === '' || nombrePersona.includes(searchTerm);
             
@@ -3709,7 +3862,49 @@ function showConsolidadoEmptyMessage(selectedProceso, selectedType, searchTerm) 
         message = 'No se encontraron reportes en el sistema';
     }
     
-    empty.innerHTML = `<h3>🔍 Sin resultados</h3><p>${message}</p>`;
+    empty.innerHTML = `<h3> Sin resultados</h3><p>${message}</p>`;
+    container.appendChild(empty);
+}
+
+function showConsolidadoEmptyMessageWithRespo(selectedProceso, selectedType, searchTerm, respoSearchTerm) {
+    const container = document.getElementById('consolidadoContainer');
+    const empty = document.createElement('div');
+    empty.className = 'consolidado-empty';
+    
+    let message = '';
+    
+    // Lógica para mensajes combinados
+    if (searchTerm && respoSearchTerm && selectedProceso !== 'all' && selectedType !== 'all') {
+        message = `No se encontraron reportes del proceso "${selectedProceso}", tipo "${selectedType}", nombre "${searchTerm}" y responsable "${respoSearchTerm}"`;
+    } else if (respoSearchTerm && selectedProceso !== 'all' && selectedType !== 'all') {
+        message = `No se encontraron reportes del proceso "${selectedProceso}", tipo "${selectedType}" y responsable "${respoSearchTerm}"`;
+    } else if (respoSearchTerm && selectedProceso !== 'all') {
+        message = `No se encontraron reportes del proceso "${selectedProceso}" y responsable "${respoSearchTerm}"`;
+    } else if (respoSearchTerm && selectedType !== 'all') {
+        message = `No se encontraron reportes del tipo "${selectedType}" y responsable "${respoSearchTerm}"`;
+    } else if (respoSearchTerm && searchTerm) {
+        message = `No se encontraron reportes del nombre "${searchTerm}" y responsable "${respoSearchTerm}"`;
+    } else if (respoSearchTerm) {
+        message = `No se encontraron reportes del responsable "${respoSearchTerm}"`;
+    } else if (selectedProceso !== 'all' && selectedType !== 'all' && searchTerm) {
+        message = `No se encontraron reportes del proceso "${selectedProceso}", tipo "${selectedType}" y nombre "${searchTerm}"`;
+    } else if (selectedProceso !== 'all' && selectedType !== 'all') {
+        message = `No se encontraron reportes del proceso "${selectedProceso}" y tipo "${selectedType}"`;
+    } else if (selectedProceso !== 'all' && searchTerm) {
+        message = `No se encontraron reportes del proceso "${selectedProceso}" y nombre "${searchTerm}"`;
+    } else if (selectedType !== 'all' && searchTerm) {
+        message = `No se encontraron reportes del tipo "${selectedType}" y nombre "${searchTerm}"`;
+    } else if (selectedProceso !== 'all') {
+        message = `No se encontraron reportes del proceso "${selectedProceso}"`;
+    } else if (selectedType !== 'all') {
+        message = `No se encontraron reportes del tipo "${selectedType}"`;
+    } else if (searchTerm) {
+        message = `No se encontraron reportes del nombre "${searchTerm}"`;
+    } else {
+        message = 'No se encontraron reportes en el sistema';
+    }
+    
+    empty.innerHTML = `<h3> Sin resultados</h3><p>${message}</p>`;
     container.appendChild(empty);
 }
 
@@ -3717,7 +3912,8 @@ function clearConsolidadoFilters() {
     document.getElementById('consolidadoProcesoFilter').value = 'all';
     document.getElementById('ConsolidadoFilter').value = 'all';
     document.getElementById('consolidadoSearch').value = '';
-    filterConsolidadoByName();
+    document.getElementById('consolidadoRespoSearch').value = ''; // Limpiar búsqueda de responsable
+    filterConsolidadoByRespo();
 }
 
 function validarLongitudUbicacion(input) {
@@ -4433,7 +4629,7 @@ function submitCicloForm(event) {
         espinaPescado: espinaPescado,
         analisis5Porques: analisis5Porques,
         planAccion: recopilarDatosPlanAccion(),
-        creadoPor: currentUser ? currentUser.nombre + ' - ' + currentUser.cedula : ''
+        creadoPor: currentUser ? currentUser.nombre : ''
     };
     
     showAlert('info', 'Enviando...', 'Procesando su ciclo de mejora, por favor espere', 3000);
@@ -5384,11 +5580,7 @@ function renderCiclosTable(ciclos) {
                 <td><span class="estado-badge ${estadoClass}">${ciclo.estado || 'Abierto'}</span></td>
                 <td>
                     <button class="btn-ver-detalle" onclick="event.stopPropagation(); verDetalleCiclo('${ciclo.id}')">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                            <circle cx="12" cy="12" r="3"/>
-                        </svg>
-                        Ver
+                        <i class="fa-solid fa-eye"></i>
                     </button>
                 </td>
             </tr>
@@ -5735,24 +5927,61 @@ function renderPorquesResumen(ciclo) {
     container.innerHTML = html;
 }
 
-// Renderizar resumen de plan de acción
 function renderPlanAccionResumen(ciclo) {
     const container = document.getElementById('modalCicloPlanAccion');
     if (!container) return;
     
+    console.log('🔍 DIAGNÓSTICO Frontend - Ciclo recibido:', ciclo);
+    console.log('🔍 DIAGNÓSTICO Frontend - planAccion tipo:', typeof ciclo.planAccion);
+    console.log('🔍 DIAGNÓSTICO Frontend - planAccion valor:', ciclo.planAccion);
+    
     let acciones = [];
+    
     try {
-        acciones = ciclo.planAccion ? JSON.parse(ciclo.planAccion) : [];
+        // DIAGNÓSTICO: Ver qué tipo de dato es planAccion
+        if (Array.isArray(ciclo.planAccion)) {
+            console.log('✅ planAccion es array, longitud:', ciclo.planAccion.length);
+            acciones = ciclo.planAccion;
+        } 
+        else if (typeof ciclo.planAccion === 'string') {
+            console.log('⚠️ planAccion es string, intentando parsear');
+            const cleaned = ciclo.planAccion.trim();
+            
+            if (cleaned && (cleaned.startsWith('[') || cleaned.startsWith('{'))) {
+                try {
+                    acciones = JSON.parse(cleaned);
+                    console.log('✅ Parseo exitoso, acciones:', acciones.length);
+                } catch (parseError) {
+                    console.error('❌ Error parseando string:', parseError);
+                }
+            }
+        }
+        else {
+            console.warn('⚠️ planAccion no es array ni string:', ciclo.planAccion);
+        }
+        
+        // Asegurar que sea array
+        if (!Array.isArray(acciones)) {
+            console.warn('⚠️ acciones no es array, asignando vacío');
+            acciones = [];
+        }
+        
     } catch (e) {
+        console.error('❌ Error procesando plan de acción:', e);
         acciones = [];
     }
     
-    if (!acciones || acciones.length === 0) {
+    console.log('✅ Acciones finales para renderizar:', acciones.length);
+    
+    if (acciones.length === 0) {
         container.innerHTML = '<p class="no-data-msg">No se registraron acciones en el plan</p>';
         return;
     }
     
     let html = `
+        <div class="plan-accion-summary-header">
+            <h4>Plan de Acción - Total: ${acciones.length} acción(es)</h4>
+        </div>
         <table class="plan-tabla-resumen">
             <thead>
                 <tr>
@@ -5763,14 +5992,24 @@ function renderPlanAccionResumen(ciclo) {
                     <th>Cómo</th>
                     <th>Cuándo</th>
                     <th>Cuánto</th>
+                    <th style="width: 60px;">Acciones</th>
                 </tr>
             </thead>
             <tbody>
     `;
     
-    acciones.forEach(accion => {
+    // Primero crear todas las filas sin contadores
+        acciones.forEach((accion, index) => {
+        // ✅ CORRECCIÓN: Escapar comillas y caracteres especiales para onclick
+        const causaParaOnclick = (accion.cual || '-')
+            .replace(/"/g, '&quot;')  // Escapar comillas dobles
+            .replace(/'/g, "\\'")     // Escapar comillas simples
+            .replace(/\\/g, '\\\\')   // Escapar barras invertidas
+            .replace(/\n/g, '\\n')    // Escapar saltos de línea
+            .replace(/\r/g, '\\r');   // Escapar retornos de carro
+        
         html += `
-            <tr>
+            <tr data-causa-index="${index}">
                 <td class="causa-cell">${accion.cual || '-'}</td>
                 <td>${accion.que || '-'}</td>
                 <td>${accion.donde || '-'}</td>
@@ -5778,12 +6017,808 @@ function renderPlanAccionResumen(ciclo) {
                 <td>${accion.como || '-'}</td>
                 <td>${formatearFechaCiclo(accion.cuando)}</td>
                 <td>${accion.cuanto || '-'}</td>
+                <td class="acciones-cell">
+                    <button type="button" 
+                            class="btn-acciones-causa" 
+                            onclick="mostrarAccionesCausa(${index}, '${causaParaOnclick}')"
+                            title="Cargando...">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="16"/>
+                            <line x1="8" y1="12" x2="16" y2="12"/>
+                        </svg>
+                    </button>
+                </td>
             </tr>
         `;
     });
     
     html += '</tbody></table>';
     container.innerHTML = html;
+    
+    // DESPUÉS de renderizar, cargar los contadores para cada causa
+    setTimeout(() => {
+        acciones.forEach((accion, index) => {
+            cargarContadorInicial(index, ciclo.id);
+        });
+    }, 100);
+}
+
+function cargarContadorInicial(idCausa, cicloId) {
+    const fila = document.querySelector(`tr[data-causa-index="${idCausa}"]`);
+    if (!fila || !cicloId) return;
+    
+    google.script.run
+        .withSuccessHandler(function(contador) {
+            const btn = fila.querySelector('.btn-acciones-causa');
+            if (!btn) return;
+            
+            if (contador > 0) {
+                // Verificar si ya existe un contador
+                let countSpan = btn.querySelector('.acciones-count');
+                if (!countSpan) {
+                    countSpan = document.createElement('span');
+                    countSpan.className = 'acciones-count';
+                    btn.appendChild(countSpan);
+                }
+                countSpan.textContent = contador;
+                btn.title = `${contador} acción(es) adjunta(s)`;
+            } else {
+                // Limpiar contador si existe
+                const countSpan = btn.querySelector('.acciones-count');
+                if (countSpan) countSpan.remove();
+                btn.title = 'Agregar acciones';
+            }
+        })
+        .withFailureHandler(function(error) {
+            console.error('Error cargando contador inicial:', error);
+        })
+        .getContadorAccionesCausa(cicloId, idCausa);
+}
+
+function mostrarAccionesCausa(idCausa, nombreCausa) {
+  try {
+    console.log('Mostrar acciones - ID Causa:', idCausa, 'Nombre:', nombreCausa);
+    
+    if (!cicloActual) {
+      showAlert('error', 'Error', 'No hay un ciclo cargado');
+      return;
+    }
+    
+    // ✅ CORRECCIÓN: Guardar referencia globalmente
+    accionCausaActual = {
+      id: parseInt(idCausa),
+      nombre: nombreCausa,
+      cicloId: cicloActual.id,
+      causaIndex: parseInt(idCausa), // Guardar también el índice para seguimiento
+      causaTexto: nombreCausa
+    };
+        
+        // Crear el modal si no existe
+        crearModalAccionesCausa();
+        
+        // Pequeño delay para asegurar que el DOM se actualice
+        setTimeout(() => {
+            const modal = document.getElementById('modalAccionesCausa');
+            
+            if (!modal) {
+                console.error('❌ Modal no se pudo crear');
+                showAlert('error', 'Error', 'No se pudo crear el modal. Por favor, recarga la página.');
+                return;
+            }
+            
+            console.log('✅ Modal encontrado');
+            
+            // Establecer título y subtítulo
+            const tituloEl = document.getElementById('modalAccionesTitulo');
+            const subtituloEl = document.getElementById('modalAccionesSubtitulo');
+            
+            if (tituloEl) {
+                tituloEl.textContent = `Acciones de Causa`;
+            }
+            if (subtituloEl) {
+                subtituloEl.textContent = nombreCausa;
+            }
+            
+            // Auto-completar responsable si existe el campo
+            const responsableInput = document.getElementById('nuevaAccionResponsable');
+            if (responsableInput && currentUser && currentUser.nombre) {
+                responsableInput.value = currentUser.nombre;
+                console.log('✅ Responsable autocompletado:', currentUser.nombre);
+            }
+            
+            // Mostrar modal
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            console.log('✅ Modal mostrado');
+            
+            // Cargar acciones
+            cargarAccionesCausa(idCausa);
+            
+        }, 100);
+        
+    } catch (error) {
+        console.error('💥 ERROR en mostrarAccionesCausa:', error);
+        showAlert('error', 'Error', `Error al mostrar acciones: ${error.message}`);
+    }
+}
+
+function crearModalAccionesCausa() {
+    // Verificar si el modal ya existe
+    if (document.getElementById('modalAccionesCausa')) {
+        console.log('Modal ya existe, reutilizando...');
+        return;
+    }
+
+    const nombreCiclo = cicloActual ? cicloActual.nombre || 'Ciclo sin nombre' : 'Ciclo no disponible';
+    
+    console.log('Creando nuevo modal de acciones...');
+    
+    const modalHTML = `
+        <div id="modalAccionesCausa" class="modal-causa-acciones">
+            <div class="modal-causa-content">
+                <div class="modal-causa-header">
+                    <div class="modal-header-content">
+                        <div class="modal-header-icon">
+                            <i class="fas fa-tasks"></i>
+                        </div>
+                        <div>
+                            <h3 id="modalAccionesTitulo">Acciones de Causa</h3>
+                            <p class="modal-subtitle" id="modalAccionesSubtitulo">Cargando...</p>
+                        </div>
+                    </div>
+                    <button type="button" class="modal-causa-close" aria-label="Cerrar">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="modal-causa-body">
+                    <div class="modal-causa-panel" style="flex: 1;">
+                        <div class="panel-header">
+                            <h4 class="panel-title">
+                                <i class="far fa-clock"></i>
+                                Historial de Acciones
+                            </h4>
+                        </div>
+                        
+                        <div class="acciones-estado-resumen" id="resumenEstados">
+                            <div class="estado-resumen-item completada">
+                                <div class="estado-icon">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <span class="estado-count" id="contadorCompletadas">0</span>
+                                <span class="estado-label">Completadas</span>
+                            </div>
+                            <div class="estado-resumen-item en-progreso">
+                                <div class="estado-icon">
+                                    <i class="fas fa-spinner"></i>
+                                </div>
+                                <span class="estado-count" id="contadorEnProgreso">0</span>
+                                <span class="estado-label">En Progreso</span>
+                            </div>
+                            <div class="estado-resumen-item pendiente">
+                                <div class="estado-icon">
+                                    <i class="far fa-clock"></i>
+                                </div>
+                                <span class="estado-count" id="contadorPendientes">0</span>
+                                <span class="estado-label">Pendientes</span>
+                            </div>
+                        </div>
+                        
+                        <div class="acciones-causa-list" id="listaAccionesCausa">
+                            <div class="loading-acciones">
+                                <div class="loading-spinner">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                </div>
+                                <p>Cargando acciones...</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-causa-panel" style="flex: 1.5;">
+                        <div class="panel-header">
+                            <h4 class="panel-title">
+                                <i class="fas fa-plus-circle"></i>
+                                Nueva Acción 5W+2H
+                            </h4>
+                        </div>
+                        
+                        <div class="acciones-causa-form">
+                            <!-- QUÉ (Descripción) -->
+                            <div class="form-group">
+                                <label for="nuevaAccionQue">
+                                    <i class="far fa-question-circle"></i>
+                                    QUÉ (Descripción)
+                                </label>
+                                <textarea id="nuevaAccionQue" 
+                                          class="form-textarea" 
+                                          placeholder="Describe QUÉ se debe hacer para solucionar esta causa..."
+                                          rows="3"></textarea>
+                                <div class="form-hint">Describe claramente la acción específica</div>
+                            </div>
+                            
+                            <div class="form-row-2col">
+                                <!-- DÓNDE -->
+                                <div class="form-group">
+                                    <label for="nuevaAccionDonde">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                        DÓNDE
+                                    </label>
+                                    <input type="text" 
+                                           id="nuevaAccionDonde" 
+                                           class="form-input"
+                                           placeholder="Proceso, línea, área, equipo...">
+                                    <div class="form-hint">Ej: Línea A, Molino, Almacén</div>
+                                </div>
+                                
+                                <!-- QUIÉN -->
+                                <div class="form-group">
+                                    <label for="nuevaAccionQuien">
+                                        <i class="fas fa-user-tie"></i>
+                                        QUIÉN
+                                    </label>
+                                    <input type="text" 
+                                           id="nuevaAccionQuien" 
+                                           class="form-input"
+                                           placeholder="Responsable de ejecutar"
+                                           value="${currentUser ? currentUser.nombre || '' : ''}">
+                                    <div class="form-hint">Persona encargada</div>
+                                </div>
+                            </div>
+                            
+                            <!-- CÓMO -->
+                            <div class="form-group">
+                                <label for="nuevaAccionComo">
+                                    <i class="fas fa-cogs"></i>
+                                    CÓMO
+                                </label>
+                                <textarea id="nuevaAccionComo" 
+                                          class="form-textarea" 
+                                          placeholder="Describe CÓMO se realizará la acción (procedimiento, método, herramienta)..."
+                                          rows="2"></textarea>
+                                <div class="form-hint">Procedimiento, método o herramienta a utilizar</div>
+                            </div>
+                            
+                            <div class="form-row-3col">
+                                <!-- CUÁNDO -->
+                                <div class="form-group">
+                                    <label for="nuevaAccionCuando">
+                                        <i class="far fa-calendar-alt"></i>
+                                        CUÁNDO
+                                    </label>
+                                    <input type="date" 
+                                           id="nuevaAccionCuando" 
+                                           class="form-input">
+                                    <div class="form-hint">Fecha límite</div>
+                                </div>
+                                
+                                <!-- CUÁNTO -->
+                                <div class="form-group">
+                                    <label for="nuevaAccionCuanto">
+                                        <i class="fas fa-money-bill-wave"></i>
+                                        CUÁNTO
+                                    </label>
+                                    <input type="text" 
+                                           id="nuevaAccionCuanto" 
+                                           class="form-input"
+                                           placeholder="$ o recursos">
+                                    <div class="form-hint">Costo, horas, recursos</div>
+                                </div>
+                                
+                                <!-- ESTADO -->
+                                <div class="form-group">
+                                    <label for="nuevaAccionEstado">
+                                        <i class="fas fa-flag"></i>
+                                        Estado
+                                    </label>
+                                    <select id="nuevaAccionEstado" class="form-select">
+                                        <option value="pendiente">
+                                            <i class="far fa-clock"></i> Pendiente
+                                        </option>
+                                        <option value="en_progreso">
+                                            <i class="fas fa-spinner"></i> En Progreso
+                                        </option>
+                                        <option value="completada">
+                                            <i class="fas fa-check-circle"></i> Completada
+                                        </option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="button" class="btn-secondary" onclick="cerrarModalAccionesCausa()">
+                                    <i class="fas fa-times"></i>
+                                    Cancelar
+                                </button>
+                                <button type="button" class="btn-primary" onclick="guardarAccionCausa()">
+                                    <i class="fas fa-save"></i>
+                                    Guardar Acción
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-causa-footer">
+                    <div class="footer-info">
+                        <i class="fas fa-info-circle"></i>
+                        <span>Acciones para: <strong id="footerCausaNombre">${nombreCiclo}</strong></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    console.log('Modal creado exitosamente');
+    
+    // Agregar event listeners DESPUÉS de que el modal se haya agregado al DOM
+    setTimeout(() => {
+        const modal = document.getElementById('modalAccionesCausa');
+        if (!modal) {
+            console.error('Modal no encontrado después de creación');
+            return;
+        }
+        
+        const closeBtn = modal.querySelector('.modal-causa-close');
+        
+        // Listener para cerrar con el botón X
+        if (closeBtn) {
+            closeBtn.addEventListener('click', cerrarModalAccionesCausa);
+        }
+        
+        // Listener para cerrar haciendo clic fuera
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                cerrarModalAccionesCausa();
+            }
+        });
+        
+        // Listener para cerrar con ESC
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && modal.classList.contains('active')) {
+                cerrarModalAccionesCausa();
+            }
+        });
+        
+    }, 50); // Aumentado a 50ms para dar tiempo al DOM
+}
+
+// Cerrar modal de acciones - VERSIÓN MÁS ROBUSTA
+function cerrarModalAccionesCausa() {
+    const modal = document.getElementById('modalAccionesCausa');
+    if (modal) {
+        modal.classList.remove('active');
+        console.log('Modal cerrado');
+    } else {
+        console.warn('Modal no encontrado al intentar cerrar');
+    }
+    
+    document.body.style.overflow = '';
+    window.causaActual = null;
+    
+    // Limpiar formulario
+    const elementosFormulario = [
+        {id: 'nuevaAccionDescripcion', defaultValue: ''},
+        {id: 'nuevaAccionResponsable', defaultValue: currentUser ? currentUser.nombre || '' : ''},
+        {id: 'nuevaAccionFechaLimite', defaultValue: ''},
+        {id: 'nuevaAccionEstado', defaultValue: 'pendiente'}
+    ];
+    
+    elementosFormulario.forEach(item => {
+        const elemento = document.getElementById(item.id);
+        if (elemento) {
+            elemento.value = item.defaultValue;
+        }
+    });
+}
+
+
+// Manejar clic fuera del modal
+document.addEventListener('click', function(e) {
+    const modal = document.getElementById('modalAccionesCausa');
+    if (modal && e.target === modal) {
+        cerrarModalAccionesCausa();
+    }
+});
+
+// Cerrar con ESC
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const modal = document.getElementById('modalAccionesCausa');
+        if (modal && modal.classList.contains('active')) {
+            cerrarModalAccionesCausa();
+        }
+    }
+});
+
+function cargarAccionesCausa(idCausa) {
+    const lista = document.getElementById('listaAccionesCausa');
+    if (!lista) {
+        console.error('Elemento listaAccionesCausa no encontrado');
+        return;
+    }
+    
+    console.log('Cargando acciones para ID Causa:', idCausa);
+    
+    // Mostrar loading
+    lista.innerHTML = `
+        <div class="loading-acciones">
+            <svg class="spinner-icon" width="20" height="20" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" opacity="0.25"/>
+                <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round"/>
+            </svg>
+            Cargando acciones...
+        </div>
+    `;
+    
+    google.script.run
+        .withSuccessHandler(function(acciones) {
+            console.log('Acciones recibidas del backend:', acciones);
+            console.log('Tipo:', typeof acciones);
+            console.log('Es array?', Array.isArray(acciones));
+            console.log('Longitud:', acciones ? acciones.length : 0);
+            
+            if (acciones && Array.isArray(acciones)) {
+                console.log('Primera acción (si existe):', acciones[0]);
+            }
+            
+            renderListaAccionesCausa(acciones || []);
+        })
+        .withFailureHandler(function(error) {
+            console.error('Error cargando acciones:', error);
+            lista.innerHTML = `
+                <div class="error-acciones">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 8v4m0 4h.01"/>
+                    </svg>
+                    <p>Error al cargar las acciones</p>
+                    <p class="error-details">${error.message || 'Error desconocido'}</p>
+                    <button onclick="cargarAccionesCausa(${idCausa})" class="btn-reintentar">
+                        Reintentar
+                    </button>
+                </div>
+            `;
+        })
+        .getAccionesCausa(cicloActual.id, idCausa);
+}
+
+function renderListaAccionesCausa(acciones) {
+    const lista = document.getElementById('listaAccionesCausa');
+    if (!lista) return;
+    
+    if (!acciones || !Array.isArray(acciones) || acciones.length === 0) {
+        lista.innerHTML = `
+            <div class="no-acciones">
+                <div class="no-acciones-icon" style="
+                    width: 80px;
+                    height: 80px;
+                    background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin: 0 auto 1.5rem;
+                    border: 3px dashed #cbd5e1;
+                ">
+                    <i class="far fa-clipboard" style="font-size: 2rem; color: #94a3b8;"></i>
+                </div>
+                <p style="font-size: 1.1rem; color: #475569; font-weight: 500; margin-bottom: 0.5rem;">
+                    No hay acciones registradas
+                </p>
+                <p class="hint-text" style="color: #94a3b8; font-size: 0.95rem;">
+                    Agregue la primera acción usando el formulario 5W+2H
+                </p>
+            </div>
+        `;
+        
+        actualizarResumenEstados({completada: 0, en_progreso: 0, pendiente: 0});
+        return;
+    }
+    
+    acciones.sort((a, b) => {
+        const fechaA = a.fechaCreacion ? new Date(a.fechaCreacion) : new Date(0);
+        const fechaB = b.fechaCreacion ? new Date(b.fechaCreacion) : new Date(0);
+        return fechaB - fechaA;
+    });
+    
+    const contadores = { completada: 0, en_progreso: 0, pendiente: 0 };
+    
+    let html = '';
+    
+    // Obtener el texto de la causa desde la variable global window.causaActual
+    const causaTexto = window.causaActual ? window.causaActual.nombre || 'Causa' : 'Causa';
+    
+    acciones.forEach((accion, index) => {
+        const estado = accion.estado || 'pendiente';
+        contadores[estado] = (contadores[estado] || 0) + 1;
+        
+        const estadoClass = estado === 'completada' ? 'completada' : 
+                          estado === 'en_progreso' ? 'en-progreso' : 'pendiente';
+        
+        const estadoIcon = estado === 'completada' ? 'fas fa-check-circle' :
+                          estado === 'en_progreso' ? 'fas fa-spinner fa-spin' : 'far fa-clock';
+        
+        const estadoText = estado === 'completada' ? 'Completada' :
+                          estado === 'en_progreso' ? 'En Progreso' : 'Pendiente';
+        
+        // Formatear fechas
+        const fechaCreacion = accion.fechaCreacion ? 
+            new Date(accion.fechaCreacion).toLocaleDateString('es-CO', {
+                day: '2-digit',
+                month: 'short',
+                hour: '2-digit',
+                minute: '2-digit'
+            }) : 'Sin fecha';
+        
+        const fechaLimite = accion.cuando ? 
+            new Date(accion.cuando).toLocaleDateString('es-CO', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
+            }) : 'Sin fecha límite';
+        
+        // Escapar el texto de la causa para HTML/JS
+        const causaTextoEscapada = causaTexto
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, "\\'")
+            .replace(/\\/g, '\\\\')
+            .replace(/\n/g, '\\n')
+            .replace(/\r/g, '\\r');
+        
+        html += `
+            <div class="accion-item ${estadoClass}">
+                <div class="accion-header">
+                    <div class="accion-header-left">
+                        <div class="accion-estado">
+                            <i class="${estadoIcon}"></i>
+                            <span class="accion-estado-text">${estadoText}</span>
+                        </div>
+                        <div class="accion-fecha">
+                            <i class="far fa-calendar"></i>
+                            ${fechaCreacion}
+                        </div>
+                    </div>
+                    <button type="button" class="btn-secondary" onclick="abrirSeguimientoAccion(${index}, '${causaTextoEscapada}', '${cicloActual.id}')" title="Seguimiento" style="
+    margin-bottom: 12px;
+    max-height: 25px;
+    font-size: 11px;
+">
+    Seguimiento
+</button>
+                    <button type="button" class="btn-eliminar-accion" onclick="eliminarAccionCausa(${index})" title="Eliminar">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+                
+                <div class="accion-content-5w2h">
+                    <div class="accion-descripcion">
+                        <strong>QUÉ:</strong> ${accion.que || 'Sin descripción'}
+                    </div>
+                    
+                    <div class="accion-details-grid">
+                        <div class="accion-detail ${estadoClass} ${!accion.donde ? 'empty' : ''}">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <div class="accion-detail-content">
+                                <strong>DÓNDE</strong>
+                                <span>${accion.donde || 'No especificado'}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="accion-detail ${estadoClass} ${!accion.quien ? 'empty' : ''}">
+                            <i class="fas fa-user-tie"></i>
+                            <div class="accion-detail-content">
+                                <strong>QUIÉN</strong>
+                                <span>${accion.quien || 'Sin asignar'}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="accion-detail ${estadoClass} ${!accion.como ? 'empty' : ''}">
+                            <i class="fas fa-cogs"></i>
+                            <div class="accion-detail-content">
+                                <strong>CÓMO</strong>
+                                <span>${accion.como || 'No especificado'}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="accion-detail ${estadoClass} ${!accion.cuando ? 'empty' : ''}">
+                            <i class="far fa-calendar-check"></i>
+                            <div class="accion-detail-content">
+                                <strong>CUÁNDO</strong>
+                                <span>${fechaLimite}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="accion-detail ${estadoClass} ${!accion.cuanto ? 'empty' : ''}">
+                            <i class="fas fa-money-bill-wave"></i>
+                            <div class="accion-detail-content">
+                                <strong>CUÁNTO</strong>
+                                <span>${accion.cuanto || 'No especificado'}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="accion-detail ${estadoClass}">
+                            <i class="fas fa-user"></i>
+                            <div class="accion-detail-content">
+                                <strong>Creado por</strong>
+                                <span>${accion.autor || 'Sistema'}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    lista.innerHTML = html;
+    actualizarResumenEstados(contadores);
+}
+
+// Nueva función para actualizar el resumen de estados
+function actualizarResumenEstados(contadores) {
+    document.getElementById('contadorCompletadas').textContent = contadores.completada || 0;
+    document.getElementById('contadorEnProgreso').textContent = contadores.en_progreso || 0;
+    document.getElementById('contadorPendientes').textContent = contadores.pendiente || 0;
+}
+
+function formatearFechaCorta(fecha) {
+    if (!fecha) return '-';
+    try {
+        const d = new Date(fecha);
+        if (isNaN(d.getTime())) return fecha;
+        return d.toLocaleDateString('es-CO', {
+            day: '2-digit',
+            month: 'short'
+        });
+    } catch (e) {
+        return fecha;
+    }
+}
+
+function guardarAccionCausa() {
+    if (!window.causaActual) {
+        showAlert('error', 'Error', 'No hay causa seleccionada');
+        return;
+    }
+    
+    // Obtener todos los valores del formulario
+    const que = document.getElementById('nuevaAccionQue').value.trim();
+    const donde = document.getElementById('nuevaAccionDonde').value.trim();
+    const quien = document.getElementById('nuevaAccionQuien').value.trim();
+    const como = document.getElementById('nuevaAccionComo').value.trim();
+    const cuando = document.getElementById('nuevaAccionCuando').value;
+    const cuanto = document.getElementById('nuevaAccionCuanto').value.trim();
+    const estado = document.getElementById('nuevaAccionEstado').value;
+    
+    // Validaciones
+    if (!que) {
+        showAlert('warning', 'Campo requerido', 'El campo QUÉ (Descripción) es obligatorio');
+        document.getElementById('nuevaAccionQue').focus();
+        return;
+    }
+    
+    if (!quien) {
+        showAlert('warning', 'Campo requerido', 'El campo QUIÉN (Responsable) es obligatorio');
+        document.getElementById('nuevaAccionQuien').focus();
+        return;
+    }
+    
+    const btn = document.querySelector('.btn-primary');
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.innerHTML = '<svg class="spinner-icon" width="16" height="16" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round"/></svg> Guardando...';
+    
+    const accionData = {
+        cicloId: window.causaActual.cicloId,
+        idCausa: window.causaActual.id,
+        que: que,           // QUÉ
+        donde: donde,       // DÓNDE
+        quien: quien,       // QUIÉN
+        como: como,         // CÓMO
+        cuando: cuando,     // CUÁNDO
+        cuanto: cuanto,     // CUÁNTO
+        estado: estado,     // Estado
+        autor: currentUser ? currentUser.nombre : 'Usuario',
+        fechaCreacion: new Date().toISOString()
+    };
+    
+    console.log('Enviando datos de acción 5W+2H:', accionData);
+    
+    google.script.run
+        .withSuccessHandler(function(result) {
+            console.log('Respuesta del backend:', result);
+            
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+            
+            if (result.success) {
+                showAlert('success', 'Éxito', 'Acción 5W+2H guardada correctamente');
+                
+                // Limpiar formulario
+                document.getElementById('nuevaAccionQue').value = '';
+                document.getElementById('nuevaAccionDonde').value = '';
+                document.getElementById('nuevaAccionComo').value = '';
+                document.getElementById('nuevaAccionCuando').value = '';
+                document.getElementById('nuevaAccionCuanto').value = '';
+                document.getElementById('nuevaAccionEstado').value = 'pendiente';
+                
+                // Auto-completar responsable
+                if (currentUser) {
+                    document.getElementById('nuevaAccionQuien').value = currentUser.nombre || '';
+                }
+                
+                // Recargar lista
+                cargarAccionesCausa(window.causaActual.id);
+                
+                // Actualizar contador en tabla
+                actualizarContadorAcciones(window.causaActual.id);
+            } else {
+                showAlert('error', 'Error', result.message || 'No se pudo guardar la acción');
+            }
+        })
+        .withFailureHandler(function(error) {
+            console.error('Error en guardarAccionCausa:', error);
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+            showAlert('error', 'Error', 'Error al guardar: ' + (error.message || error));
+        })
+        .guardarAccionCausa(accionData);
+}
+
+// Eliminar acción
+function eliminarAccionCausa(indexAccion) {
+    if (!confirm('¿Está seguro de eliminar esta acción?')) return;
+    
+    google.script.run
+        .withSuccessHandler(function(result) {
+            if (result.success) {
+                showAlert('success', 'Éxito', 'Acción eliminada');
+                cargarAccionesCausa(window.causaActual.id);
+                actualizarContadorAcciones(window.causaActual.id);
+            } else {
+                showAlert('error', 'Error', result.message || 'No se pudo eliminar la acción');
+            }
+        })
+        .withFailureHandler(function(error) {
+            showAlert('error', 'Error', 'Error al eliminar: ' + error.message);
+        })
+        .eliminarAccionCausa(window.causaActual.cicloId, window.causaActual.id, indexAccion);
+}
+
+function actualizarContadorAcciones(idCausa) {
+    if (!cicloActual || !window.causaActual) return;
+    
+    const fila = document.querySelector(`tr[data-causa-index="${idCausa}"]`);
+    if (!fila) {
+        console.warn('Fila no encontrada para actualizar contador');
+        return;
+    }
+    
+    google.script.run
+        .withSuccessHandler(function(contador) {
+            const btn = fila.querySelector('.btn-acciones-causa');
+            if (!btn) return;
+            
+            if (contador > 0) {
+                let countSpan = btn.querySelector('.acciones-count');
+                if (!countSpan) {
+                    countSpan = document.createElement('span');
+                    countSpan.className = 'acciones-count';
+                    btn.appendChild(countSpan);
+                }
+                countSpan.textContent = contador;
+                btn.title = `${contador} acción(es) adjunta(s)`;
+            } else {
+                const countSpan = btn.querySelector('.acciones-count');
+                if (countSpan) countSpan.remove();
+                btn.title = 'Agregar acciones';
+            }
+        })
+        .withFailureHandler(function(error) {
+            console.error('Error actualizando contador:', error);
+        })
+        .getContadorAccionesCausa(cicloActual.id, idCausa);
 }
 
 // Cargar historial de seguimiento
@@ -5967,4 +7002,349 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
+// ========== FUNCIONES SEGUIMIENTO POR ACCIÓN-CAUSA ==========
+
+function guardarSeguimientoAccion() {
+    if (!accionCausaActual) {
+        showAlert('error', 'Error', 'No hay acción seleccionada');
+        return;
+    }
+    
+    const nuevoEstado = document.getElementById('nuevoEstadoAccion').value;
+    const comentario = document.getElementById('comentarioAccion').value.trim();
+    
+    if (!comentario) {
+        showAlert('warning', 'Atención', 'Por favor agregue un comentario');
+        return;
+    }
+    
+    const btn = document.querySelector('.btn-guardar-seguimiento');
+    const originalHTML = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<svg class="spinner-icon" width="16" height="16" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" opacity="0.25"/></svg> Guardando...';
+    
+    const seguimiento = {
+        cicloId: accionCausaActual.cicloId,
+        causaIndex: accionCausaActual.causaIndex,
+        causaTexto: accionCausaActual.causaTexto,
+        estado: nuevoEstado,
+        comentario: comentario,
+        autor: currentUser ? currentUser.nombre : 'Usuario'
+    };
+    
+    google.script.run
+        .withSuccessHandler(function(result) {
+            btn.disabled = false;
+            btn.innerHTML = originalHTML;
+            
+            if (result.success) {
+                showAlert('success', 'Éxito', 'Seguimiento guardado correctamente');
+                document.getElementById('comentarioAccion').value = '';
+                cargarHistorialAccionCausa(accionCausaActual.cicloId, accionCausaActual.causaIndex);
+            } else {
+                showAlert('error', 'Error', result.message || 'No se pudo guardar');
+            }
+        })
+        .withFailureHandler(function(error) {
+            btn.disabled = false;
+            btn.innerHTML = originalHTML;
+            showAlert('error', 'Error', 'Error al guardar: ' + error.message);
+        })
+        .guardarSeguimientoAccionCausa(seguimiento);
+}
+
+function cargarHistorialAccionCausa(cicloId, causaIndex) {
+    const timeline = document.getElementById('timelineAccion');
+    if (!timeline) return;
+    
+    // Mostrar skeleton loader
+    timeline.innerHTML = `
+        <div class="skeleton-loader">
+            <div class="skeleton-item"></div>
+            <div class="skeleton-item"></div>
+            <div class="skeleton-item"></div>
+        </div>
+    `;
+    
+    // Cargar datos con timeout para evitar bloqueo
+    setTimeout(() => {
+        google.script.run
+            .withSuccessHandler(function(historial) {
+                // Usar requestAnimationFrame para render suave
+                requestAnimationFrame(() => {
+                    renderHistorialAccionCausa(historial);
+                });
+            })
+            .withFailureHandler(function(error) {
+                timeline.innerHTML = `
+                    <div class="error-message">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>Error al cargar historial</p>
+                        <button onclick="cargarHistorialAccionCausa('${cicloId}', ${causaIndex})" class="btn-retry">
+                            Reintentar
+                        </button>
+                    </div>
+                `;
+            })
+            .getHistorialAccionCausa(cicloId, causaIndex);
+    }, 300); // Pequeño delay para priorizar la UI
+}
+
+function renderHistorialAccionCausa(historial) {
+  const timeline = document.getElementById('timelineAccion');
+  
+  if (!historial || historial.length === 0) {
+    timeline.innerHTML = `
+      <div style="
+        text-align: center;
+        padding: 20px;
+        color: #666;
+        font-style: italic;
+      ">
+        <i class="fas fa-history" style="font-size: 24px; margin-bottom: 10px; display: block; color: #ccc;"></i>
+        No hay registros de seguimiento aún
+      </div>
+    `;
+    return;
+  }
+  
+  let html = '';
+  historial.forEach(registro => {
+    const fecha = new Date(registro.fecha);
+    const fechaStr = fecha.toLocaleDateString('es-MX', { 
+      day: '2-digit', 
+      month: 'short', 
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+    
+    // Determinar clase de estado
+    const estadoClass = registro.estado === 'Completado' ? 'completado' : 
+                       registro.estado === 'En Progreso' ? 'en-progreso' : 
+                       registro.estado === 'Cerrado' ? 'cerrado' : 'abierto';
+    
+    html += `
+      <div style="
+        margin-bottom: 15px;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border-left: 4px solid ${
+          registro.estado === 'Completado' ? '#28a745' :
+          registro.estado === 'En Progreso' ? '#007bff' :
+          registro.estado === 'Cerrado' ? '#6c757d' : '#17a2b8'
+        };
+      ">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+          <span style="font-size: 12px; color: #666;">
+            <i class="far fa-calendar" style="margin-right: 5px;"></i>
+            ${fechaStr}
+          </span>
+          <span style="
+            background: ${
+              registro.estado === 'Completado' ? '#28a745' :
+              registro.estado === 'En Progreso' ? '#007bff' :
+              registro.estado === 'Cerrado' ? '#6c757d' : '#17a2b8'
+            };
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+          ">
+            ${registro.estado}
+          </span>
+        </div>
+        <div style="margin-bottom: 8px; font-size: 14px;">
+          ${registro.comentario || '<em style="color: #999;">Sin comentario</em>'}
+        </div>
+        <div style="font-size: 12px; color: #666;">
+          <i class="fas fa-user" style="margin-right: 5px;"></i>
+          ${registro.autor || 'Sistema'}
+        </div>
+      </div>
+    `;
+  });
+  
+  timeline.innerHTML = html;
+}
+
+function abrirSeguimientoAccion(causaIndex, causaTexto, cicloId) {
+    // Mostrar loader inmediatamente
+    showAlert('info', 'Cargando...', 'Abriendo seguimiento', 1500);
+    
+    // Establecer datos mínimos primero
+    accionCausaActual = {
+        id: parseInt(causaIndex),
+        nombre: causaTexto,
+        cicloId: cicloId || (cicloActual ? cicloActual.id : null),
+        causaIndex: parseInt(causaIndex),
+        causaTexto: causaTexto
+    };
+    
+    // Validación rápida
+    if (!accionCausaActual.cicloId) {
+        showAlert('error', 'Error', 'No se encontró el ciclo');
+        return;
+    }
+    
+    // Crear modal (usando caché)
+    const modal = crearModalSeguimientoAccion();
+    
+    // Establecer datos básicos inmediatamente
+    document.getElementById('seguimientoCicloId').textContent = accionCausaActual.cicloId;
+    document.getElementById('seguimientoCausaTexto').textContent = causaTexto || 'Acción específica';
+    document.getElementById('nuevoEstadoAccion').value = 'Abierto'; // Valor por defecto
+    document.getElementById('comentarioAccion').value = '';
+    
+    // Mostrar modal inmediatamente
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    
+    // Cargar datos en segundo plano (sin bloquear la UI)
+    setTimeout(() => {
+        // Obtener estado real (async)
+        google.script.run
+            .withSuccessHandler(function(estadoActual) {
+                if (estadoActual && document.getElementById('nuevoEstadoAccion')) {
+                    document.getElementById('nuevoEstadoAccion').value = estadoActual;
+                }
+            })
+            .getEstadoAccionCausa(accionCausaActual.cicloId, causaIndex);
+        
+        // Cargar historial
+        cargarHistorialAccionCausa(accionCausaActual.cicloId, causaIndex);
+    }, 100);
+}
+
+let modalSeguimientoCache = null;
+let modalInitialized = false;
+
+function crearModalSeguimientoAccion() {
+    // Usar caché del modal
+    if (modalSeguimientoCache && document.body.contains(modalSeguimientoCache)) {
+        return modalSeguimientoCache;
+    }
+    
+    // Crear modal simple
+    const modalHTML = `
+    <div id="modalSeguimientoAccion" class="modal-overlay-seguimiento" style="display:none;">
+        <div class="modal-seguimiento-content">
+            <button class="modal-seguimiento-close">&times;</button>
+            
+            <div class="modal-seguimiento-header">
+                <div class="modal-header-info">
+                    <span class="modal-seguimiento-id-badge" id="seguimientoCicloId">CM-001</span>
+                    <span class="modal-seguimiento-causa-badge" id="seguimientoCausaTexto">Causa raíz</span>
+                </div>
+                <h3 class="modal-seguimiento-title">Seguimiento de Acción-Causa</h3>
+            </div>
+
+            <div class="seguimiento-form-box">
+                <h4>Actualizar Estado</h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Nuevo Estado</label>
+                        <select class="form-select" id="nuevoEstadoAccion">
+                            <option value="Abierto">Abierto</option>
+                            <option value="En Progreso">En Progreso</option>
+                            <option value="Implementado">Implementado</option>
+                            <option value="Cerrado">Cerrado</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Comentario</label>
+                    <textarea class="form-textarea" id="comentarioAccion" 
+                              placeholder="Agregue un comentario sobre el cambio de estado o avance de la acción..." 
+                              rows="3"></textarea>
+                </div>
+                <button type="button" class="btn-guardar-seguimiento">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+                        <polyline points="17,21 17,13 7,13 7,21"/>
+                        <polyline points="7,3 7,8 15,8"/>
+                    </svg>
+                    Guardar Seguimiento
+                </button>
+            </div>
+
+            <div class="historial-section">
+                <h4>Historial de Seguimiento</h4>
+                <div class="timeline-wrapper" id="timelineAccion"></div>
+            </div>
+        </div>
+    </div>
+    `;
+    
+    // Agregar al DOM una sola vez
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Guardar referencia en caché
+    modalSeguimientoCache = document.getElementById('modalSeguimientoAccion');
+    
+    // Configurar listeners solo una vez
+    if (!modalInitialized) {
+        setupModalListeners();
+        modalInitialized = true;
+    }
+    
+    return modalSeguimientoCache;
+}
+
+function cerrarModalSeguimiento() {
+    const modal = modalSeguimientoCache;
+    if (!modal) return;
+    
+    // Animación de salida
+    modal.style.opacity = '0';
+    modal.style.transform = 'scale(0.95)';
+    
+    setTimeout(() => {
+        modal.style.display = 'none';
+        // Restaurar para la próxima apertura
+        modal.style.opacity = '1';
+        modal.style.transform = 'scale(1)';
+        document.body.style.overflow = 'auto';
+        accionCausaActual = null;
+        
+        // Limpiar contenido pesado
+        const timeline = document.getElementById('timelineAccion');
+        if (timeline) timeline.innerHTML = '';
+    }, 200);
+}
+
+function setupModalListeners() {
+    const modal = modalSeguimientoCache;
+    if (!modal) return;
+    
+    // Cerrar modal con botón X
+    const closeBtn = modal.querySelector('.modal-seguimiento-close');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', cerrarModalSeguimiento);
+    }
+    
+    // Cerrar modal haciendo clic fuera
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            cerrarModalSeguimiento();
+        }
+    });
+    
+    // Guardar seguimiento
+    const saveBtn = modal.querySelector('.btn-guardar-seguimiento');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', guardarSeguimientoAccion);
+    }
+    
+    // Cerrar con ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && modal.style.display !== 'none') {
+            cerrarModalSeguimiento();
+        }
+    });
+}
+
 </script>
+

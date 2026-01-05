@@ -1,0 +1,1688 @@
+<script>
+
+// Modal para estadísticas de tarjetas
+function openStatsForTarjetas() {
+    showTarjetasStatsModal();
+}
+
+function showTarjetasStatsModal() {
+    // Eliminar modal existente si hay
+    const existingModal = document.getElementById('tarjetasStatsModal');
+    if (existingModal) existingModal.remove();
+    
+    // Crear overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'tarjetasStatsModal';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        backdrop-filter: blur(5px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+    `;
+    
+    // Crear modal
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        background: white;
+        border-radius: 12px;
+        width: 95%;
+        max-width: 1400px;
+        max-height: 90vh;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    `;
+    
+    // Header del modal
+    modal.innerHTML = `
+        <div style="
+            padding: 20px 24px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #0f307f;
+            border-radius: 12px 12px 0 0;
+            color: white;
+        ">
+            <div>
+                <h2 style="margin: 0; font-size: 20px; font-weight: 600;">
+                    <i style="margin-right: 10px;" class="fa-solid fa-chart-line"></i> Dashboard de Estadísticas
+                </h2>
+                <p style="margin: 4px 0 0; opacity: 0.9; font-size: 14px;">
+                    Informe completo de gestión de tarjetas
+                </p>
+            </div>
+            <button onclick="closeTarjetasStatsModal()" style="
+                background: rgba(255,255,255,0.2);
+                border: none;
+                color: white;
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                cursor: pointer;
+                font-size: 18px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: background 0.2s;
+            ">
+                <i class="fa-solid fa-times"></i>
+            </button>
+        </div>
+        
+        <!-- Tabs Navigation -->
+        <div style="
+            background: #f8fafc;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            padding: 0 24px;
+            overflow-x: inherit;
+        " id="statsTabs">
+            <button onclick="switchTab('riesgo-problema')" class="stats-tab active" data-tab="riesgo-problema">
+                <i class="fa-solid fa-triangle-exclamation"></i> Riesgo/Problema
+            </button>
+            <button onclick="switchTab('responsable-cargo')" class="stats-tab" data-tab="responsable-cargo">
+                <i class="fa-solid fa-user-tie"></i> Por Responsable
+            </button>
+            <button onclick="switchTab('lider-solucion')" class="stats-tab" data-tab="lider-solucion">
+                <i class="fa-solid fa-user-check"></i> Por Líder
+            </button>
+            <button onclick="switchTab('zona-riesgo')" class="stats-tab" data-tab="zona-riesgo">
+                <i class="fa-solid fa-map-marker-alt"></i> Por Zona
+            </button>
+            <button onclick="switchTab('tipo-reporte')" class="stats-tab" data-tab="tipo-reporte">
+                <i class="fa-solid fa-file-alt"></i> Por Reporte
+            </button>
+            <button onclick="switchTab('mensual')" class="stats-tab" data-tab="mensual">
+                <i class="fa-solid fa-calendar-alt"></i> Mensual
+            </button>
+        </div>
+        
+        <!-- Tab Content Container -->
+        <div style="padding: 24px; overflow-y: auto; flex: 1;" id="tabContent">
+            <!-- Contenido se cargará dinámicamente -->
+        </div>
+    `;
+    
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    
+    // Cargar la primera pestaña por defecto
+    switchTab('riesgo-problema');
+    
+    // Cerrar al hacer clic fuera
+    overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) {
+            closeTarjetasStatsModal();
+        }
+    });
+    
+    // Cerrar con ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeTarjetasStatsModal();
+        }
+    });
+}
+
+function switchTab(tabName) {
+    // Crear efecto ripple
+    const activeTab = document.querySelector('.stats-tab.active');
+    if (activeTab) {
+        createRippleEffect(activeTab);
+    }
+    
+    // Actualizar clases de los tabs
+    document.querySelectorAll('.stats-tab').forEach(tab => {
+        tab.classList.remove('active');
+        if (tab.dataset.tab === tabName) {
+            tab.classList.add('active');
+        }
+    });
+    
+    // Animar el indicador
+    const indicator = document.getElementById('tabIndicator');
+    const targetTab = document.querySelector(`.stats-tab[data-tab="${tabName}"]`);
+    
+    if (indicator && targetTab) {
+        const tabRect = targetTab.getBoundingClientRect();
+        const containerRect = document.getElementById('statsTabs').getBoundingClientRect();
+        
+        indicator.style.width = `${tabRect.width}px`;
+        indicator.style.left = `${tabRect.left - containerRect.left}px`;
+        indicator.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+    }
+    
+    // Mostrar contenido según la pestaña con animación de fade
+    const tabContent = document.getElementById('tabContent');
+    tabContent.style.opacity = '0.5';
+    tabContent.style.transform = 'translateY(10px)';
+    
+    setTimeout(() => {
+        // Cambia las llamadas para usar las funciones correctas
+        if (tabName === 'riesgo-problema') {
+            loadRiesgoProblemaTab(); // Esta función debería cargar la pestaña
+        } else if (tabName === 'responsable-cargo') {
+            loadResponsableCargoTab();
+        } else if (tabName === 'lider-solucion') {
+            loadLiderSolucionTab();
+        } else if (tabName === 'zona-riesgo') {
+            loadZonaRiesgoTab();
+        } else if (tabName === 'tipo-reporte') {
+            loadTipoReporteTab();
+        } else if (tabName === 'mensual') {
+            loadMensualTab();
+        }
+        
+        // Restaurar animación
+        setTimeout(() => {
+            tabContent.style.opacity = '1';
+            tabContent.style.transform = 'translateY(0)';
+            tabContent.style.transition = 'all 0.3s ease';
+        }, 50);
+    }, 150);
+}
+
+
+function closeTarjetasStatsModal() {
+    const modal = document.getElementById('tarjetasStatsModal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+function loadTarjetasStats() {
+    const tableBody = document.getElementById('statsTableBody');
+    const summaryContainer = document.getElementById('statsSummary');
+    
+    if (tableBody) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="6" style="padding: 40px; text-align: center; color: #9ca3af;">
+                    <div style="margin-bottom: 12px;">
+                        <i class="fa-solid fa-spinner fa-spin" style="font-size: 24px;"></i>
+                    </div>
+                    Cargando estadísticas...
+                </td>
+            </tr>
+        `;
+    }
+    
+    google.script.run
+        .withSuccessHandler(function(result) {
+            if (result.success) {
+                renderTarjetasStats(result.data, result.summary);
+            } else {
+                showErrorInStats(result.message);
+            }
+        })
+        .withFailureHandler(function(error) {
+            console.error('Error cargando estadísticas:', error);
+            showErrorInStats('Error al cargar las estadísticas: ' + error.message);
+        })
+        .getTarjetasStats();
+}
+
+function renderTarjetasStats(data, summary) {
+    const tableBody = document.getElementById('statsTableBody');
+    const summaryContainer = document.getElementById('statsSummary');
+    
+    if (!tableBody) return;
+    
+    // Actualizar resumen
+    if (summaryContainer && summary) {
+        summaryContainer.innerHTML = `
+            <div style="text-align: center; padding: 20px; background: #007bff; border-radius: 8px; color: white;">
+                <div style="font-size: 12px; opacity: 0.9;">Total Tarjetas</div>
+                <div style="font-size: 32px; font-weight: 700; margin: 8px 0;">${summary.totalTarjetas || 0}</div>
+                <div style="font-size: 12px;">registradas</div>
+            </div>
+            <div style="text-align: center; padding: 20px; background: #007bff; border-radius: 8px; color: white;">
+                <div style="font-size: 12px; opacity: 0.9;">Abiertas</div>
+                <div style="font-size: 32px; font-weight: 700; margin: 8px 0;">${summary.abiertas || 0}</div>
+                <div style="font-size: 12px;">pendientes</div>
+            </div>
+            <div style="text-align: center; padding: 20px; background: #007bff; border-radius: 8px; color: white;">
+                <div style="font-size: 12px; opacity: 0.9;">Cerradas</div>
+                <div style="font-size: 32px; font-weight: 700; margin: 8px 0;">${summary.cerradas || 0}</div>
+                <div style="font-size: 12px;">gestionadas</div>
+            </div>
+            <div style="text-align: center; padding: 20px; background: #007bff; border-radius: 8px; color: white;">
+                <div style="font-size: 12px; opacity: 0.9;">% Gestión</div>
+                <div style="font-size: 32px; font-weight: 700; margin: 8px 0;">${summary.porcentajeGestion || '0.00'}%</div>
+                <div style="font-size: 12px;">eficiencia</div>
+            </div>
+        `;
+    }
+    
+    // Renderizar tabla
+    if (!data || data.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="6" style="padding: 40px; text-align: center; color: #9ca3af;">
+                    <div style="margin-bottom: 12px;">
+                        <i class="fa-solid fa-database" style="font-size: 24px;"></i>
+                    </div>
+                    No hay datos disponibles
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    let html = '';
+    data.forEach((row, index) => {
+        const isTotal = row.isTotal;
+        const isGlobalTotal = row.isGlobalTotal;
+        
+        let rowStyle = '';
+        let cellStyle = '';
+        
+        if (isGlobalTotal) {
+            rowStyle = 'background: #1f2937; color: white; font-weight: 700;';
+            cellStyle = 'font-weight: 700;';
+        } else if (isTotal) {
+            rowStyle = 'background: #374151; color: white; font-weight: 600;';
+            cellStyle = 'font-weight: 600;';
+        } else if (index % 2 === 0) {
+            rowStyle = 'background: #f9fafb;';
+        }
+        
+        // Determinar color para porcentaje
+        let porcentajeColor = '#374151';
+        if (row.porcentaje) {
+            const porcentajeNum = parseFloat(row.porcentaje);
+            if (porcentajeNum >= 80) porcentajeColor = '#10b981';
+            else if (porcentajeNum >= 50) porcentajeColor = '#f59e0b';
+            else porcentajeColor = '#ef4444';
+        }
+        
+        html += `
+            <tr style="${rowStyle}">
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; ${cellStyle}">
+                    ${row.tipoRiesgo || ''}
+                </td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; ${cellStyle}">
+                    ${row.problema || ''}
+                </td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}">
+                    ${row.abierta || 0}
+                </td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}">
+                    ${row.cerrada || 0}
+                </td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}">
+                    ${row.total || 0}
+                </td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}; color: ${porcentajeColor};">
+                    ${row.porcentaje || '0.00%'}
+                </td>
+            </tr>
+        `;
+    });
+    
+    tableBody.innerHTML = html;
+}
+
+function showErrorInStats(message) {
+    const tableBody = document.getElementById('statsTableBody');
+    if (tableBody) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="6" style="padding: 40px; text-align: center; color: #ef4444;">
+                    <div style="margin-bottom: 12px;">
+                        <i class="fa-solid fa-exclamation-triangle" style="font-size: 24px;"></i>
+                    </div>
+                    ${message || 'Error al cargar estadísticas'}
+                    <br>
+                    <button onclick="loadTarjetasStats()" style="
+                        margin-top: 12px;
+                        padding: 8px 16px;
+                        background: #3b82f6;
+                        color: white;
+                        border: none;
+                        border-radius: 6px;
+                        cursor: pointer;
+                    ">
+                        Reintentar
+                    </button>
+                </td>
+            </tr>
+        `;
+    }
+}
+
+function exportTarjetasStats() {
+    google.script.run
+        .withSuccessHandler(function(result) {
+            if (result.success) {
+                // Crear archivo CSV
+                const csvContent = result.csv;
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement("a");
+                
+                if (link.download !== undefined) {
+                    const url = URL.createObjectURL(blob);
+                    link.setAttribute("href", url);
+                    link.setAttribute("download", `estadisticas_tarjetas_${new Date().toISOString().split('T')[0]}.csv`);
+                    link.style.visibility = 'hidden';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+                
+                showAlert('success', 'Exportado', 'Estadísticas exportadas correctamente');
+            } else {
+                showAlert('error', 'Error', 'No se pudo exportar las estadísticas');
+            }
+        })
+        .withFailureHandler(function(error) {
+            showAlert('error', 'Error', 'Error al exportar: ' + error.message);
+        })
+        .exportTarjetasStatsToCSV();
+}
+
+// Función para cargar pestaña de Riesgo/Problema
+function loadRiesgoProblemaTab() {
+    const tabContent = document.getElementById('tabContent');
+    
+    tabContent.innerHTML = `
+        <div style="margin-bottom: 24px;">
+            <h3 style="margin: 0 0 16px 0; color: #374151; font-size: 18px;">
+                <i class="fa-solid fa-triangle-exclamation"></i> % Gestión por Riesgo y Problema asociado
+            </h3>
+            
+            <div id="statsSummary" style="
+                margin-bottom: 24px;
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 16px;
+            ">
+                <!-- Resumen se cargará aquí -->
+                <div style="text-align: center; padding: 20px; background: #007bff; border-radius: 8px; color: white;">
+                    <div style="font-size: 12px; opacity: 0.9;">Total Tarjetas</div>
+                    <div style="font-size: 32px; font-weight: 700; margin: 8px 0;">0</div>
+                    <div style="font-size: 12px;">registradas</div>
+                </div>
+                <div style="text-align: center; padding: 20px; background: #007bff; border-radius: 8px; color: white;">
+                    <div style="font-size: 12px; opacity: 0.9;">Abiertas</div>
+                    <div style="font-size: 32px; font-weight: 700; margin: 8px 0;">0</div>
+                    <div style="font-size: 12px;">pendientes</div>
+                </div>
+                <div style="text-align: center; padding: 20px; background: #007bff; border-radius: 8px; color: white;">
+                    <div style="font-size: 12px; opacity: 0.9;">Cerradas</div>
+                    <div style="font-size: 32px; font-weight: 700; margin: 8px 0;">0</div>
+                    <div style="font-size: 12px;">gestionadas</div>
+                </div>
+                <div style="text-align: center; padding: 20px; background: #007bff; border-radius: 8px; color: white;">
+                    <div style="font-size: 12px; opacity: 0.9;">% Gestión</div>
+                    <div style="font-size: 32px; font-weight: 700; margin: 8px 0;">0%</div>
+                    <div style="font-size: 12px;">eficiencia</div>
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <h4 style="margin: 0; color: #374151; font-size: 16px;">
+                    <i class="fa-solid fa-table"></i> Tabla Dinámica
+                </h4>
+                <div style="display: flex; gap: 12px;">
+                    <button onclick="loadCurrentTabStats()" style="
+                        padding: 8px 16px;
+                        background: #3b82f6;
+                        color: white;
+                        border: none;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        font-size: 14px;
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
+                    ">
+                        <i class="fa-solid fa-rotate"></i> Actualizar
+                    </button>
+                    <button onclick="exportCurrentTabStats()" style="
+                        padding: 8px 16px;
+                        background: #10b981;
+                        color: white;
+                        border: none;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        font-size: 14px;
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
+                    ">
+                        <i class="fa-solid fa-file-export"></i> Exportar
+                    </button>
+                </div>
+            </div>
+            
+            <div style="overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 8px;">
+                <table id="statsTable" style="
+                    width: 100%;
+                    border-collapse: collapse;
+                    font-size: 14px;
+                ">
+                    <thead style="background: #f9fafb; border-bottom: 2px solid #e5e7eb;">
+                        <tr>
+                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151;">Tipo de Riesgo</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151;">Problema Asociado</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600; color: #374151;">Abierta</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600; color: #374151;">Cerrada</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600; color: #374151;">Suma total</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600; color: #374151;">% Gestión</th>
+                        </tr>
+                    </thead>
+                    <tbody id="statsTableBody">
+                        <tr>
+                            <td colspan="6" style="padding: 40px; text-align: center; color: #9ca3af;">
+                                <div style="margin-bottom: 12px;">
+                                    <i class="fa-solid fa-spinner fa-spin" style="font-size: 24px;"></i>
+                                </div>
+                                Cargando estadísticas...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+    
+    // Cargar datos para esta pestaña
+    loadRiesgoProblemaStats();
+}
+
+// Función para cargar pestaña de Responsable por Cargo
+function loadResponsableCargoTab() {
+    const tabContent = document.getElementById('tabContent');
+    
+    tabContent.innerHTML = `
+        <div style="margin-bottom: 24px;">
+            <h3 style="margin: 0 0 16px 0; color: #374151; font-size: 18px;">
+                <i class="fa-solid fa-user-tie"></i> % Gestión por Responsable por Cargo de la Solución
+            </h3>
+            
+            <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <h4 style="margin: 0; color: #374151; font-size: 16px;">
+                    <i class="fa-solid fa-table"></i> Tabla Dinámica
+                </h4>
+                <div style="display: flex; gap: 12px;">
+                    <button onclick="loadCurrentTabStats()" style="
+                        padding: 8px 16px;
+                        background: #3b82f6;
+                        color: white;
+                        border: none;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        font-size: 14px;
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
+                    ">
+                        <i class="fa-solid fa-rotate"></i> Actualizar
+                    </button>
+                    <button onclick="exportCurrentTabStats()" style="
+                        padding: 8px 16px;
+                        background: #10b981;
+                        color: white;
+                        border: none;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        font-size: 14px;
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
+                    ">
+                        <i class="fa-solid fa-file-export"></i> Exportar
+                    </button>
+                </div>
+            </div>
+            
+            <div style="overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 8px;">
+                <table id="statsTable" style="
+                    width: 100%;
+                    border-collapse: collapse;
+                    font-size: 14px;
+                ">
+                    <thead style="background: #f9fafb; border-bottom: 2px solid #e5e7eb;">
+                        <tr>
+                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151;">Responsable Solución</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600; color: #374151;">Abierta</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600; color: #374151;">Cerrada</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600; color: #374151;">Suma total</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600; color: #374151;">% Gestión</th>
+                        </tr>
+                    </thead>
+                    <tbody id="statsTableBody">
+                        <tr>
+                            <td colspan="5" style="padding: 40px; text-align: center; color: #9ca3af;">
+                                <div style="margin-bottom: 12px;">
+                                    <i class="fa-solid fa-spinner fa-spin" style="font-size: 24px;"></i>
+                                </div>
+                                Cargando estadísticas...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+    
+    // Cargar datos para esta pestaña
+    loadResponsableCargoStats();
+}
+
+// Funciones similares para las otras pestañas (puedes crear los templates necesarios)
+function loadLiderSolucionTab() {
+    const tabContent = document.getElementById('tabContent');
+    
+    tabContent.innerHTML = `
+        <div style="margin-bottom: 24px;">
+            <h3 style="margin: 0 0 16px 0; color: #374151; font-size: 18px;">
+                <i class="fa-solid fa-user-check"></i> % Gestión por Líder de la Solución
+            </h3>
+            
+            <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <h4 style="margin: 0; color: #374151; font-size: 16px;">
+                    <i class="fa-solid fa-table"></i> Tabla Dinámica
+                </h4>
+                <div style="display: flex; gap: 12px;">
+                    <button onclick="loadCurrentTabStats()" style="
+                        padding: 8px 16px;
+                        background: #3b82f6;
+                        color: white;
+                        border: none;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        font-size: 14px;
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
+                    ">
+                        <i class="fa-solid fa-rotate"></i> Actualizar
+                    </button>
+                    <button onclick="exportCurrentTabStats()" style="
+                        padding: 8px 16px;
+                        background: #10b981;
+                        color: white;
+                        border: none;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        font-size: 14px;
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
+                    ">
+                        <i class="fa-solid fa-file-export"></i> Exportar
+                    </button>
+                </div>
+            </div>
+            
+            <div style="overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 8px;">
+                <table id="statsTable" style="
+                    width: 100%;
+                    border-collapse: collapse;
+                    font-size: 14px;
+                ">
+                    <thead style="background: #f9fafb; border-bottom: 2px solid #e5e7eb;">
+                        <tr>
+                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151;">Líder de Solución</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600; color: #374151;">Abierta</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600; color: #374151;">Cerrada</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600; color: #374151;">Suma total</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600; color: #374151;">% Gestión</th>
+                        </tr>
+                    </thead>
+                    <tbody id="statsTableBody">
+                        <tr>
+                            <td colspan="5" style="padding: 40px; text-align: center; color: #9ca3af;">
+                                <div style="margin-bottom: 12px;">
+                                    <i class="fa-solid fa-spinner fa-spin" style="font-size: 24px;"></i>
+                                </div>
+                                Cargando estadísticas...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+    
+    loadLiderSolucionStats();
+}
+
+// Función para detectar la pestaña activa y cargar los datos correspondientes
+function loadCurrentTabStats() {
+    const activeTab = document.querySelector('.stats-tab.active');
+    if (!activeTab) return;
+    
+    const tabName = activeTab.dataset.tab;
+    
+    switch(tabName) {
+        case 'riesgo-problema':
+            loadRiesgoProblemaStats();
+            break;
+        case 'responsable-cargo':
+            loadResponsableCargoStats();
+            break;
+        case 'lider-solucion':
+            loadLiderSolucionStats();
+            break;
+        case 'zona-riesgo':
+            loadZonaRiesgoStats();
+            break;
+        case 'tipo-reporte':
+            loadTipoReporteStats();
+            break;
+        case 'mensual':
+            loadMensualStats();
+            break;
+    }
+}
+
+// Función para cargar estadísticas de riesgo/problema
+function loadRiesgoProblemaStats() {
+    const tableBody = document.getElementById('statsTableBody');
+    
+    if (tableBody) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="6" style="padding: 40px; text-align: center; color: #9ca3af;">
+                    <div style="margin-bottom: 12px;">
+                        <i class="fa-solid fa-spinner fa-spin" style="font-size: 24px;"></i>
+                    </div>
+                    Cargando estadísticas...
+                </td>
+            </tr>
+        `;
+    }
+    
+    google.script.run
+        .withSuccessHandler(function(result) {
+            if (result.success) {
+                renderTarjetasStats(result.data, result.summary);
+            } else {
+                showErrorInStats(result.message);
+            }
+        })
+        .withFailureHandler(function(error) {
+            console.error('Error cargando estadísticas:', error);
+            showErrorInStats('Error al cargar las estadísticas: ' + error.message);
+        })
+        .getTarjetasStats(); // Esta es tu función existente
+}
+
+// Función para cargar estadísticas de responsable por cargo
+function loadResponsableCargoStats() {
+    const tableBody = document.getElementById('statsTableBody');
+    
+    if (tableBody) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="5" style="padding: 40px; text-align: center; color: #9ca3af;">
+                    <div style="margin-bottom: 12px;">
+                        <i class="fa-solid fa-spinner fa-spin" style="font-size: 24px;"></i>
+                    </div>
+                    Cargando estadísticas...
+                </td>
+            </tr>
+        `;
+    }
+    
+    google.script.run
+        .withSuccessHandler(function(result) {
+            if (result.success) {
+                renderResponsableCargoStats(result.data);
+            } else {
+                showErrorInStats(result.message);
+            }
+        })
+        .withFailureHandler(function(error) {
+            console.error('Error cargando estadísticas:', error);
+            showErrorInStats('Error al cargar las estadísticas: ' + error.message);
+        })
+        .getResponsableCargoStats();
+}
+
+// Función para cargar estadísticas de líder de solución
+function loadLiderSolucionStats() {
+    const tableBody = document.getElementById('statsTableBody');
+    
+    if (tableBody) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="5" style="padding: 40px; text-align: center; color: #9ca3af;">
+                    <div style="margin-bottom: 12px;">
+                        <i class="fa-solid fa-spinner fa-spin" style="font-size: 24px;"></i>
+                    </div>
+                    Cargando estadísticas...
+                </td>
+            </tr>
+        `;
+    }
+    
+    google.script.run
+        .withSuccessHandler(function(result) {
+            if (result.success) {
+                renderLiderSolucionStats(result.data);
+            } else {
+                showErrorInStats(result.message);
+            }
+        })
+        .withFailureHandler(function(error) {
+            console.error('Error cargando estadísticas:', error);
+            showErrorInStats('Error al cargar las estadísticas: ' + error.message);
+        })
+        .getLiderSolucionStats();
+}
+
+function renderResponsableCargoStats(data) {
+    const tableBody = document.getElementById('statsTableBody');
+    
+    if (!tableBody) return;
+    
+    if (!data || data.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="5" style="padding: 40px; text-align: center; color: #9ca3af;">
+                    <div style="margin-bottom: 12px;">
+                        <i class="fa-solid fa-database" style="font-size: 24px;"></i>
+                    </div>
+                    No hay datos disponibles
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    let html = '';
+    data.forEach((row, index) => {
+        const isGlobalTotal = row.isGlobalTotal;
+        
+        let rowStyle = '';
+        let cellStyle = '';
+        
+        if (isGlobalTotal) {
+            rowStyle = 'background: #1f2937; color: white; font-weight: 700;';
+            cellStyle = 'font-weight: 700;';
+        } else if (index % 2 === 0) {
+            rowStyle = 'background: #f9fafb;';
+        }
+        
+        // Determinar color para porcentaje
+        let porcentajeColor = '#374151';
+        if (row.porcentaje) {
+            const porcentajeNum = parseFloat(row.porcentaje);
+            if (porcentajeNum >= 80) porcentajeColor = '#10b981';
+            else if (porcentajeNum >= 50) porcentajeColor = '#f59e0b';
+            else porcentajeColor = '#ef4444';
+        }
+        
+        html += `
+            <tr style="${rowStyle}">
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; ${cellStyle}">
+                    ${row.responsable || ''}
+                </td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}">
+                    ${row.abierta || 0}
+                </td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}">
+                    ${row.cerrada || 0}
+                </td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}">
+                    ${row.total || 0}
+                </td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}; color: ${porcentajeColor};">
+                    ${row.porcentaje || '0.00%'}
+                </td>
+            </tr>
+        `;
+    });
+    
+    tableBody.innerHTML = html;
+}
+
+function renderLiderSolucionStats(data) {
+    const tableBody = document.getElementById('statsTableBody');
+    
+    if (!tableBody) return;
+    
+    if (!data || data.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="5" style="padding: 40px; text-align: center; color: #9ca3af;">
+                    <div style="margin-bottom: 12px;">
+                        <i class="fa-solid fa-database" style="font-size: 24px;"></i>
+                    </div>
+                    No hay datos disponibles
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    let html = '';
+    data.forEach((row, index) => {
+        const isGlobalTotal = row.isGlobalTotal;
+        
+        let rowStyle = '';
+        let cellStyle = '';
+        
+        if (isGlobalTotal) {
+            rowStyle = 'background: #1f2937; color: white; font-weight: 700;';
+            cellStyle = 'font-weight: 700;';
+        } else if (index % 2 === 0) {
+            rowStyle = 'background: #f9fafb;';
+        }
+        
+        // Determinar color para porcentaje
+        let porcentajeColor = '#374151';
+        if (row.porcentaje) {
+            const porcentajeNum = parseFloat(row.porcentaje);
+            if (porcentajeNum >= 80) porcentajeColor = '#10b981';
+            else if (porcentajeNum >= 50) porcentajeColor = '#f59e0b';
+            else porcentajeColor = '#ef4444';
+        }
+        
+        html += `
+            <tr style="${rowStyle}">
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; ${cellStyle}">
+                    ${row.lider || ''}
+                </td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}">
+                    ${row.abierta || 0}
+                </td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}">
+                    ${row.cerrada || 0}
+                </td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}">
+                    ${row.total || 0}
+                </td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}; color: ${porcentajeColor};">
+                    ${row.porcentaje || '0.00%'}
+                </td>
+            </tr>
+        `;
+    });
+    
+    tableBody.innerHTML = html;
+}
+
+function exportCurrentTabStats() {
+    const activeTab = document.querySelector('.stats-tab.active');
+    if (!activeTab) return;
+    
+    const tabName = activeTab.dataset.tab;
+    let functionName = '';
+    
+    switch(tabName) {
+        case 'riesgo-problema':
+            functionName = 'exportTarjetasStatsToCSV';
+            break;
+        case 'responsable-cargo':
+            functionName = 'exportResponsableCargoStatsToCSV';
+            break;
+        case 'lider-solucion':
+            functionName = 'exportLiderSolucionStatsToCSV';
+            break;
+        // Agrega los casos para las otras pestañas
+        default:
+            showAlert('info', 'Exportación', 'Función de exportación no implementada para esta pestaña');
+            return;
+    }
+    
+    google.script.run
+        .withSuccessHandler(function(result) {
+            if (result.success) {
+                // Crear archivo CSV
+                const csvContent = result.csv;
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement("a");
+                
+                if (link.download !== undefined) {
+                    const url = URL.createObjectURL(blob);
+                    const date = new Date().toISOString().split('T')[0];
+                    const fileName = `estadisticas_${tabName}_${date}.csv`;
+                    
+                    link.setAttribute("href", url);
+                    link.setAttribute("download", fileName);
+                    link.style.visibility = 'hidden';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+                
+                showAlert('success', 'Exportado', 'Estadísticas exportadas correctamente');
+            } else {
+                showAlert('error', 'Error', 'No se pudo exportar las estadísticas');
+            }
+        })
+        .withFailureHandler(function(error) {
+            showAlert('error', 'Error', 'Error al exportar: ' + error.message);
+        })[functionName]();
+}
+
+function createRippleEffect(element) {
+    const ripple = document.createElement('span');
+    ripple.classList.add('stats-tab-ripple');
+    
+    const rect = element.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height);
+    const x = event ? event.clientX - rect.left - size / 2 : size / 2;
+    const y = event ? event.clientY - rect.top - size / 2 : size / 2;
+    
+    ripple.style.width = ripple.style.height = `${size}px`;
+    ripple.style.left = `${x}px`;
+    ripple.style.top = `${y}px`;
+    
+    element.appendChild(ripple);
+    
+    setTimeout(() => {
+        ripple.remove();
+    }, 600);
+}
+
+// Inicializar el indicador cuando se carga el modal
+function initTabIndicator() {
+    const activeTab = document.querySelector('.stats-tab.active');
+    if (activeTab) {
+        const indicator = document.getElementById('tabIndicator');
+        if (!indicator) return;
+        
+        const tabRect = activeTab.getBoundingClientRect();
+        const containerRect = document.getElementById('statsTabs').getBoundingClientRect();
+        
+        indicator.style.width = `${tabRect.width}px`;
+        indicator.style.left = `${tabRect.left - containerRect.left}px`;
+        indicator.style.height = '3px';
+        indicator.style.background = 'linear-gradient(90deg, #0f307f 0%, #3b82f6 100%)';
+        indicator.style.position = 'absolute';
+        indicator.style.bottom = '-3px';
+        indicator.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+        indicator.style.zIndex = '4';
+        indicator.style.borderRadius = '3px 3px 0 0';
+    }
+}
+
+// Función para cargar pestaña de Zona de Riesgo
+function loadZonaRiesgoTab() {
+    const tabContent = document.getElementById('tabContent');
+    
+    tabContent.innerHTML = `
+        <div style="margin-bottom: 24px;">
+            <h3 style="margin: 0 0 16px 0; color: #374151; font-size: 18px;">
+                <i class="fa-solid fa-map-marker-alt"></i> % Gestión por Zona de Riesgo
+            </h3>
+            
+            <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <h4 style="margin: 0; color: #374151; font-size: 16px;">
+                    <i class="fa-solid fa-table"></i> Tabla Dinámica
+                </h4>
+                <div style="display: flex; gap: 12px;">
+                    <button onclick="loadZonaRiesgoStats()" style="
+                        padding: 8px 16px;
+                        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+                        color: white;
+                        border: none;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        font-size: 14px;
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
+                        transition: all 0.3s ease;
+                    ">
+                        <i class="fa-solid fa-rotate"></i> Actualizar
+                    </button>
+                    <button onclick="exportZonaRiesgoStats()" style="
+                        padding: 8px 16px;
+                        background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+                        color: white;
+                        border: none;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        font-size: 14px;
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
+                        transition: all 0.3s ease;
+                    ">
+                        <i class="fa-solid fa-file-export"></i> Exportar
+                    </button>
+                </div>
+            </div>
+            
+            <div style="overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                <table id="statsTable" style="
+                    width: 100%;
+                    border-collapse: collapse;
+                    font-size: 14px;
+                ">
+                    <thead style="background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%); border-bottom: 2px solid #e5e7eb;">
+                        <tr>
+                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151;">Zona de Riesgo</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600; color: #374151;">Abierta</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600; color: #374151;">Cerrada</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600; color: #374151;">Suma total</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600; color: #374151;">% Gestión</th>
+                        </tr>
+                    </thead>
+                    <tbody id="statsTableBody">
+                        <tr>
+                            <td colspan="5" style="padding: 40px; text-align: center; color: #9ca3af;">
+                                <div style="margin-bottom: 12px;">
+                                    <i class="fa-solid fa-spinner fa-spin" style="font-size: 24px;"></i>
+                                </div>
+                                Cargando estadísticas...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div style="margin-top: 20px; padding: 16px; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-radius: 8px; border-left: 4px solid #3b82f6;">
+                <div style="display: flex; align-items: center; gap: 12px; color: #1e40af;">
+                    <i class="fa-solid fa-info-circle" style="font-size: 18px;"></i>
+                    <div>
+                        <strong>Nota:</strong> Distribución de tarjetas por área geográfica o zona funcional
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    loadZonaRiesgoStats();
+}
+
+// Función para cargar pestaña de Tipo de Reporte
+function loadTipoReporteTab() {
+    const tabContent = document.getElementById('tabContent');
+    
+    tabContent.innerHTML = `
+        <div style="margin-bottom: 24px;">
+            <h3 style="margin: 0 0 16px 0; color: #374151; font-size: 18px;">
+                <i class="fa-solid fa-file-alt"></i> % Gestión por Tipo de Reporte
+            </h3>
+            
+            <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <h4 style="margin: 0; color: #374151; font-size: 16px;">
+                    <i class="fa-solid fa-table"></i> Tabla Dinámica
+                </h4>
+                <div style="display: flex; gap: 12px;">
+                    <button onclick="loadTipoReporteStats()" style="
+                        padding: 8px 16px;
+                        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+                        color: white;
+                        border: none;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        font-size: 14px;
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
+                        transition: all 0.3s ease;
+                    ">
+                        <i class="fa-solid fa-rotate"></i> Actualizar
+                    </button>
+                    <button onclick="exportTipoReporteStats()" style="
+                        padding: 8px 16px;
+                        background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+                        color: white;
+                        border: none;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        font-size: 14px;
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
+                        transition: all 0.3s ease;
+                    ">
+                        <i class="fa-solid fa-file-export"></i> Exportar
+                    </button>
+                </div>
+            </div>
+            
+            <div style="overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                <table id="statsTable" style="
+                    width: 100%;
+                    border-collapse: collapse;
+                    font-size: 14px;
+                ">
+                    <thead style="background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%); border-bottom: 2px solid #e5e7eb;">
+                        <tr>
+                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151;">Tipo de Reporte</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600; color: #374151;">Abierta</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600; color: #374151;">Cerrada</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600; color: #374151;">Suma total</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600; color: #374151;">% Gestión</th>
+                        </tr>
+                    </thead>
+                    <tbody id="statsTableBody">
+                        <tr>
+                            <td colspan="5" style="padding: 40px; text-align: center; color: #9ca3af;">
+                                <div style="margin-bottom: 12px;">
+                                    <i class="fa-solid fa-spinner fa-spin" style="font-size: 24px;"></i>
+                                </div>
+                                Cargando estadísticas...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div style="margin-top: 20px; padding: 16px; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-radius: 8px; border-left: 4px solid #3b82f6;">
+                <div style="display: flex; align-items: center; gap: 12px; color: #1e40af;">
+                    <i class="fa-solid fa-info-circle" style="font-size: 18px;"></i>
+                    <div>
+                        <strong>Nota:</strong> Análisis por origen o método de reporte de las tarjetas
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    loadTipoReporteStats();
+}
+
+// Función para cargar pestaña Mensual
+function loadMensualTab() {
+    const tabContent = document.getElementById('tabContent');
+    
+    tabContent.innerHTML = `
+        <div style="margin-bottom: 24px;">
+            <h3 style="margin: 0 0 16px 0; color: #374151; font-size: 18px;">
+                <i class="fa-solid fa-calendar-alt"></i> % Gestión Mensual
+            </h3>
+            
+            <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <h4 style="margin: 0; color: #374151; font-size: 16px;">
+                    <i class="fa-solid fa-table"></i> Evolución Temporal
+                </h4>
+                <div style="display: flex; gap: 12px;">
+                    <button onclick="loadMensualStats()" style="
+                        padding: 8px 16px;
+                        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+                        color: white;
+                        border: none;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        font-size: 14px;
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
+                        transition: all 0.3s ease;
+                    ">
+                        <i class="fa-solid fa-rotate"></i> Actualizar
+                    </button>
+                    <button onclick="exportMensualStats()" style="
+                        padding: 8px 16px;
+                        background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+                        color: white;
+                        border: none;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        font-size: 14px;
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
+                        transition: all 0.3s ease;
+                    ">
+                        <i class="fa-solid fa-file-export"></i> Exportar
+                    </button>
+                </div>
+            </div>
+            
+            <div style="overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                <table id="statsTable" style="
+                    width: 100%;
+                    border-collapse: collapse;
+                    font-size: 14px;
+                ">
+                    <thead style="background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%); border-bottom: 2px solid #e5e7eb;">
+                        <tr>
+                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151;">Año</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151;">Mes</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600; color: #374151;">Abierta</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600; color: #374151;">Cerrada</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600; color: #374151;">Suma total</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600; color: #374151;">% Gestión</th>
+                        </tr>
+                    </thead>
+                    <tbody id="statsTableBody">
+                        <tr>
+                            <td colspan="6" style="padding: 40px; text-align: center; color: #9ca3af;">
+                                <div style="margin-bottom: 12px;">
+                                    <i class="fa-solid fa-spinner fa-spin" style="font-size: 24px;"></i>
+                                </div>
+                                Cargando estadísticas...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div style="margin-top: 20px; padding: 16px; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-radius: 8px; border-left: 4px solid #3b82f6;">
+                <div style="display: flex; align-items: center; gap: 12px; color: #1e40af;">
+                    <i class="fa-solid fa-info-circle" style="font-size: 18px;"></i>
+                    <div>
+                        <strong>Nota:</strong> Evolución mensual del desempeño en la gestión de tarjetas
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    loadMensualStats();
+}
+
+// Función para cargar estadísticas de zona de riesgo
+function loadZonaRiesgoStats() {
+    const tableBody = document.getElementById('statsTableBody');
+    
+    if (tableBody) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="5" style="padding: 40px; text-align: center; color: #9ca3af;">
+                    <div style="margin-bottom: 12px;">
+                        <i class="fa-solid fa-spinner fa-spin" style="font-size: 24px;"></i>
+                    </div>
+                    Cargando estadísticas...
+                </td>
+            </tr>
+        `;
+    }
+    
+    google.script.run
+        .withSuccessHandler(function(result) {
+            if (result.success) {
+                renderZonaRiesgoStats(result.data);
+            } else {
+                showErrorInStats(result.message);
+            }
+        })
+        .withFailureHandler(function(error) {
+            console.error('Error cargando estadísticas:', error);
+            showErrorInStats('Error al cargar las estadísticas: ' + error.message);
+        })
+        .getZonaRiesgoStats();
+}
+
+// Función para cargar estadísticas de tipo de reporte
+function loadTipoReporteStats() {
+    const tableBody = document.getElementById('statsTableBody');
+    
+    if (tableBody) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="5" style="padding: 40px; text-align: center; color: #9ca3af;">
+                    <div style="margin-bottom: 12px;">
+                        <i class="fa-solid fa-spinner fa-spin" style="font-size: 24px;"></i>
+                    </div>
+                    Cargando estadísticas...
+                </td>
+            </tr>
+        `;
+    }
+    
+    google.script.run
+        .withSuccessHandler(function(result) {
+            if (result.success) {
+                renderTipoReporteStats(result.data);
+            } else {
+                showErrorInStats(result.message);
+            }
+        })
+        .withFailureHandler(function(error) {
+            console.error('Error cargando estadísticas:', error);
+            showErrorInStats('Error al cargar las estadísticas: ' + error.message);
+        })
+        .getTipoReporteStats();
+}
+
+// Función para cargar estadísticas mensuales
+function loadMensualStats() {
+    const tableBody = document.getElementById('statsTableBody');
+    
+    if (tableBody) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="6" style="padding: 40px; text-align: center; color: #9ca3af;">
+                    <div style="margin-bottom: 12px;">
+                        <i class="fa-solid fa-spinner fa-spin" style="font-size: 24px;"></i>
+                    </div>
+                    Cargando estadísticas...
+                </td>
+            </tr>
+        `;
+    }
+    
+    google.script.run
+        .withSuccessHandler(function(result) {
+            if (result.success) {
+                renderMensualStats(result.data);
+            } else {
+                showErrorInStats(result.message);
+            }
+        })
+        .withFailureHandler(function(error) {
+            console.error('Error cargando estadísticas:', error);
+            showErrorInStats('Error al cargar las estadísticas: ' + error.message);
+        })
+        .getMensualStats();
+}
+
+// Función de renderizado para Zona de Riesgo
+function renderZonaRiesgoStats(data) {
+    const tableBody = document.getElementById('statsTableBody');
+    
+    if (!tableBody) return;
+    
+    if (!data || data.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="5" style="padding: 40px; text-align: center; color: #9ca3af;">
+                    <div style="margin-bottom: 12px;">
+                        <i class="fa-solid fa-database" style="font-size: 24px;"></i>
+                    </div>
+                    No hay datos disponibles
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    let html = '';
+    data.forEach((row, index) => {
+        const isGlobalTotal = row.isGlobalTotal;
+        
+        let rowStyle = '';
+        let cellStyle = '';
+        
+        if (isGlobalTotal) {
+            rowStyle = 'background: linear-gradient(135deg, #1f2937 0%, #111827 100%); color: white; font-weight: 700;';
+            cellStyle = 'font-weight: 700;';
+        } else if (index % 2 === 0) {
+            rowStyle = 'background: #f9fafb;';
+        }
+        
+        // Determinar color para porcentaje
+        let porcentajeColor = '#374151';
+        if (row.porcentaje) {
+            const porcentajeNum = parseFloat(row.porcentaje);
+            if (porcentajeNum >= 80) porcentajeColor = '#10b981';
+            else if (porcentajeNum >= 50) porcentajeColor = '#f59e0b';
+            else porcentajeColor = '#ef4444';
+        }
+        
+        html += `
+            <tr style="${rowStyle}">
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; ${cellStyle}">
+                    ${row.zonaRiesgo || ''}
+                </td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}">
+                    ${row.abierta || 0}
+                </td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}">
+                    ${row.cerrada || 0}
+                </td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}">
+                    ${row.total || 0}
+                </td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}; color: ${porcentajeColor}; font-weight: bold;">
+                    ${row.porcentaje || '0.00%'}
+                </td>
+            </tr>
+        `;
+    });
+    
+    tableBody.innerHTML = html;
+}
+
+// Función de renderizado para Tipo de Reporte
+function renderTipoReporteStats(data) {
+    const tableBody = document.getElementById('statsTableBody');
+    
+    if (!tableBody) return;
+    
+    if (!data || data.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="5" style="padding: 40px; text-align: center; color: #9ca3af;">
+                    <div style="margin-bottom: 12px;">
+                        <i class="fa-solid fa-database" style="font-size: 24px;"></i>
+                    </div>
+                    No hay datos disponibles
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    let html = '';
+    data.forEach((row, index) => {
+        const isGlobalTotal = row.isGlobalTotal;
+        
+        let rowStyle = '';
+        let cellStyle = '';
+        
+        if (isGlobalTotal) {
+            rowStyle = 'background: linear-gradient(135deg, #1f2937 0%, #111827 100%); color: white; font-weight: 700;';
+            cellStyle = 'font-weight: 700;';
+        } else if (index % 2 === 0) {
+            rowStyle = 'background: #f9fafb;';
+        }
+        
+        // Determinar color para porcentaje
+        let porcentajeColor = '#374151';
+        if (row.porcentaje) {
+            const porcentajeNum = parseFloat(row.porcentaje);
+            if (porcentajeNum >= 80) porcentajeColor = '#10b981';
+            else if (porcentajeNum >= 50) porcentajeColor = '#f59e0b';
+            else porcentajeColor = '#ef4444';
+        }
+        
+        html += `
+            <tr style="${rowStyle}">
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; ${cellStyle}">
+                    ${row.tipoReporte || ''}
+                </td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}">
+                    ${row.abierta || 0}
+                </td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}">
+                    ${row.cerrada || 0}
+                </td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}">
+                    ${row.total || 0}
+                </td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}; color: ${porcentajeColor}; font-weight: bold;">
+                    ${row.porcentaje || '0.00%'}
+                </td>
+            </tr>
+        `;
+    });
+    
+    tableBody.innerHTML = html;
+}
+
+// Función de renderizado para Mensual
+function renderMensualStats(data) {
+    const tableBody = document.getElementById('statsTableBody');
+    
+    if (!tableBody) return;
+    
+    if (!data || data.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="6" style="padding: 40px; text-align: center; color: #9ca3af;">
+                    <div style="margin-bottom: 12px;">
+                        <i class="fa-solid fa-database" style="font-size: 24px;"></i>
+                    </div>
+                    No hay datos disponibles
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    let html = '';
+    let currentYear = '';
+    
+    data.forEach((row, index) => {
+        const isYearTotal = row.isYearTotal;
+        const isGlobalTotal = row.isGlobalTotal;
+        
+        let rowStyle = '';
+        let cellStyle = '';
+        
+        if (isGlobalTotal) {
+            rowStyle = 'background: linear-gradient(135deg, #1f2937 0%, #111827 100%); color: white; font-weight: 700;';
+            cellStyle = 'font-weight: 700;';
+        } else if (isYearTotal) {
+            rowStyle = 'background: #374151; color: white; font-weight: 600;';
+            cellStyle = 'font-weight: 600;';
+        } else if (index % 2 === 0) {
+            rowStyle = 'background: #f9fafb;';
+        }
+        
+        // Determinar color para porcentaje
+        let porcentajeColor = '#374151';
+        if (row.porcentaje) {
+            const porcentajeNum = parseFloat(row.porcentaje);
+            if (porcentajeNum >= 80) porcentajeColor = '#10b981';
+            else if (porcentajeNum >= 50) porcentajeColor = '#f59e0b';
+            else porcentajeColor = '#ef4444';
+        }
+        
+        // Mostrar año solo cuando cambia
+        const yearCell = (row.ano && row.ano !== currentYear) ? row.ano : '';
+        if (row.ano && row.ano !== currentYear) {
+            currentYear = row.ano;
+        }
+        
+        html += `
+            <tr style="${rowStyle}">
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; ${cellStyle}">
+                    ${yearCell}
+                </td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; ${cellStyle}">
+                    ${row.mes || ''}
+                </td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}">
+                    ${row.abierta || 0}
+                </td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}">
+                    ${row.cerrada || 0}
+                </td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}">
+                    ${row.total || 0}
+                </td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}; color: ${porcentajeColor}; font-weight: bold;">
+                    ${row.porcentaje || '0.00%'}
+                </td>
+            </tr>
+        `;
+    });
+    
+    tableBody.innerHTML = html;
+}
+
+// Función de exportación para Zona de Riesgo
+function exportZonaRiesgoStats() {
+    google.script.run
+        .withSuccessHandler(function(result) {
+            if (result.success) {
+                const csvContent = result.csv;
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement("a");
+                
+                if (link.download !== undefined) {
+                    const url = URL.createObjectURL(blob);
+                    link.setAttribute("href", url);
+                    link.setAttribute("download", `estadisticas_zona_riesgo_${new Date().toISOString().split('T')[0]}.csv`);
+                    link.style.visibility = 'hidden';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+                
+                showAlert('success', 'Exportado', 'Estadísticas exportadas correctamente');
+            } else {
+                showAlert('error', 'Error', 'No se pudo exportar las estadísticas');
+            }
+        })
+        .withFailureHandler(function(error) {
+            showAlert('error', 'Error', 'Error al exportar: ' + error.message);
+        })
+        .exportZonaRiesgoStatsToCSV();
+}
+
+// Función de exportación para Tipo de Reporte
+function exportTipoReporteStats() {
+    google.script.run
+        .withSuccessHandler(function(result) {
+            if (result.success) {
+                const csvContent = result.csv;
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement("a");
+                
+                if (link.download !== undefined) {
+                    const url = URL.createObjectURL(blob);
+                    link.setAttribute("href", url);
+                    link.setAttribute("download", `estadisticas_tipo_reporte_${new Date().toISOString().split('T')[0]}.csv`);
+                    link.style.visibility = 'hidden';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+                
+                showAlert('success', 'Exportado', 'Estadísticas exportadas correctamente');
+            } else {
+                showAlert('error', 'Error', 'No se pudo exportar las estadísticas');
+            }
+        })
+        .withFailureHandler(function(error) {
+            showAlert('error', 'Error', 'Error al exportar: ' + error.message);
+        })
+        .exportTipoReporteStatsToCSV();
+}
+
+// Función de exportación para Mensual
+function exportMensualStats() {
+    google.script.run
+        .withSuccessHandler(function(result) {
+            if (result.success) {
+                const csvContent = result.csv;
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement("a");
+                
+                if (link.download !== undefined) {
+                    const url = URL.createObjectURL(blob);
+                    link.setAttribute("href", url);
+                    link.setAttribute("download", `estadisticas_mensual_${new Date().toISOString().split('T')[0]}.csv`);
+                    link.style.visibility = 'hidden';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+                
+                showAlert('success', 'Exportado', 'Estadísticas exportadas correctamente');
+            } else {
+                showAlert('error', 'Error', 'No se pudo exportar las estadísticas');
+            }
+        })
+        .withFailureHandler(function(error) {
+            showAlert('error', 'Error', 'Error al exportar: ' + error.message);
+        })
+        .exportMensualStatsToCSV();
+}
+
+</script>
