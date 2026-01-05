@@ -78,27 +78,28 @@ La aplicación está diseñada bajo una **arquitectura de tres capas**, aprovech
 
 ## Estructura del Proyecto
 
+```text
 /
 ├── Code.js
-│ ├── Funciones backend
-│ ├── Lógica de negocio
-│ ├── Gestión de Sheets y Drive
-│ └── Envío de correos
+│   ├── Funciones backend
+│   ├── Lógica de negocio
+│   ├── Gestión de Sheets y Drive
+│   └── Envío de correos
 │
 ├── index.html
-│ ├── Interfaz principal
-│ ├── Formularios de reporte
-│ └── Vistas de consulta
+│   ├── Interfaz principal
+│   ├── Formularios de reporte
+│   └── Vistas de consulta
 │
 ├── appsscript.json
-│ └── Configuración del proyecto Apps Script
+│   └── Configuración del proyecto de Apps Script
 │
 ├── assets/
-│ └── Recursos estáticos
+│   └── Recursos estáticos
 │
 └── README.md
-└── Documentación del proyecto
-
+    └── Documentación del proyecto
+```
 
 ---
 
@@ -181,7 +182,10 @@ Cada hoja cumple una función específica dentro del flujo del sistema.
 - Acceso a Google Apps Script
 - Permisos sobre Google Sheets y Google Drive
 
-![Arquitectura del sistema](docs/UNDTPST.svg)
+---
 
+## Flujo del Sistema
+
+![Arquitectura del sistema](docs/UNDTPST.svg)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/practicantetransfdigital/Unificacion-Data-Pastas)
 
