@@ -805,16 +805,16 @@ function getEstadoAccionCausa(cicloId, causaIndex) {
 function guardarSeguimientoCausa(seguimientoData) {
   try {
     console.log('💾 Guardando seguimiento de causa:', seguimientoData);
-
+    
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName('Seguimiento_Causa');
-
+    
     // Crear hoja si no existe
     if (!sheet) {
       console.log('📝 Creando nueva hoja: Seguimiento_Causa');
       sheet = ss.insertSheet('Seguimiento_Causa');
-
-      // Configurar encabezados simplificados
+      
+      // Configurar encabezados
       const headers = [
         'Ciclo ID',
         'Causa Index',
@@ -826,70 +826,83 @@ function guardarSeguimientoCausa(seguimientoData) {
         'Autor',
         'Tipo'
       ];
-
+      
       sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-
+      
       // Formatear encabezados
       const headerRange = sheet.getRange(1, 1, 1, headers.length);
       headerRange.setBackground('#0f307f');
       headerRange.setFontColor('#ffffff');
       headerRange.setFontWeight('bold');
       headerRange.setHorizontalAlignment('center');
-
+      
       // Congelar primera fila
       sheet.setFrozenRows(1);
-
+      
       // Ajustar ancho de columnas
       sheet.autoResizeColumns(1, headers.length);
     }
-
+    
     const fechaActual = new Date();
-
-    // Preparar datos para la fila (simplificado)
+    
+    // Preparar fecha próxima revisión si existe
+    let fechaProxima = '';
+    if (seguimientoData.fechaProximaRevision) {
+      try {
+        fechaProxima = new Date(seguimientoData.fechaProximaRevision);
+      } catch (e) {
+        console.error('Error parseando fecha próxima:', e);
+        fechaProxima = '';
+      }
+    }
+    
+    // Preparar datos para la fila
     const rowData = [
       seguimientoData.cicloId,
       seguimientoData.causaIndex,
       seguimientoData.causaTexto || '',
-      fechaActual,
+      fechaActual, // Fecha como objeto Date
       seguimientoData.estado || 'Pendiente',
       seguimientoData.comentario || '',
-      seguimientoData.fechaProximaRevision || '',
+      fechaProxima, // Fecha próxima (puede ser vacía)
       seguimientoData.autor || 'Usuario',
       seguimientoData.tipo || 'causa'
     ];
-
+    
+    console.log('📝 Datos a guardar:', rowData);
+    
     // Agregar nueva fila
     const lastRow = sheet.getLastRow() + 1;
     sheet.getRange(lastRow, 1, 1, rowData.length).setValues([rowData]);
-
-    // Formatear fecha
-    sheet.getRange(lastRow, 4).setNumberFormat('dd/mm/yyyy hh:mm');
-
+    
+    // Formatear fechas en la hoja
+    sheet.getRange(lastRow, 4).setNumberFormat('dd/mm/yyyy HH:mm'); // Columna fecha registro
+    if (fechaProxima) {
+      sheet.getRange(lastRow, 7).setNumberFormat('yyyy-mm-dd'); // Columna fecha próxima
+    }
+    
     // Formatear celda de estado
     const estadoCell = sheet.getRange(lastRow, 5);
     const estado = seguimientoData.estado || 'Pendiente';
-
-    // Colores según estado
+    
     const estadoColors = {
-      'Pendiente': '#f3f4f6',
-      'En Analisis': '#dbeafe',
-      'En Implementacion': '#fef3c7',
-      'Validando': '#d1fae5',
-      'Completado': '#dcfce7',
-      'Cerrado': '#f3f4f6'
+        'Abierto': '#6b7280',
+        'En Progreso': '#3b82f6',
+        'Implementado': '#f59e0b',
+        'Cerrado': '#6b7280'
     };
-
+    
     estadoCell.setBackground(estadoColors[estado] || '#f3f4f6');
     estadoCell.setFontWeight('bold');
-
+    
     console.log('✅ Seguimiento guardado en fila:', lastRow);
-
+    
     return {
       success: true,
       message: 'Seguimiento de causa guardado correctamente',
       rowNumber: lastRow
     };
-
+    
   } catch (error) {
     console.error('❌ Error en guardarSeguimientoCausa:', error);
     return {
@@ -900,80 +913,111 @@ function guardarSeguimientoCausa(seguimientoData) {
 }
 
 
-/**
- * Obtiene el historial de seguimiento de una causa específica
- */
 function getHistorialSeguimientoCausa(cicloId, causaIndex) {
   try {
-    console.log('🔍 Buscando historial de causa - Ciclo:', cicloId, 'Causa Index:', causaIndex);
-
+    console.log('🔍 BUSCANDO HISTORIAL - Ciclo:', cicloId, 'Causa:', causaIndex);
+    
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('Seguimiento_Causa');
-
+    
     if (!sheet) {
       console.log('📭 Hoja Seguimiento_Causa no encontrada');
       return [];
     }
-
+    
     const lastRow = sheet.getLastRow();
-
+    console.log('📊 Total filas en hoja:', lastRow);
+    
     if (lastRow <= 1) {
-      console.log('📭 Hoja Seguimiento_Causa vacía o solo encabezados');
+      console.log('📭 Solo encabezados, sin datos');
       return [];
     }
-
+    
     const data = sheet.getDataRange().getValues();
-    console.log('📊 Total filas en Seguimiento_Causa:', data.length);
-
+    console.log('📋 Datos obtenidos, filas:', data.length);
+    
+    // Mostrar las primeras filas para diagnóstico
+    console.log('Primeras 3 filas de datos:');
+    for (let i = 0; i < Math.min(3, data.length); i++) {
+      console.log(`Fila ${i}:`, data[i]);
+    }
+    
     const historial = [];
     const causaIndexNum = parseInt(causaIndex);
-
+    
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
-
-      // Validar que sea una fila con datos
+      
+      // Validar fila no vacía
       if (!row[0] && !row[1]) continue;
-
+      
       const rowCicloId = String(row[0] || '').trim();
       const rowCausaIndex = parseInt(row[1]) || -1;
-
-      // Filtrar por ciclo y causa
+      
+      console.log(`\nFila ${i + 1}:`);
+      console.log('- rowCicloId:', rowCicloId, 'buscando:', cicloId);
+      console.log('- rowCausaIndex:', rowCausaIndex, 'buscando:', causaIndexNum);
+      console.log('- Coincide ciclo?', rowCicloId === cicloId);
+      console.log('- Coincide causa?', rowCausaIndex === causaIndexNum);
+      console.log('- Fecha cruda (row[3]):', row[3], 'tipo:', typeof row[3]);
+      
       if (rowCicloId === cicloId && rowCausaIndex === causaIndexNum) {
-        // Formatear fecha próxima revisión si existe
-        let fechaProximaFormatted = '';
-        if (row[6] && row[6] instanceof Date) {
-          fechaProximaFormatted = Utilities.formatDate(
-            row[6],
-            Session.getScriptTimeZone(),
-            'dd/MM/yyyy'
-          );
+        console.log('✅ ✅ ✅ REGISTRO COINCIDE!');
+        
+        // CONVERTIR FECHA DE TEXTO A DATE
+        let fecha = null;
+        try {
+          if (row[3] instanceof Date) {
+            fecha = row[3];
+          } else if (typeof row[3] === 'string' && row[3].trim()) {
+            // Intentar parsear fecha en formato dd/MM/yyyy HH:mm
+            const dateParts = row[3].split(' ');
+            const dateStr = dateParts[0]; // "13/01/2026"
+            const timeStr = dateParts[1] || '00:00'; // "11:30"
+            
+            const [day, month, year] = dateStr.split('/');
+            const [hour, minute] = timeStr.split(':');
+            
+            fecha = new Date(year, month - 1, day, hour, minute);
+            console.log('📅 Fecha convertida:', fecha);
+          }
+        } catch (e) {
+          console.error('Error convirtiendo fecha:', e);
+          fecha = new Date(); // Fecha actual como fallback
         }
-
+        
+        if (!fecha || isNaN(fecha.getTime())) {
+          fecha = new Date(); // Fecha actual si no se pudo convertir
+        }
+        
         const registro = {
           cicloId: rowCicloId,
           causaIndex: rowCausaIndex,
           causaTexto: String(row[2] || ''),
-          fecha: row[3] instanceof Date ? row[3].toISOString() : new Date().toISOString(),
+          fecha: fecha.toISOString(), // Usar fecha convertida
           estado: String(row[4] || 'Pendiente'),
           comentario: String(row[5] || ''),
-          fechaProximaRevision: fechaProximaFormatted,
+          fechaProximaRevision: row[6] ? 
+            (typeof row[6] === 'string' ? row[6] : Utilities.formatDate(row[6], Session.getScriptTimeZone(), 'dd/MM/yyyy')) : '',
           autor: String(row[7] || 'Usuario'),
           tipo: String(row[8] || 'causa')
         };
-
+        
+        console.log('📝 Registro creado:', registro);
         historial.push(registro);
       }
     }
-
-    console.log('✅ Registros encontrados:', historial.length);
-
+    
+    console.log('🎯 Total registros encontrados:', historial.length);
+    
     // Ordenar por fecha descendente (más reciente primero)
     historial.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-
+    
     return historial;
-
+    
   } catch (error) {
-    console.error('💥 Error crítico en getHistorialSeguimientoCausa:', error);
+    console.error('💥 ERROR en getHistorialSeguimientoCausa:', error);
+    console.error('Stack trace:', error.stack);
     return [];
   }
 }

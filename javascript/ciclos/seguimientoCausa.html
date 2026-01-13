@@ -75,13 +75,13 @@
                  style="
                     padding: 20px;
                     border-bottom: 1px solid #e5e7eb;
-                    background: #f8fafc;
+                    background: linear-gradient(135deg, #0f307f 0%, #1e40af 100%);
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
                  ">
                 <div>
-                    <h3 style="margin: 0; color: #1f2937; font-size: 18px; font-weight: 600;">
+                    <h3 style="margin: 0; color: white; font-size: 18px; font-weight: 600;">
                         <i class="fas fa-bullseye" style="color: #3b82f6; margin-right: 8px;"></i>
                         Seguimiento de Causa Raíz
                     </h3>
@@ -143,7 +143,6 @@
                         <!-- ESTADO -->
                         <div>
                             <label style="display: block; margin-bottom: 6px; color: #4b5563; font-size: 14px; font-weight: 500;">
-                                <i class="fas fa-flag" style="margin-right: 6px; color: #ef4444;"></i>
                                 Estado
                             </label>
                             <select id="estadoCausa" 
@@ -157,19 +156,16 @@
                                         background: white;
                                         cursor: pointer;
                                     ">
-                                <option value="Pendiente">⏳ Pendiente</option>
-                                <option value="En Analisis">🔍 En Análisis</option>
-                                <option value="En Implementacion">🛠️ En Implementación</option>
-                                <option value="Validando">✅ Validando</option>
-                                <option value="Completado">🏁 Completado</option>
-                                <option value="Cerrado">🔒 Cerrado</option>
+                                <option value="Abierto">Abierto</option>
+                                <option value="En Progreso">En Progreso</option>
+                                <option value="Implementado">Implementado</option>
+                                <option value="Cerrado">Cerrado</option>
                             </select>
                         </div>
                         
                         <!-- FECHA PRÓXIMA -->
                         <div>
                             <label style="display: block; margin-bottom: 6px; color: #4b5563; font-size: 14px; font-weight: 500;">
-                                <i class="far fa-calendar-alt" style="margin-right: 6px; color: #10b981;"></i>
                                 Próxima Revisión
                             </label>
                             <input type="date" 
@@ -189,7 +185,6 @@
                     <!-- COMENTARIO -->
                     <div style="margin-bottom: 16px;">
                         <label style="display: block; margin-bottom: 6px; color: #4b5563; font-size: 14px; font-weight: 500;">
-                            <i class="fas fa-comment-alt" style="margin-right: 6px; color: #3b82f6;"></i>
                             Comentario / Avance
                         </label>
                         <textarea id="comentarioCausa" 
@@ -236,7 +231,6 @@
                 <div>
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                         <h4 style="margin: 0; color: #374151; font-size: 16px;">
-                            <i class="fas fa-history" style="color: #f59e0b; margin-right: 8px;"></i>
                             Historial de Seguimiento
                         </h4>
                         <span id="contadorHistorial" 
@@ -343,258 +337,248 @@
             .getEstadoActualCausa(cicloId, causaIndex);
     }
 
-    function cargarHistorialCausa(cicloId, causaIndex) {
-        const timeline = document.getElementById('timelineCausa');
-        if (!timeline) return;
-
-        // Mostrar skeleton loader
-        timeline.innerHTML = `
-        <div style="padding: 20px;">
-            <div style="
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                gap: 12px;
-                color: #64748b;
-            ">
-                <svg class="spinner-icon" width="20" height="20" viewBox="0 0 24 24">
+function cargarHistorialCausa(cicloId, causaIndex) {
+    console.log('📥 CARGANDO HISTORIAL para:', { cicloId, causaIndex });
+    
+    const timeline = document.getElementById('timelineCausa');
+    if (!timeline) {
+        console.error('❌ ERROR: Elemento timelineCausa no existe en el DOM');
+        
+        // Intentar encontrar de nuevo
+        const newTimeline = document.getElementById('timelineCausa');
+        if (newTimeline) {
+            console.log('✅ Encontrado en segundo intento');
+            timeline = newTimeline;
+        } else {
+            console.error('❌ No se pudo encontrar timelineCausa');
+            return;
+        }
+    }
+    
+    // Mostrar loader claramente
+    timeline.innerHTML = `
+        <div style="text-align: center; padding: 30px;">
+            <div style="margin-bottom: 15px;">
+                <svg class="spinner-icon" width="30" height="30" viewBox="0 0 24 24" style="color: #3b82f6;">
                     <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" opacity="0.25"/>
                     <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round"/>
                 </svg>
-                <span>Cargando historial...</span>
             </div>
+            <p style="color: #64748b; font-weight: 500;">Cargando historial de seguimiento...</p>
         </div>
     `;
-
-        google.script.run
-            .withSuccessHandler(function (historial) {
-                renderHistorialCausa(historial);
-            })
-            .withFailureHandler(function (error) {
-                console.error('Error cargando historial de causa:', error);
-                timeline.innerHTML = `
-                <div style="
-                    text-align: center;
-                    padding: 20px;
-                    color: #dc2626;
-                ">
+    
+    console.log('📞 Llamando a getHistorialSeguimientoCausa...');
+    
+    google.script.run
+        .withSuccessHandler(function(historial) {
+            console.log('✅ HISTORIAL RECIBIDO:', historial);
+            console.log('Tipo:', typeof historial);
+            console.log('Es array?', Array.isArray(historial));
+            
+            if (historial === null || historial === undefined) {
+                console.warn('⚠️ Historial es null/undefined');
+                historial = [];
+            }
+            
+            if (!Array.isArray(historial)) {
+                console.warn('⚠️ Historial no es array, convirtiendo');
+                historial = [historial];
+            }
+            
+            console.log(`📊 ${historial.length} registros recibidos`);
+            
+            // Renderizar el historial
+            renderHistorialCausa(historial);
+        })
+        .withFailureHandler(function(error) {
+            console.error('❌ ERROR cargando historial:', error);
+            
+            timeline.innerHTML = `
+                <div style="text-align: center; padding: 20px; color: #dc2626;">
                     <i class="fas fa-exclamation-triangle" style="font-size: 24px; margin-bottom: 12px; display: block;"></i>
-                    <p>Error al cargar el historial</p>
-                    <button onclick="cargarHistorialCausa('${cicloId}', ${causaIndex})" style="
-                        background: #f3f4f6;
-                        border: 1px solid #d1d5db;
-                        border-radius: 6px;
-                        padding: 8px 16px;
-                        font-size: 12px;
-                        cursor: pointer;
-                        margin-top: 8px;
-                    ">
+                    <p style="font-weight: 500; margin-bottom: 8px;">Error al cargar el historial</p>
+                    <p style="font-size: 13px; margin-bottom: 12px;">${error.message || 'Error desconocido'}</p>
+                    <button onclick="cargarHistorialCausa('${cicloId}', ${causaIndex})" 
+                            style="background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 6px; 
+                                   padding: 8px 16px; font-size: 13px; cursor: pointer;">
                         Reintentar
                     </button>
                 </div>
             `;
-            })
-            .getHistorialSeguimientoCausa(cicloId, causaIndex);
-    }
+        })
+        .getHistorialSeguimientoCausa(cicloId, causaIndex);
+}
 
-    function guardarSeguimientoCausa() {
-        if (!window.causaSeleccionada) {
-            showAlert('error', 'Error', 'No hay causa seleccionada');
+function guardarSeguimientoCausa() {
+    console.log('🚀 EJECUTANDO guardarSeguimientoCausa');
+    
+    // 1. VALIDAR CAUSA SELECCIONADA
+    if (!window.causaSeleccionada) {
+        showAlert('error', 'Error', 'No hay causa seleccionada');
+        return;
+    }
+    
+    // 2. OBTENER ELEMENTOS DEL FORMULARIO
+    const estadoElement = document.getElementById('estadoCausa');
+    const comentarioElement = document.getElementById('comentarioCausa');
+    
+    if (!estadoElement || !comentarioElement) {
+        showAlert('error', 'Error del sistema', 'El formulario no está cargado correctamente. Por favor, cierra y vuelve a abrir el seguimiento.');
+        return;
+    }
+    
+    const estado = estadoElement.value;
+    const comentario = comentarioElement.value.trim();
+    
+    // Obtener otros elementos (si existen)
+    const fechaProximaElement = document.getElementById('fechaProximaCausa');
+    const fechaProxima = fechaProximaElement ? fechaProximaElement.value : '';
+    
+    console.log('📋 Valores del formulario:');
+    console.log('- Estado:', estado);
+    console.log('- Comentario:', comentario);
+    console.log('- Fecha próxima:', fechaProxima);
+    
+    // 3. VALIDACIONES
+    if (!comentario) {
+        showAlert('warning', 'Atención', 'Por favor agregue un comentario descriptivo');
+        comentarioElement.focus();
+        return;
+    }
+    
+    // Validación especial para estados de cierre
+    if ((estado === 'Completado' || estado === 'Cerrado')) {
+        const evidenciasKeywords = ['foto', 'fotos', 'OT', 'POE', 'LUP', 'lista', 'asistencia', 'reporte', 'acta', 'documento', 'evidencia', 'adjunto', 'adjunt', 'archivo'];
+        const tieneEvidencia = evidenciasKeywords.some(keyword => 
+            comentario.toLowerCase().includes(keyword.toLowerCase())
+        );
+        
+        if (!tieneEvidencia) {
+            showAlert('warning', 'Evidencia Requerida', 
+                'Para cerrar o completar una causa, debe mencionar la evidencia en el comentario.\n\n' +
+                'Ejemplos: "Adjunto foto del resultado", "OT #1234 generada", "POE actualizado", ' +
+                '"LUP número 5678", "Lista de asistencia en carpeta compartida", etc.');
+            comentarioElement.focus();
             return;
         }
-
-        const estado = document.getElementById('estadoCausa').value;
-        const comentario = document.getElementById('comentarioCausa').value.trim();
-        const fechaProxima = document.getElementById('fechaProximaCausa').value;
-
-        // Validaciones especiales para estado "Completado" o "Cerrado"
-        if ((estado === 'Completado' || estado === 'Cerrado')) {
-            // Verificar si el comentario menciona evidencia
-            const evidenciasKeywords = ['foto', 'fotos', 'OT', 'POE', 'LUP', 'lista', 'asistencia', 'reporte', 'acta', 'documento', 'evidencia', 'adjunto', 'adjunt', 'archivo'];
-            const tieneEvidencia = evidenciasKeywords.some(keyword =>
-                comentario.toLowerCase().includes(keyword.toLowerCase())
+    }
+    
+    // 4. OBTENER BOTÓN (MÚLTIPLES ESTRATEGIAS)
+    let btn = null;
+    
+    // Estrategia 1: Por ID específico
+    btn = document.getElementById('btnGuardarSeguimientoCausa');
+    
+    // Estrategia 2: Por texto dentro del modal
+    if (!btn) {
+        const modal = document.getElementById('modalSeguimientoCausa');
+        if (modal) {
+            const buttons = modal.querySelectorAll('button');
+            btn = Array.from(buttons).find(button => 
+                button.textContent.includes('Guardar') || 
+                button.innerHTML.includes('Guardar') ||
+                button.textContent.includes('guardar')
             );
-
-            if (!tieneEvidencia) {
-                showAlert('warning', 'Evidencia Requerida',
-                    'Para cerrar o completar una causa, debe mencionar la evidencia en el comentario.\n\n' +
-                    'Ejemplos: "Adjunto foto del resultado", "OT #1234 generada", "POE actualizado", ' +
-                    '"LUP número 5678", "Lista de asistencia en carpeta compartida", etc.');
-                document.getElementById('comentarioCausa').focus();
-                return;
+        }
+    }
+    
+    // Estrategia 3: Último botón del modal
+    if (!btn) {
+        const modal = document.getElementById('modalSeguimientoCausa');
+        if (modal) {
+            const buttons = modal.querySelectorAll('button');
+            if (buttons.length > 0) {
+                btn = buttons[buttons.length - 1];
             }
         }
-
-        if (!comentario) {
-            showAlert('warning', 'Atención', 'Por favor agregue un comentario descriptivo');
-            document.getElementById('comentarioCausa').focus();
-            return;
-        }
-
-        const btn = document.querySelector('.btn-guardar-seguimiento');
-        const originalText = btn.innerHTML;
-
-        // Deshabilitar botón
-        btn.disabled = true;
-        btn.innerHTML = `
+    }
+    
+    if (!btn) {
+        console.error('❌ ERROR: No se pudo encontrar el botón de guardar');
+        showAlert('error', 'Error', 'No se pudo encontrar el botón para guardar. Intente nuevamente.');
+        return;
+    }
+    
+    console.log('✅ Botón encontrado:', btn.textContent);
+    
+    // 5. GUARDAR ESTADO ORIGINAL DEL BOTÓN
+    const originalHTML = btn.innerHTML;
+    const originalDisabled = btn.disabled;
+    
+    // 6. ACTUALIZAR ESTADO DEL BOTÓN
+    btn.disabled = true;
+    btn.innerHTML = `
         <i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>
         Guardando...
     `;
-        btn.classList.add('btn-loading');
-
-        const seguimientoData = {
-            cicloId: window.causaSeleccionada.cicloId,
-            causaIndex: window.causaSeleccionada.causaIndex,
-            causaTexto: window.causaSeleccionada.causaTexto,
-            estado: estado,
-            comentario: comentario,
-            fechaProximaRevision: fechaProxima,
-            autor: currentUser ? currentUser.nombre : 'Usuario',
-            tipo: 'causa'
-        };
-
-        console.log('📤 Enviando seguimiento de causa:', seguimientoData);
-
-        google.script.run
-            .withSuccessHandler(function (result) {
-                // Restaurar botón
-                btn.disabled = false;
-                btn.innerHTML = originalText;
-                btn.classList.remove('btn-loading');
-
-                if (result.success) {
-                    showAlert('success', 'Éxito', 'Seguimiento guardado correctamente');
-
-                    // Limpiar formulario
-                    document.getElementById('comentarioCausa').value = '';
-                    document.getElementById('fechaProximaCausa').value = '';
-
-                    // Recargar historial
-                    cargarHistorialCausa(
-                        window.causaSeleccionada.cicloId,
-                        window.causaSeleccionada.causaIndex
-                    );
-
-                    // Actualizar estado actual
-                    cargarEstadoActualCausa(
-                        window.causaSeleccionada.cicloId,
-                        window.causaSeleccionada.causaIndex
-                    );
-                } else {
-                    showAlert('error', 'Error', result.message || 'No se pudo guardar el seguimiento');
+    btn.style.opacity = '0.7';
+    
+    // 7. PREPARAR DATOS
+    const seguimientoData = {
+        cicloId: window.causaSeleccionada.cicloId,
+        causaIndex: window.causaSeleccionada.causaIndex,
+        causaTexto: window.causaSeleccionada.causaTexto,
+        estado: estado,
+        comentario: comentario,
+        fechaProximaRevision: fechaProxima,
+        autor: currentUser ? currentUser.nombre : 'Usuario',
+        tipo: 'causa'
+    };
+    
+    console.log('📤 Enviando datos:', seguimientoData);
+    
+    // 8. ENVIAR AL BACKEND
+    google.script.run
+        .withSuccessHandler(function(result) {
+            // RESTAURAR BOTÓN
+            btn.disabled = originalDisabled;
+            btn.innerHTML = originalHTML;
+            btn.style.opacity = '1';
+            
+            if (result.success) {
+                showAlert('success', 'Éxito', 'Seguimiento guardado correctamente');
+                
+                // Limpiar formulario
+                comentarioElement.value = '';
+                if (fechaProximaElement) {
+                    fechaProximaElement.value = '';
                 }
-            })
-            .withFailureHandler(function (error) {
-                // Restaurar botón
-                btn.disabled = false;
-                btn.innerHTML = originalText;
-                btn.classList.remove('btn-loading');
-
-                console.error('❌ Error guardando seguimiento:', error);
-                showAlert('error', 'Error', 'Error al guardar: ' + error.message);
-            })
-            .guardarSeguimientoCausa(seguimientoData);
-    }
-
-    function guardarSeguimientoCausa() {
-        if (!window.causaSeleccionada) {
-            showAlert('error', 'Error', 'No hay causa seleccionada');
-            return;
-        }
-
-        const estado = document.getElementById('estadoCausa').value;
-        const comentario = document.getElementById('comentarioCausa').value.trim();
-        const proximaAccion = document.getElementById('proximaAccionCausa').value.trim();
-        const fechaProxima = document.getElementById('fechaProximaCausa').value;
-        const evidencia = document.getElementById('evidenciaCausa').value.trim();
-
-        // Validaciones especiales para estado "Completado" o "Cerrado"
-        if ((estado === 'Completado' || estado === 'Cerrado') && !evidencia) {
-            showAlert('warning', 'Evidencia Requerida',
-                'Para cerrar o completar una causa, debe proporcionar evidencia verificable.\n\n' +
-                'Ejemplos: Foto, OT, POE, N° LUP, Lista de asistencia, reporte técnico, acta de verificación, etc.');
-            document.getElementById('evidenciaCausa').focus();
-            return;
-        }
-
-        if (!comentario) {
-            showAlert('warning', 'Atención', 'Por favor agregue un comentario descriptivo');
-            document.getElementById('comentarioCausa').focus();
-            return;
-        }
-
-        const btn = document.querySelector('.btn-primary[onclick="guardarSeguimientoCausa()"]');
-        const originalText = btn.innerHTML;
-
-        // Deshabilitar botón
-        btn.disabled = true;
-        btn.innerHTML = `
-        <i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>
-        Guardando...
-    `;
-        btn.style.opacity = '0.7';
-
-        const seguimientoData = {
-            cicloId: window.causaSeleccionada.cicloId,
-            causaIndex: window.causaSeleccionada.causaIndex,
-            causaTexto: window.causaSeleccionada.causaTexto,
-            estado: estado,
-            comentario: comentario,
-            proximaAccion: proximaAccion,
-            fechaProximaRevision: fechaProxima,
-            evidencia: evidencia,
-            autor: currentUser ? currentUser.nombre : 'Usuario',
-            tipo: 'causa'
-        };
-
-        console.log('📤 Enviando seguimiento de causa:', seguimientoData);
-
-        google.script.run
-            .withSuccessHandler(function (result) {
-                // Restaurar botón
-                btn.disabled = false;
-                btn.innerHTML = originalText;
-                btn.style.opacity = '1';
-
-                if (result.success) {
-                    showAlert('success', 'Éxito', 'Seguimiento guardado correctamente');
-
-                    // Limpiar formulario (excepto evidencia si fue recién agregada)
-                    document.getElementById('comentarioCausa').value = '';
-                    document.getElementById('proximaAccionCausa').value = '';
-                    document.getElementById('fechaProximaCausa').value = '';
-
-                    // Mantener evidencia si se está completando o cerrando
-                    if (estado !== 'Completado' && estado !== 'Cerrado') {
-                        document.getElementById('evidenciaCausa').value = '';
-                    }
-
-                    // Recargar historial
-                    cargarHistorialCausa(
-                        window.causaSeleccionada.cicloId,
-                        window.causaSeleccionada.causaIndex
-                    );
-
-                    // Actualizar estado actual
-                    cargarEstadoActualCausa(
-                        window.causaSeleccionada.cicloId,
-                        window.causaSeleccionada.causaIndex
-                    );
-                } else {
-                    showAlert('error', 'Error', result.message || 'No se pudo guardar el seguimiento');
+                
+                // Recargar datos
+                cargarHistorialCausa(
+                    window.causaSeleccionada.cicloId,
+                    window.causaSeleccionada.causaIndex
+                );
+                
+                // Actualizar estado actual
+                cargarEstadoActualCausa(
+                    window.causaSeleccionada.cicloId,
+                    window.causaSeleccionada.causaIndex
+                );
+                
+                // Actualizar contador
+                const contador = document.getElementById('contadorHistorial');
+                if (contador) {
+                    const current = parseInt(contador.textContent) || 0;
+                    contador.textContent = `${current + 1} ${current + 1 === 1 ? 'registro' : 'registros'}`;
                 }
-            })
-            .withFailureHandler(function (error) {
-                // Restaurar botón
-                btn.disabled = false;
-                btn.innerHTML = originalText;
-                btn.style.opacity = '1';
-
-                console.error('❌ Error guardando seguimiento:', error);
-                showAlert('error', 'Error', 'Error al guardar: ' + error.message);
-            })
-            .guardarSeguimientoCausa(seguimientoData);
-    }
+                
+            } else {
+                showAlert('error', 'Error', result.message || 'No se pudo guardar el seguimiento');
+            }
+        })
+        .withFailureHandler(function(error) {
+            // RESTAURAR BOTÓN
+            btn.disabled = originalDisabled;
+            btn.innerHTML = originalHTML;
+            btn.style.opacity = '1';
+            
+            console.error('❌ Error:', error);
+            showAlert('error', 'Error', 'Error al guardar: ' + error.message);
+        })
+        .guardarSeguimientoCausa(seguimientoData);
+}
 
     function renderHistorialCausa(historial) {
         const timeline = document.getElementById('timelineCausa');
@@ -631,11 +615,9 @@
 
             // Colores por estado
             const estadoColors = {
-                'Pendiente': '#6b7280',
-                'En Analisis': '#3b82f6',
-                'En Implementacion': '#f59e0b',
-                'Validando': '#10b981',
-                'Completado': '#22c55e',
+                'Abierto': '#6b7280',
+                'En Progreso': '#3b82f6',
+                'Implementado': '#f59e0b',
                 'Cerrado': '#6b7280'
             };
 

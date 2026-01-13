@@ -1,0 +1,908 @@
+<script>
+
+  // Modal para estadísticas de N2
+function openStatsForN2() {
+    showN2StatsModal();
+}
+
+function showN2StatsModal() {
+    // Eliminar modal existente si hay
+    const existingModal = document.getElementById('n2StatsModal');
+    if (existingModal) existingModal.remove();
+
+    // Crear overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'n2StatsModal';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        backdrop-filter: blur(5px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+    `;
+
+    // Crear modal
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        background: white;
+        border-radius: 12px;
+        width: 95%;
+        max-width: 1400px;
+        max-height: 90vh;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    `;
+
+    // Header del modal
+    modal.innerHTML = `
+        <div style="
+            padding: 20px 24px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #0f307f;
+            border-radius: 12px 12px 0 0;
+            color: white;
+        ">
+            <div>
+                <h2 style="margin: 0; font-size: 20px; font-weight: 600;">
+                    <i style="margin-right: 10px;" class="fa-solid fa-chart-pie"></i> Dashboard de Estadísticas N2
+                </h2>
+                <p style="margin: 4px 0 0; opacity: 0.9; font-size: 14px;">
+                    Informe completo de gestión de reportes N2
+                </p>
+            </div>
+            <button onclick="closeN2StatsModal()" style="
+                background: rgba(255,255,255,0.2);
+                border: none;
+                color: white;
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                cursor: pointer;
+                font-size: 18px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: background 0.2s;
+            ">
+                <i class="fa-solid fa-times"></i>
+            </button>
+        </div>
+        
+        <!-- Tabs Navigation -->
+        <div style="
+            background: #f8fafc;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            padding: 0 24px;
+        " id="n2StatsTabs">
+            <button onclick="switchN2Tab('anio-mes-proceso')" class="stats-tab active" data-tab="anio-mes-proceso">
+                <i class="fa-solid fa-calendar-alt"></i> Año/Mes/Proceso
+            </button>
+            <button onclick="switchN2Tab('proceso')" class="stats-tab" data-tab="proceso">
+                <i class="fa-solid fa-cogs"></i> Por Proceso
+            </button>
+            <button onclick="switchN2Tab('zona-proceso')" class="stats-tab" data-tab="zona-proceso">
+                <i class="fa-solid fa-map-marker-alt"></i> Zona/Proceso
+            </button>
+            <button onclick="switchN2Tab('proceso-responsable')" class="stats-tab" data-tab="proceso-responsable">
+                <i class="fa-solid fa-user-shield"></i> Proceso Responsable
+            </button>
+            <button onclick="switchN2Tab('lider-responsable')" class="stats-tab" data-tab="lider-responsable">
+                <i class="fa-solid fa-user-tie"></i> Líder Responsable
+            </button>
+        </div>
+        
+        <!-- Tab Content Container -->
+        <div style="padding: 24px; overflow-y: auto; flex: 1;" id="n2TabContent">
+            <!-- Contenido se cargará dinámicamente -->
+        </div>
+    `;
+
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    // Cargar la primera pestaña por defecto
+    switchN2Tab('anio-mes-proceso');
+
+    // Cerrar al hacer clic fuera
+    overlay.addEventListener('click', function (e) {
+        if (e.target === overlay) {
+            closeN2StatsModal();
+        }
+    });
+
+    // Cerrar con ESC
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            closeN2StatsModal();
+        }
+    });
+}
+
+function switchN2Tab(tabName) {
+    // Actualizar clases de los tabs
+    document.querySelectorAll('#n2StatsTabs .stats-tab').forEach(tab => {
+        tab.classList.remove('active');
+        if (tab.dataset.tab === tabName) {
+            tab.classList.add('active');
+        }
+    });
+
+    // Mostrar contenido según la pestaña con animación de fade
+    const tabContent = document.getElementById('n2TabContent');
+    tabContent.style.opacity = '0.5';
+    tabContent.style.transform = 'translateY(10px)';
+
+    setTimeout(() => {
+        if (tabName === 'anio-mes-proceso') {
+            loadN2AnioMesProcesoTab();
+        } else if (tabName === 'proceso') {
+            loadN2ProcesoTab();
+        } else if (tabName === 'zona-proceso') {
+            loadN2ZonaProcesoTab();
+        } else if (tabName === 'proceso-responsable') {
+            loadN2ProcesoResponsableTab();
+        } else if (tabName === 'lider-responsable') {
+            loadN2LiderResponsableTab();
+        }
+
+        // Restaurar animación
+        setTimeout(() => {
+            tabContent.style.opacity = '1';
+            tabContent.style.transform = 'translateY(0)';
+            tabContent.style.transition = 'all 0.3s ease';
+        }, 50);
+    }, 150);
+}
+
+function closeN2StatsModal() {
+    const modal = document.getElementById('n2StatsModal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+// Tab 1: Año/Mes/Proceso
+function loadN2AnioMesProcesoTab() {
+    const tabContent = document.getElementById('n2TabContent');
+
+    tabContent.innerHTML = `
+        <div style="margin-bottom: 24px;">
+            <h3 style="margin: 0 0 16px 0; color: #374151; font-size: 18px;">
+                <i class="fa-solid fa-calendar-alt" style="margin-right: 10px;"></i> COUNT de Año/Mes/Proceso
+            </h3>
+            
+            <div style="overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 8px;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                    <thead style="background: #f9fafb; position: sticky; top: 0;">
+                        <tr>
+                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb; font-weight: 600; color: #374151;">Año</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb; font-weight: 600; color: #374151;">Mes</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb; font-weight: 600; color: #374151;">Proceso</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e5e7eb; font-weight: 600; color: #374151;">Completado</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e5e7eb; font-weight: 600; color: #374151;">En Progreso</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e5e7eb; font-weight: 600; color: #374151;">En Revisión</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e5e7eb; font-weight: 600; color: #374151;">Pendiente</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e5e7eb; font-weight: 600; color: #374151;">Suma total</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e5e7eb; font-weight: 600; color: #374151;">% Gestión</th>
+                        </tr>
+                    </thead>
+                    <tbody id="n2AnioMesProcesoTableBody">
+                        <tr>
+                            <td colspan="9" style="padding: 40px; text-align: center; color: #9ca3af;">
+                                <div style="margin-bottom: 12px;">
+                                    <i class="fa-solid fa-spinner fa-spin" style="font-size: 24px;"></i>
+                                </div>
+                                Cargando estadísticas...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+
+    google.script.run
+        .withSuccessHandler(function (result) {
+            if (result.success) {
+                renderN2AnioMesProcesoStats(result.data);
+            } else {
+                showErrorInN2Stats('n2AnioMesProcesoTableBody', result.message, 9);
+            }
+        })
+        .withFailureHandler(function (error) {
+            console.error('Error cargando estadísticas:', error);
+            showErrorInN2Stats('n2AnioMesProcesoTableBody', 'Error al cargar las estadísticas: ' + error.message, 9);
+        })
+        .getN2StatsAnioMesProceso();
+}
+
+function renderN2AnioMesProcesoStats(data) {
+    const tableBody = document.getElementById('n2AnioMesProcesoTableBody');
+    if (!tableBody) return;
+
+    if (!data || data.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="9" style="padding: 40px; text-align: center; color: #9ca3af;">
+                    <div style="margin-bottom: 12px;">
+                        <i class="fa-solid fa-database" style="font-size: 24px;"></i>
+                    </div>
+                    No hay datos disponibles
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    let html = '';
+    data.forEach((row, index) => {
+        const isMonthTotal = row.isMonthTotal;
+        const isYearTotal = row.isYearTotal;
+        const isGlobalTotal = row.isGlobalTotal;
+
+        let rowStyle = '';
+        let cellStyle = '';
+
+        if (isGlobalTotal) {
+            rowStyle = 'background: #1f2937; color: white; font-weight: 700;';
+            cellStyle = 'font-weight: 700;';
+        } else if (isYearTotal) {
+            rowStyle = 'background: #4b5563; color: white; font-weight: 600;';
+            cellStyle = 'font-weight: 600;';
+        } else if (isMonthTotal) {
+            rowStyle = 'background: #6b7280; color: white; font-weight: 600;';
+            cellStyle = 'font-weight: 600;';
+        } else if (index % 2 === 0) {
+            rowStyle = 'background: #f9fafb;';
+        }
+
+        let porcentajeColor = '#374151';
+        if (row.porcentaje) {
+            const porcentajeNum = parseFloat(row.porcentaje);
+            if (porcentajeNum >= 80) porcentajeColor = '#10b981';
+            else if (porcentajeNum >= 50) porcentajeColor = '#f59e0b';
+            else porcentajeColor = '#ef4444';
+        }
+
+        html += `
+            <tr style="${rowStyle}">
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; ${cellStyle}">${row.ano || ''}</td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; ${cellStyle}">${row.mes || ''}</td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; ${cellStyle}">${row.proceso || ''}</td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}">${row.completado || 0}</td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}">${row.enProgreso || 0}</td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}">${row.enRevision || 0}</td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}">${row.pendiente || 0}</td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}">${row.total || 0}</td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}; color: ${porcentajeColor};">${row.porcentaje || '0.00%'}</td>
+            </tr>
+        `;
+    });
+
+    tableBody.innerHTML = html;
+}
+
+// Tab 2: Proceso
+function loadN2ProcesoTab() {
+    const tabContent = document.getElementById('n2TabContent');
+
+    tabContent.innerHTML = `
+        <div style="margin-bottom: 24px;">
+            <h3 style="margin: 0 0 16px 0; color: #374151; font-size: 18px;">
+                <i class="fa-solid fa-cogs" style="margin-right: 10px;"></i> COUNTA de Proceso
+            </h3>
+            
+            <div style="overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 8px;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                    <thead style="background: #f9fafb; position: sticky; top: 0;">
+                        <tr>
+                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb; font-weight: 600; color: #374151;">Proceso</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e5e7eb; font-weight: 600; color: #374151;">Completado</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e5e7eb; font-weight: 600; color: #374151;">En Progreso</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e5e7eb; font-weight: 600; color: #374151;">En Revisión</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e5e7eb; font-weight: 600; color: #374151;">Pendiente</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e5e7eb; font-weight: 600; color: #374151;">Suma total</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e5e7eb; font-weight: 600; color: #374151;">% Gestión</th>
+                        </tr>
+                    </thead>
+                    <tbody id="n2ProcesoTableBody">
+                        <tr>
+                            <td colspan="7" style="padding: 40px; text-align: center; color: #9ca3af;">
+                                <div style="margin-bottom: 12px;">
+                                    <i class="fa-solid fa-spinner fa-spin" style="font-size: 24px;"></i>
+                                </div>
+                                Cargando estadísticas...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+
+    google.script.run
+        .withSuccessHandler(function (result) {
+            if (result.success) {
+                renderN2ProcesoStats(result.data);
+            } else {
+                showErrorInN2Stats('n2ProcesoTableBody', result.message, 7);
+            }
+        })
+        .withFailureHandler(function (error) {
+            console.error('Error cargando estadísticas:', error);
+            showErrorInN2Stats('n2ProcesoTableBody', 'Error al cargar las estadísticas: ' + error.message, 7);
+        })
+        .getN2StatsProceso();
+}
+
+function renderN2ProcesoStats(data) {
+    const tableBody = document.getElementById('n2ProcesoTableBody');
+    if (!tableBody) return;
+
+    if (!data || data.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="7" style="padding: 40px; text-align: center; color: #9ca3af;">
+                    <div style="margin-bottom: 12px;">
+                        <i class="fa-solid fa-database" style="font-size: 24px;"></i>
+                    </div>
+                    No hay datos disponibles
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    let html = '';
+    data.forEach((row, index) => {
+        const isGlobalTotal = row.isGlobalTotal;
+
+        let rowStyle = '';
+        let cellStyle = '';
+
+        if (isGlobalTotal) {
+            rowStyle = 'background: #1f2937; color: white; font-weight: 700;';
+            cellStyle = 'font-weight: 700;';
+        } else if (index % 2 === 0) {
+            rowStyle = 'background: #f9fafb;';
+        }
+
+        let porcentajeColor = '#374151';
+        if (row.porcentaje) {
+            const porcentajeNum = parseFloat(row.porcentaje);
+            if (porcentajeNum >= 80) porcentajeColor = '#10b981';
+            else if (porcentajeNum >= 50) porcentajeColor = '#f59e0b';
+            else porcentajeColor = '#ef4444';
+        }
+
+        html += `
+            <tr style="${rowStyle}">
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; ${cellStyle}">${row.proceso || ''}</td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}">${row.completado || 0}</td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}">${row.enProgreso || 0}</td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}">${row.enRevision || 0}</td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}">${row.pendiente || 0}</td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}">${row.total || 0}</td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}; color: ${porcentajeColor};">${row.porcentaje || '0.00%'}</td>
+            </tr>
+        `;
+    });
+
+    tableBody.innerHTML = html;
+}
+
+// Tab 3: Zona/Proceso
+function loadN2ZonaProcesoTab() {
+    const tabContent = document.getElementById('n2TabContent');
+
+    tabContent.innerHTML = `
+        <div style="margin-bottom: 24px;">
+            <h3 style="margin: 0 0 16px 0; color: #374151; font-size: 18px;">
+                <i class="fa-solid fa-map-marker-alt" style="margin-right: 10px;"></i> COUNTA de Zona/Proceso
+            </h3>
+            
+            <div style="overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 8px;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                    <thead style="background: #f9fafb; position: sticky; top: 0;">
+                      <tr>
+                          <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb; font-weight: 600; color: #374151; width: 40px;"></th>
+                          <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb; font-weight: 600; color: #374151;">Proceso</th>
+                          <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb; font-weight: 600; color: #374151;">Zona Proceso</th>
+                          <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e5e7eb; font-weight: 600; color: #374151;">Completado</th>
+                          <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e5e7eb; font-weight: 600; color: #374151;">En Progreso</th>
+                          <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e5e7eb; font-weight: 600; color: #374151;">En Revisión</th>
+                          <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e5e7eb; font-weight: 600; color: #374151;">Pendiente</th>
+                          <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e5e7eb; font-weight: 600; color: #374151;">Suma total</th>
+                          <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e5e7eb; font-weight: 600; color: #374151;">% Gestión</th>
+                      </tr>
+                  </thead>
+                    <tbody id="n2ZonaProcesoTableBody">
+                        <tr>
+                            <td colspan="8" style="padding: 40px; text-align: center; color: #9ca3af;">
+                                <div style="margin-bottom: 12px;">
+                                    <i class="fa-solid fa-spinner fa-spin" style="font-size: 24px;"></i>
+                                </div>
+                                Cargando estadísticas...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+
+    google.script.run
+        .withSuccessHandler(function (result) {
+            if (result.success) {
+                renderN2ZonaProcesoStats(result.data);
+            } else {
+                showErrorInN2Stats('n2ZonaProcesoTableBody', result.message, 8);
+            }
+        })
+        .withFailureHandler(function (error) {
+            console.error('Error cargando estadísticas:', error);
+            showErrorInN2Stats('n2ZonaProcesoTableBody', 'Error al cargar las estadísticas: ' + error.message, 8);
+        })
+        .getN2StatsZonaProceso();
+}
+
+function renderN2ZonaProcesoStats(data) {
+    const tableBody = document.getElementById('n2ZonaProcesoTableBody');
+    if (!tableBody) return;
+
+    if (!data || data.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="9" style="padding: 40px; text-align: center; color: #9ca3af;">
+                    <div style="margin-bottom: 12px;">
+                        <i class="fa-solid fa-database" style="font-size: 24px;"></i>
+                    </div>
+                    No hay datos disponibles
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    let html = '';
+    let currentProceso = '';
+    let procesoRowId = '';
+    let procesoRowIndex = 0;
+    let hasZonasInCurrentProceso = false;
+    let zonasHTML = '';
+    
+    let globalTotalCompletado = 0;
+    let globalTotalEnProgreso = 0;
+    let globalTotalEnRevision = 0;
+    let globalTotalPendiente = 0;
+    let globalTotalGeneral = 0;
+    
+    // Separar los datos: primero todas las filas normales, luego los totales
+    const filasNormales = [];
+    const filasTotalesProceso = [];
+    const filaTotalGlobal = [];
+    
+    data.forEach(row => {
+        if (row.isGlobalTotal) {
+            filaTotalGlobal.push(row);
+        } else if (row.isProcesoTotal) {
+            filasTotalesProceso.push(row);
+        } else {
+            filasNormales.push(row);
+        }
+    });
+    
+    // Primero procesar los totales de proceso para tenerlos disponibles
+    const totalesProceso = {};
+    filasTotalesProceso.forEach(row => {
+        const proceso = row.proceso.replace('Total ', '');
+        totalesProceso[proceso] = row;
+    });
+    
+    // Agrupar filas normales por proceso
+    const filasPorProceso = {};
+    filasNormales.forEach(row => {
+        const proceso = row.proceso || 'Sin Proceso';
+        if (!filasPorProceso[proceso]) {
+            filasPorProceso[proceso] = [];
+        }
+        filasPorProceso[proceso].push(row);
+    });
+    
+    // Procesar cada proceso por separado
+    Object.keys(filasPorProceso).sort().forEach((proceso, procesoIndex) => {
+        const filasProceso = filasPorProceso[proceso];
+        const totalProceso = totalesProceso[proceso];
+        
+        procesoRowId = `proceso-zona-${procesoRowIndex}`;
+        procesoRowIndex++;
+        
+        const rowStyle = procesoIndex % 2 === 0 ? 'background: #f9fafb;' : 'background: #ffffff;';
+        const zonasCount = filasProceso.filter(row => row.zonaProceso && row.zonaProceso !== '').length;
+        const hasZonas = zonasCount > 0;
+        hasZonasInCurrentProceso = hasZonas;
+        
+        // Calcular porcentaje del proceso
+        let porcentajeProceso = '0.00%';
+        let porcentajeColor = '#374151';
+        
+        if (totalProceso) {
+            porcentajeProceso = totalProceso.porcentaje || '0.00%';
+            const porcentajeNum = parseFloat(porcentajeProceso);
+            if (porcentajeNum >= 80) porcentajeColor = '#10b981';
+            else if (porcentajeNum >= 50) porcentajeColor = '#f59e0b';
+            else porcentajeColor = '#ef4444';
+        }
+        
+        // Fila del proceso (cabecera - SIN NÚMEROS)
+        html += `
+            <tr style="${rowStyle} ${hasZonas ? 'cursor: pointer;' : ''}" ${hasZonas ? `onclick="toggleN2ZonaProceso('${procesoRowId}')"` : ''}>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">
+                    ${hasZonas ? 
+                        `<i id="icon-${procesoRowId}" class="fa-solid fa-caret-right" style="color: #6b7280; transition: transform 0.2s;"></i>` : 
+                        `<i class="fa-solid fa-minus" style="color: #9ca3af;"></i>`
+                    }
+                </td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; font-weight: 600; color: #1f2937;">${proceso}</td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; font-weight: 600; color: #1f2937;"></td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; font-weight: 600;"></td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; font-weight: 600;"></td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; font-weight: 600;"></td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; font-weight: 600;"></td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; font-weight: 600;"></td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; font-weight: 700;"></td>
+            </tr>
+        `;
+        
+        // Filas de zonas individuales (detalle)
+        filasProceso.forEach((row, zonaIndex) => {
+            if (row.zonaProceso && row.zonaProceso !== '') {
+                let zonaPorcentajeColor = '#374151';
+                if (row.porcentaje) {
+                    const zonaPorcentajeNum = parseFloat(row.porcentaje);
+                    if (zonaPorcentajeNum >= 80) zonaPorcentajeColor = '#10b981';
+                    else if (zonaPorcentajeNum >= 50) zonaPorcentajeColor = '#f59e0b';
+                    else zonaPorcentajeColor = '#ef4444';
+                }
+                
+                html += `
+                    <tr class="detalle-${procesoRowId}" style="display: none; ${rowStyle}">
+                        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;"></td>
+                        <td style="padding: 12px 12px 12px 30px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">
+                        </td>
+                        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; font-weight: 500;">${row.zonaProceso}</td>
+                        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">${row.completado || 0}</td>
+                        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">${row.enProgreso || 0}</td>
+                        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">${row.enRevision || 0}</td>
+                        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">${row.pendiente || 0}</td>
+                        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">${row.total || 0}</td>
+                        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; font-weight: 600; color: ${zonaPorcentajeColor};">${row.porcentaje || '0.00%'}</td>
+                    </tr>
+                `;
+            }
+        });
+        
+        // Fila de TOTAL del proceso (INMEDIATAMENTE después del proceso)
+        if (totalProceso) {
+            html += `
+                <tr style="${rowStyle}">
+                    <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">
+                    </td>
+                    <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; font-weight: 700; color: #1f2937; text-align: left;">Total ${proceso}:</td>
+                    <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; font-weight: 700;"></td>
+                    <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; font-weight: 700;">${totalProceso.completado || 0}</td>
+                    <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; font-weight: 700;">${totalProceso.enProgreso || 0}</td>
+                    <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; font-weight: 700;">${totalProceso.enRevision || 0}</td>
+                    <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; font-weight: 700;">${totalProceso.pendiente || 0}</td>
+                    <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; font-weight: 700;">${totalProceso.total || 0}</td>
+                    <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; font-weight: 700; color: ${porcentajeColor};">${porcentajeProceso}</td>
+                </tr>
+            `;
+            
+            // Acumular para el total global
+            globalTotalCompletado += (totalProceso.completado || 0);
+            globalTotalEnProgreso += (totalProceso.enProgreso || 0);
+            globalTotalEnRevision += (totalProceso.enRevision || 0);
+            globalTotalPendiente += (totalProceso.pendiente || 0);
+            globalTotalGeneral += (totalProceso.total || 0);
+        }
+        
+        // Agregar una fila separadora entre procesos
+        html += `
+            <tr>
+                <td colspan="9" style="padding: 2px; background: #f3f4f6;"></td>
+            </tr>
+        `;
+    });
+    
+    // Fila de TOTAL GLOBAL (al final)
+    const porcentajeGlobal = globalTotalGeneral > 0 ?
+        ((globalTotalCompletado / globalTotalGeneral) * 100).toFixed(2) : '0.00';
+    
+    let porcentajeGlobalColor = '#374151';
+    const porcentajeGlobalNum = parseFloat(porcentajeGlobal);
+    if (porcentajeGlobalNum >= 80) porcentajeGlobalColor = '#10b981';
+    else if (porcentajeGlobalNum >= 50) porcentajeGlobalColor = '#f59e0b';
+    else if (porcentajeGlobalNum > 0) porcentajeGlobalColor = '#ef4444';
+    
+    html += `
+        <tr style="background: #1f2937; color: white;">
+            <td style="padding: 12px; font-weight: 700; border-top: 2px solid #4b5563;"></td>
+            <td style="padding: 12px; font-weight: 700; border-top: 2px solid #4b5563; text-align: right;" colspan="2">SUMA TOTAL:</td>
+            <td style="padding: 12px; text-align: center; font-weight: 700; border-top: 2px solid #4b5563;">${globalTotalCompletado}</td>
+            <td style="padding: 12px; text-align: center; font-weight: 700; border-top: 2px solid #4b5563;">${globalTotalEnProgreso}</td>
+            <td style="padding: 12px; text-align: center; font-weight: 700; border-top: 2px solid #4b5563;">${globalTotalEnRevision}</td>
+            <td style="padding: 12px; text-align: center; font-weight: 700; border-top: 2px solid #4b5563;">${globalTotalPendiente}</td>
+            <td style="padding: 12px; text-align: center; font-weight: 700; border-top: 2px solid #4b5563;">${globalTotalGeneral}</td>
+            <td style="padding: 12px; text-align: center; font-weight: 700; color: ${porcentajeGlobalColor}; border-top: 2px solid #4b5563;">${porcentajeGlobal}%</td>
+        </tr>
+    `;
+    
+    tableBody.innerHTML = html;
+}
+
+// Tab 4: Proceso Responsable
+function loadN2ProcesoResponsableTab() {
+    const tabContent = document.getElementById('n2TabContent');
+
+    tabContent.innerHTML = `
+        <div style="margin-bottom: 24px;">
+            <h3 style="margin: 0 0 16px 0; color: #374151; font-size: 18px;">
+                <i class="fa-solid fa-user-shield" style="margin-right: 10px;"></i> COUNTA de Proceso Responsable
+            </h3>
+            
+            <div style="overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 8px;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                    <thead style="background: #f9fafb; position: sticky; top: 0;">
+                        <tr>
+                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb; font-weight: 600; color: #374151;">Proceso Responsable</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e5e7eb; font-weight: 600; color: #374151;">Completado</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e5e7eb; font-weight: 600; color: #374151;">En Progreso</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e5e7eb; font-weight: 600; color: #374151;">En Revisión</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e5e7eb; font-weight: 600; color: #374151;">Pendiente</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e5e7eb; font-weight: 600; color: #374151;">Suma total</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e5e7eb; font-weight: 600; color: #374151;">% Gestión</th>
+                        </tr>
+                    </thead>
+                    <tbody id="n2ProcesoResponsableTableBody">
+                        <tr>
+                            <td colspan="7" style="padding: 40px; text-align: center; color: #9ca3af;">
+                                <div style="margin-bottom: 12px;">
+                                    <i class="fa-solid fa-spinner fa-spin" style="font-size: 24px;"></i>
+                                </div>
+                                Cargando estadísticas...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+
+    google.script.run
+        .withSuccessHandler(function (result) {
+            if (result.success) {
+                renderN2ProcesoResponsableStats(result.data);
+            } else {
+                showErrorInN2Stats('n2ProcesoResponsableTableBody', result.message, 7);
+            }
+        })
+        .withFailureHandler(function (error) {
+            console.error('Error cargando estadísticas:', error);
+            showErrorInN2Stats('n2ProcesoResponsableTableBody', 'Error al cargar las estadísticas: ' + error.message, 7);
+        })
+        .getN2StatsProcesoResponsable();
+}
+
+function renderN2ProcesoResponsableStats(data) {
+    const tableBody = document.getElementById('n2ProcesoResponsableTableBody');
+    if (!tableBody) return;
+
+    if (!data || data.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="7" style="padding: 40px; text-align: center; color: #9ca3af;">
+                    <div style="margin-bottom: 12px;">
+                        <i class="fa-solid fa-database" style="font-size: 24px;"></i>
+                    </div>
+                    No hay datos disponibles
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    let html = '';
+    data.forEach((row, index) => {
+        const isGlobalTotal = row.isGlobalTotal;
+
+        let rowStyle = '';
+        let cellStyle = '';
+
+        if (isGlobalTotal) {
+            rowStyle = 'background: #1f2937; color: white; font-weight: 700;';
+            cellStyle = 'font-weight: 700;';
+        } else if (index % 2 === 0) {
+            rowStyle = 'background: #f9fafb;';
+        }
+
+        let porcentajeColor = '#374151';
+        if (row.porcentaje) {
+            const porcentajeNum = parseFloat(row.porcentaje);
+            if (porcentajeNum >= 80) porcentajeColor = '#10b981';
+            else if (porcentajeNum >= 50) porcentajeColor = '#f59e0b';
+            else porcentajeColor = '#ef4444';
+        }
+
+        html += `
+            <tr style="${rowStyle}">
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; ${cellStyle}">${row.procesoResponsable || ''}</td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}">${row.completado || 0}</td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}">${row.enProgreso || 0}</td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}">${row.enRevision || 0}</td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}">${row.pendiente || 0}</td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}">${row.total || 0}</td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}; color: ${porcentajeColor};">${row.porcentaje || '0.00%'}</td>
+            </tr>
+        `;
+    });
+
+    tableBody.innerHTML = html;
+}
+
+// Tab 6: Líder Responsable
+function loadN2LiderResponsableTab() {
+    const tabContent = document.getElementById('n2TabContent');
+
+    tabContent.innerHTML = `
+        <div style="margin-bottom: 24px;">
+            <h3 style="margin: 0 0 16px 0; color: #374151; font-size: 18px;">
+                <i class="fa-solid fa-user-tie" style="margin-right: 10px;"></i> COUNTA de Líder Responsable
+            </h3>
+            
+            <div style="overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 8px;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                    <thead style="background: #f9fafb; position: sticky; top: 0;">
+                        <tr>
+                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb; font-weight: 600; color: #374151;">Líder Responsable</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e5e7eb; font-weight: 600; color: #374151;">Completado</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e5e7eb; font-weight: 600; color: #374151;">En Progreso</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e5e7eb; font-weight: 600; color: #374151;">En Revisión</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e5e7eb; font-weight: 600; color: #374151;">Pendiente</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e5e7eb; font-weight: 600; color: #374151;">Suma total</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e5e7eb; font-weight: 600; color: #374151;">% Gestión</th>
+                        </tr>
+                    </thead>
+                    <tbody id="n2LiderResponsableTableBody">
+                        <tr>
+                            <td colspan="7" style="padding: 40px; text-align: center; color: #9ca3af;">
+                                <div style="margin-bottom: 12px;">
+                                    <i class="fa-solid fa-spinner fa-spin" style="font-size: 24px;"></i>
+                                </div>
+                                Cargando estadísticas...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+
+    google.script.run
+        .withSuccessHandler(function (result) {
+            if (result.success) {
+                renderN2LiderResponsableStats(result.data);
+            } else {
+                showErrorInN2Stats('n2LiderResponsableTableBody', result.message, 7);
+            }
+        })
+        .withFailureHandler(function (error) {
+            console.error('Error cargando estadísticas:', error);
+            showErrorInN2Stats('n2LiderResponsableTableBody', 'Error al cargar las estadísticas: ' + error.message, 7);
+        })
+        .getN2StatsLiderResponsable();
+}
+
+function renderN2LiderResponsableStats(data) {
+    const tableBody = document.getElementById('n2LiderResponsableTableBody');
+    if (!tableBody) return;
+
+    if (!data || data.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="7" style="padding: 40px; text-align: center; color: #9ca3af;">
+                    <div style="margin-bottom: 12px;">
+                        <i class="fa-solid fa-database" style="font-size: 24px;"></i>
+                    </div>
+                    No hay datos disponibles
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    let html = '';
+    data.forEach((row, index) => {
+        const isGlobalTotal = row.isGlobalTotal;
+
+        let rowStyle = '';
+        let cellStyle = '';
+
+        if (isGlobalTotal) {
+            rowStyle = 'background: #1f2937; color: white; font-weight: 700;';
+            cellStyle = 'font-weight: 700;';
+        } else if (index % 2 === 0) {
+            rowStyle = 'background: #f9fafb;';
+        }
+
+        let porcentajeColor = '#374151';
+        if (row.porcentaje) {
+            const porcentajeNum = parseFloat(row.porcentaje);
+            if (porcentajeNum >= 80) porcentajeColor = '#10b981';
+            else if (porcentajeNum >= 50) porcentajeColor = '#f59e0b';
+            else porcentajeColor = '#ef4444';
+        }
+
+        html += `
+            <tr style="${rowStyle}">
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; ${cellStyle}">${row.liderResponsable || ''}</td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}">${row.completado || 0}</td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}">${row.enProgreso || 0}</td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}">${row.enRevision || 0}</td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}">${row.pendiente || 0}</td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}">${row.total || 0}</td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; ${cellStyle}; color: ${porcentajeColor};">${row.porcentaje || '0.00%'}</td>
+            </tr>
+        `;
+    });
+
+    tableBody.innerHTML = html;
+}
+
+// Función auxiliar para mostrar errores
+function showErrorInN2Stats(tableBodyId, message, colspan) {
+    const tableBody = document.getElementById(tableBodyId);
+    if (tableBody) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="${colspan}" style="padding: 40px; text-align: center; color: #ef4444;">
+                    <div style="margin-bottom: 12px;">
+                        <i class="fa-solid fa-exclamation-triangle" style="font-size: 24px;"></i>
+                    </div>
+                    ${message || 'Error al cargar estadísticas'}
+                </td>
+            </tr>
+        `;
+    }
+}
+
+// Función para expandir/colapsar zonas en la tabla Zona/Proceso
+function toggleN2ZonaProceso(rowId) {
+    const icon = document.getElementById('icon-' + rowId);
+    const allRows = document.querySelectorAll('.detalle-' + rowId);
+
+    if (icon.classList.contains('fa-caret-right')) {
+        icon.classList.remove('fa-caret-right');
+        icon.classList.add('fa-caret-down');
+        icon.style.transform = 'rotate(90deg)';
+        allRows.forEach(row => row.style.display = '');
+    } else {
+        icon.classList.add('fa-caret-right');
+        icon.classList.remove('fa-caret-down');
+        icon.style.transform = 'rotate(0deg)';
+        allRows.forEach(row => row.style.display = 'none');
+    }
+}
+
+</script>

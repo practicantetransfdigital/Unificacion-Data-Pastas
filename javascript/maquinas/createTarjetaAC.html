@@ -1,0 +1,69 @@
+<script>
+    /**
+ * Crea una card de reporte de máquina (mismo estilo que N2)
+ */
+    function createMaquinaCard(report) {
+        const card = document.createElement('div');
+        card.className = 'report-card';
+        card.setAttribute('data-report-id', report.id);
+        card.setAttribute('data-proceso', report.proceso);
+        card.setAttribute('data-area', report.areaResponsable);
+
+        // Determinar color de criticidad
+        const criticidadColors = {
+            'Alta': '#dc3545',
+            'Media': '#ffc107',
+            'Baja': '#28a745'
+        };
+
+        const criticidadColor = criticidadColors[report.criticidad] || '#6c757d';
+
+        // CAMBIO: Mecánico y criticidad alineados horizontalmente
+        const cardHTML = [
+            '<div class="card-header">',
+            '<span class="card-id">' + (report.id || '') + '</span>',
+            '<span class="card-date">' + formatDate(report.fechaRegistro) + '</span>',
+            '</div>',
+            // CAMBIO: Fila con mecánico responsable y criticidad alineados
+            '<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; margin-bottom: 8px;">',
+            '<div class="card-description" style="margin: 0; flex: 1;">' + (report.mecanicoResponsable || '') + '</div>',
+            '<span class="criticidad-badge" style="background-color: ' + criticidadColor + '; color: white; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; cursor: pointer; white-space: nowrap; margin-left: 8px;" onclick="changeMaquinaCriticidad(\'' + report.id + '\', event)">' + (report.criticidad || 'Sin asignar') + '</span>',
+            '</div>',
+            '<div class="card-title">' + (report.proceso || '') + (' - ') + (report.subsistema || '') + '</div>',
+            '<div class="card-description">' + (report.areaProceso || '') + '</div>',
+            '<div class="card-description">' + (report.anormalidad || '') + '</div>',
+            '<div class="card-meta">',
+            '<span class="card-process">' + (report.areaResponsable || '') + '</span>',
+            '<span class="comment-count" id="comment-count-maq-' + report.id + '" style="color:black; border-radius:8px; padding:2px 6px; font-size:12px; margin-left:8px;">0</span>',
+            '</div>',
+            '<div class="card-actions">',
+            '<button class="card-action-btn" onclick="viewMaquinaDetails(\'' + report.id + '\')">Ver</button>',
+            '<button class="card-action-btn" onclick="showMaquinasCommentsModal(\'' + report.id + '\')">Comentarios</button>',
+            '<button class="card-action-btn" onclick="changeMaquinaStatus(\'' + report.id + '\')">Cambiar Estado</button>',
+            '</div>'
+        ].join('');
+
+        card.innerHTML = cardHTML;
+        return card;
+    }
+
+    /**
+     * Muestra los detalles de un reporte de máquina con alerta (igual que N2)
+     */
+    function viewMaquinaDetails(reportId) {
+        const report = maquinasReports.find(r => r.id === reportId);
+        if (report) {
+            showAlert('info', `Reporte ${reportId}`,
+                `<br><strong>Proceso:</strong> ${report.proceso}\n <br><br>
+            <strong>Área del Proceso:</strong> ${report.areaProceso}\n <br><br>
+            <strong>Subsistema:</strong> ${report.subsistema}\n <br><br>
+            <strong>Mecánico Responsable:</strong> ${report.mecanicoResponsable}\n <br><br>
+            <strong>Anormalidad:</strong> ${report.anormalidad}\n <br><br>
+            <strong>Área Responsable:</strong> ${report.areaResponsable}\n <br><br>
+            <strong>Criticidad:</strong> ${report.criticidad || 'Sin asignar'}\n <br><br>
+            <strong>Estado:</strong> ${report.estado}`,
+                8000);
+        }
+    }
+
+</script>
