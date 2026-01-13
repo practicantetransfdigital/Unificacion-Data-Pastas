@@ -1,0 +1,682 @@
+<script>
+
+    function abrirSeguimientoCausa(cicloId, causaIndex, causaTexto) {
+        console.log('🚀 EJECUTANDO abrirSeguimientoCausa');
+        console.log('Ciclo ID:', cicloId);
+        console.log('Causa Index:', causaIndex);
+        console.log('Causa Texto:', causaTexto);
+
+        // Guardar en variable global
+        window.causaSeleccionada = {
+            cicloId: cicloId,
+            causaIndex: parseInt(causaIndex),
+            causaTexto: causaTexto,
+            timestamp: new Date().getTime()
+        };
+
+        console.log('✅ Causa guardada:', window.causaSeleccionada);
+
+        // Crear modal simple para pruebas
+        crearModalSeguimientoCausa(cicloId, causaIndex, causaTexto);
+    }
+
+    function crearModalSeguimientoCausa() {
+        console.log('🔨 CREANDO MODAL DE SEGUIMIENTO');
+
+        // 1. ELIMINAR MODAL EXISTENTE si hay
+        const modalExistente = document.getElementById('modalSeguimientoCausa');
+        if (modalExistente) {
+            console.log('⚠️ Modal existente encontrado, eliminando...');
+            modalExistente.remove();
+        }
+
+        // 2. OBTENER DATOS DE LA CAUSA
+        const causaInfo = window.causaSeleccionada;
+        if (!causaInfo) {
+            console.error('❌ ERROR: No hay causa seleccionada');
+            showAlert('error', 'Error', 'No hay causa seleccionada');
+            return null;
+        }
+
+        console.log('📋 Datos de la causa:', causaInfo);
+
+        // 3. CREAR HTML SIMPLE Y CLARO
+        const modalHTML = `
+    <div id="modalSeguimientoCausa" class="modal-overlay-seguimiento-causa" 
+         style="
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            padding: 20px;
+         ">
+        
+        <div class="modal-content-seguimiento-causa" 
+             style="
+                background: white;
+                border-radius: 12px;
+                width: 100%;
+                max-width: 800px;
+                max-height: 90vh;
+                overflow: hidden;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                display: flex;
+                flex-direction: column;
+             ">
+            
+            <!-- HEADER FIJADO -->
+            <div class="modal-header-seguimiento" 
+                 style="
+                    padding: 20px;
+                    border-bottom: 1px solid #e5e7eb;
+                    background: #f8fafc;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                 ">
+                <div>
+                    <h3 style="margin: 0; color: #1f2937; font-size: 18px; font-weight: 600;">
+                        <i class="fas fa-bullseye" style="color: #3b82f6; margin-right: 8px;"></i>
+                        Seguimiento de Causa Raíz
+                    </h3>
+                    <p style="margin: 4px 0 0; color: #6b7280; font-size: 14px;">
+                        Ciclo: <strong>${causaInfo.cicloId}</strong> • Causa #${causaInfo.causaIndex + 1}
+                    </p>
+                </div>
+                
+                <button onclick="cerrarModalSeguimientoCausa()" 
+                        style="
+                            background: none;
+                            border: none;
+                            font-size: 24px;
+                            cursor: pointer;
+                            color: #6b7280;
+                            padding: 4px 12px;
+                            border-radius: 6px;
+                            transition: background 0.2s;
+                        "
+                        onmouseover="this.style.background='#f3f4f6'"
+                        onmouseout="this.style.background='transparent'">
+                    ×
+                </button>
+            </div>
+            
+            <!-- BODY CON SCROLL -->
+            <div class="modal-body-seguimiento" 
+                 style="
+                    flex: 1;
+                    overflow-y: auto;
+                    padding: 20px;
+                 ">
+                
+                <!-- CAUSA ACTUAL -->
+                <div style="
+                    background: #f0f9ff;
+                    border: 1px solid #bae6fd;
+                    border-radius: 8px;
+                    padding: 16px;
+                    margin-bottom: 20px;
+                 ">
+                    <h4 style="margin: 0 0 8px 0; color: #0369a1; font-size: 15px;">
+                        <i class="fas fa-info-circle" style="margin-right: 6px;"></i>
+                        Causa Raíz a Seguimiento
+                    </h4>
+                    <p style="margin: 0; color: #0c4a6e; font-weight: 500; line-height: 1.5;">
+                        ${causaInfo.causaTexto}
+                    </p>
+                </div>
+                
+                <!-- FORMULARIO DE SEGUIMIENTO -->
+                <div style="margin-bottom: 24px;">
+                    <h4 style="margin: 0 0 16px 0; color: #374151; font-size: 16px;">
+                        <i class="fas fa-edit" style="color: #8b5cf6; margin-right: 8px;"></i>
+                        Registrar Seguimiento
+                    </h4>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                        <!-- ESTADO -->
+                        <div>
+                            <label style="display: block; margin-bottom: 6px; color: #4b5563; font-size: 14px; font-weight: 500;">
+                                <i class="fas fa-flag" style="margin-right: 6px; color: #ef4444;"></i>
+                                Estado
+                            </label>
+                            <select id="estadoCausa" 
+                                    style="
+                                        width: 100%;
+                                        padding: 10px 12px;
+                                        border: 1px solid #d1d5db;
+                                        border-radius: 8px;
+                                        font-size: 14px;
+                                        color: #374151;
+                                        background: white;
+                                        cursor: pointer;
+                                    ">
+                                <option value="Pendiente">⏳ Pendiente</option>
+                                <option value="En Analisis">🔍 En Análisis</option>
+                                <option value="En Implementacion">🛠️ En Implementación</option>
+                                <option value="Validando">✅ Validando</option>
+                                <option value="Completado">🏁 Completado</option>
+                                <option value="Cerrado">🔒 Cerrado</option>
+                            </select>
+                        </div>
+                        
+                        <!-- FECHA PRÓXIMA -->
+                        <div>
+                            <label style="display: block; margin-bottom: 6px; color: #4b5563; font-size: 14px; font-weight: 500;">
+                                <i class="far fa-calendar-alt" style="margin-right: 6px; color: #10b981;"></i>
+                                Próxima Revisión
+                            </label>
+                            <input type="date" 
+                                   id="fechaProximaCausa"
+                                   style="
+                                        width: 100%;
+                                        padding: 10px 12px;
+                                        border: 1px solid #d1d5db;
+                                        border-radius: 8px;
+                                        font-size: 14px;
+                                        color: #374151;
+                                        background: white;
+                                   ">
+                        </div>
+                    </div>
+                    
+                    <!-- COMENTARIO -->
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 6px; color: #4b5563; font-size: 14px; font-weight: 500;">
+                            <i class="fas fa-comment-alt" style="margin-right: 6px; color: #3b82f6;"></i>
+                            Comentario / Avance
+                        </label>
+                        <textarea id="comentarioCausa" 
+                                  rows="4"
+                                  placeholder="Describa el avance, hallazgos, acciones realizadas y evidencia..."
+                                  style="
+                                        width: 100%;
+                                        padding: 12px;
+                                        border: 1px solid #d1d5db;
+                                        border-radius: 8px;
+                                        font-size: 14px;
+                                        color: #374151;
+                                        resize: vertical;
+                                        font-family: inherit;
+                                  "></textarea>
+                    </div>
+                    
+                    <!-- BOTÓN GUARDAR -->
+                    <button onclick="guardarSeguimientoCausa()"
+                            style="
+                                width: 100%;
+                                padding: 12px 24px;
+                                background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+                                color: white;
+                                border: none;
+                                border-radius: 8px;
+                                font-size: 15px;
+                                font-weight: 600;
+                                cursor: pointer;
+                                transition: all 0.2s;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                gap: 8px;
+                            "
+                            onmouseover="this.style.opacity='0.9'"
+                            onmouseout="this.style.opacity='1'">
+                        <i class="fas fa-save"></i>
+                        Guardar Seguimiento
+                    </button>
+                </div>
+                
+                <!-- HISTORIAL -->
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                        <h4 style="margin: 0; color: #374151; font-size: 16px;">
+                            <i class="fas fa-history" style="color: #f59e0b; margin-right: 8px;"></i>
+                            Historial de Seguimiento
+                        </h4>
+                        <span id="contadorHistorial" 
+                              style="
+                                background: #e5e7eb;
+                                color: #4b5563;
+                                padding: 4px 12px;
+                                border-radius: 20px;
+                                font-size: 13px;
+                                font-weight: 600;
+                              ">0 registros</span>
+                    </div>
+                    
+                    <!-- CONTENEDOR DEL HISTORIAL -->
+                    <div id="timelineCausa" 
+                         style="
+                            background: #f9fafb;
+                            border: 1px solid #e5e7eb;
+                            border-radius: 8px;
+                            padding: 16px;
+                            min-height: 100px;
+                         ">
+                        <div style="text-align: center; color: #9ca3af; padding: 20px;">
+                            <i class="fas fa-clock" style="font-size: 24px; margin-bottom: 8px; display: block;"></i>
+                            <p style="margin: 0 0 4px 0; font-weight: 500;">No hay seguimientos registrados</p>
+                            <p style="margin: 0; font-size: 13px;">Agrega el primer seguimiento para esta causa</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    `;
+
+        // 4. INSERTAR EN EL DOM
+        console.log('📝 Insertando modal en el DOM...');
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+        // 5. OBTENER REFERENCIA
+        const modal = document.getElementById('modalSeguimientoCausa');
+        console.log('✅ Modal insertado:', modal ? 'SI' : 'NO');
+
+        if (!modal) {
+            console.error('❌ ERROR CRÍTICO: Modal no se insertó en el DOM');
+            return null;
+        }
+
+        // 6. CARGAR DATOS INICIALES
+        console.log('📊 Cargando datos iniciales...');
+
+        // Cargar historial
+        cargarHistorialCausa(causaInfo.cicloId, causaInfo.causaIndex);
+
+        // Cargar estado actual
+        cargarEstadoActualCausa(causaInfo.cicloId, causaInfo.causaIndex);
+
+        // 7. CONFIGURAR EVENT LISTENERS
+        console.log('🎯 Configurando event listeners...');
+
+        // Cerrar al hacer clic fuera
+        modal.addEventListener('click', function (e) {
+            if (e.target === modal) {
+                console.log('👆 Clic fuera del modal, cerrando...');
+                cerrarModalSeguimientoCausa();
+            }
+        });
+
+        // Cerrar con ESC
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && modal) {
+                console.log('⎋ Tecla ESC presionada, cerrando...');
+                cerrarModalSeguimientoCausa();
+            }
+        });
+
+        console.log('🎉 Modal creado exitosamente!');
+        return modal;
+    }
+
+    function cerrarModalSeguimientoCausa() {
+        const modal = document.getElementById('modalSeguimientoCausa');
+        if (modal) {
+            modal.style.opacity = '0';
+            modal.style.transform = 'translateY(20px) scale(0.95)';
+
+            setTimeout(() => {
+                modal.remove();
+                window.causaSeleccionada = null;
+            }, 200);
+        }
+    }
+
+    function cargarEstadoActualCausa(cicloId, causaIndex) {
+        google.script.run
+            .withSuccessHandler(function (estadoActual) {
+                const selectEstado = document.getElementById('estadoCausa');
+                if (selectEstado && estadoActual) {
+                    selectEstado.value = estadoActual;
+                }
+            })
+            .withFailureHandler(function (error) {
+                console.log('No se pudo cargar estado actual:', error);
+            })
+            .getEstadoActualCausa(cicloId, causaIndex);
+    }
+
+    function cargarHistorialCausa(cicloId, causaIndex) {
+        const timeline = document.getElementById('timelineCausa');
+        if (!timeline) return;
+
+        // Mostrar skeleton loader
+        timeline.innerHTML = `
+        <div style="padding: 20px;">
+            <div style="
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 12px;
+                color: #64748b;
+            ">
+                <svg class="spinner-icon" width="20" height="20" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" opacity="0.25"/>
+                    <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round"/>
+                </svg>
+                <span>Cargando historial...</span>
+            </div>
+        </div>
+    `;
+
+        google.script.run
+            .withSuccessHandler(function (historial) {
+                renderHistorialCausa(historial);
+            })
+            .withFailureHandler(function (error) {
+                console.error('Error cargando historial de causa:', error);
+                timeline.innerHTML = `
+                <div style="
+                    text-align: center;
+                    padding: 20px;
+                    color: #dc2626;
+                ">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 24px; margin-bottom: 12px; display: block;"></i>
+                    <p>Error al cargar el historial</p>
+                    <button onclick="cargarHistorialCausa('${cicloId}', ${causaIndex})" style="
+                        background: #f3f4f6;
+                        border: 1px solid #d1d5db;
+                        border-radius: 6px;
+                        padding: 8px 16px;
+                        font-size: 12px;
+                        cursor: pointer;
+                        margin-top: 8px;
+                    ">
+                        Reintentar
+                    </button>
+                </div>
+            `;
+            })
+            .getHistorialSeguimientoCausa(cicloId, causaIndex);
+    }
+
+    function guardarSeguimientoCausa() {
+        if (!window.causaSeleccionada) {
+            showAlert('error', 'Error', 'No hay causa seleccionada');
+            return;
+        }
+
+        const estado = document.getElementById('estadoCausa').value;
+        const comentario = document.getElementById('comentarioCausa').value.trim();
+        const fechaProxima = document.getElementById('fechaProximaCausa').value;
+
+        // Validaciones especiales para estado "Completado" o "Cerrado"
+        if ((estado === 'Completado' || estado === 'Cerrado')) {
+            // Verificar si el comentario menciona evidencia
+            const evidenciasKeywords = ['foto', 'fotos', 'OT', 'POE', 'LUP', 'lista', 'asistencia', 'reporte', 'acta', 'documento', 'evidencia', 'adjunto', 'adjunt', 'archivo'];
+            const tieneEvidencia = evidenciasKeywords.some(keyword =>
+                comentario.toLowerCase().includes(keyword.toLowerCase())
+            );
+
+            if (!tieneEvidencia) {
+                showAlert('warning', 'Evidencia Requerida',
+                    'Para cerrar o completar una causa, debe mencionar la evidencia en el comentario.\n\n' +
+                    'Ejemplos: "Adjunto foto del resultado", "OT #1234 generada", "POE actualizado", ' +
+                    '"LUP número 5678", "Lista de asistencia en carpeta compartida", etc.');
+                document.getElementById('comentarioCausa').focus();
+                return;
+            }
+        }
+
+        if (!comentario) {
+            showAlert('warning', 'Atención', 'Por favor agregue un comentario descriptivo');
+            document.getElementById('comentarioCausa').focus();
+            return;
+        }
+
+        const btn = document.querySelector('.btn-guardar-seguimiento');
+        const originalText = btn.innerHTML;
+
+        // Deshabilitar botón
+        btn.disabled = true;
+        btn.innerHTML = `
+        <i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>
+        Guardando...
+    `;
+        btn.classList.add('btn-loading');
+
+        const seguimientoData = {
+            cicloId: window.causaSeleccionada.cicloId,
+            causaIndex: window.causaSeleccionada.causaIndex,
+            causaTexto: window.causaSeleccionada.causaTexto,
+            estado: estado,
+            comentario: comentario,
+            fechaProximaRevision: fechaProxima,
+            autor: currentUser ? currentUser.nombre : 'Usuario',
+            tipo: 'causa'
+        };
+
+        console.log('📤 Enviando seguimiento de causa:', seguimientoData);
+
+        google.script.run
+            .withSuccessHandler(function (result) {
+                // Restaurar botón
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                btn.classList.remove('btn-loading');
+
+                if (result.success) {
+                    showAlert('success', 'Éxito', 'Seguimiento guardado correctamente');
+
+                    // Limpiar formulario
+                    document.getElementById('comentarioCausa').value = '';
+                    document.getElementById('fechaProximaCausa').value = '';
+
+                    // Recargar historial
+                    cargarHistorialCausa(
+                        window.causaSeleccionada.cicloId,
+                        window.causaSeleccionada.causaIndex
+                    );
+
+                    // Actualizar estado actual
+                    cargarEstadoActualCausa(
+                        window.causaSeleccionada.cicloId,
+                        window.causaSeleccionada.causaIndex
+                    );
+                } else {
+                    showAlert('error', 'Error', result.message || 'No se pudo guardar el seguimiento');
+                }
+            })
+            .withFailureHandler(function (error) {
+                // Restaurar botón
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                btn.classList.remove('btn-loading');
+
+                console.error('❌ Error guardando seguimiento:', error);
+                showAlert('error', 'Error', 'Error al guardar: ' + error.message);
+            })
+            .guardarSeguimientoCausa(seguimientoData);
+    }
+
+    function guardarSeguimientoCausa() {
+        if (!window.causaSeleccionada) {
+            showAlert('error', 'Error', 'No hay causa seleccionada');
+            return;
+        }
+
+        const estado = document.getElementById('estadoCausa').value;
+        const comentario = document.getElementById('comentarioCausa').value.trim();
+        const proximaAccion = document.getElementById('proximaAccionCausa').value.trim();
+        const fechaProxima = document.getElementById('fechaProximaCausa').value;
+        const evidencia = document.getElementById('evidenciaCausa').value.trim();
+
+        // Validaciones especiales para estado "Completado" o "Cerrado"
+        if ((estado === 'Completado' || estado === 'Cerrado') && !evidencia) {
+            showAlert('warning', 'Evidencia Requerida',
+                'Para cerrar o completar una causa, debe proporcionar evidencia verificable.\n\n' +
+                'Ejemplos: Foto, OT, POE, N° LUP, Lista de asistencia, reporte técnico, acta de verificación, etc.');
+            document.getElementById('evidenciaCausa').focus();
+            return;
+        }
+
+        if (!comentario) {
+            showAlert('warning', 'Atención', 'Por favor agregue un comentario descriptivo');
+            document.getElementById('comentarioCausa').focus();
+            return;
+        }
+
+        const btn = document.querySelector('.btn-primary[onclick="guardarSeguimientoCausa()"]');
+        const originalText = btn.innerHTML;
+
+        // Deshabilitar botón
+        btn.disabled = true;
+        btn.innerHTML = `
+        <i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>
+        Guardando...
+    `;
+        btn.style.opacity = '0.7';
+
+        const seguimientoData = {
+            cicloId: window.causaSeleccionada.cicloId,
+            causaIndex: window.causaSeleccionada.causaIndex,
+            causaTexto: window.causaSeleccionada.causaTexto,
+            estado: estado,
+            comentario: comentario,
+            proximaAccion: proximaAccion,
+            fechaProximaRevision: fechaProxima,
+            evidencia: evidencia,
+            autor: currentUser ? currentUser.nombre : 'Usuario',
+            tipo: 'causa'
+        };
+
+        console.log('📤 Enviando seguimiento de causa:', seguimientoData);
+
+        google.script.run
+            .withSuccessHandler(function (result) {
+                // Restaurar botón
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                btn.style.opacity = '1';
+
+                if (result.success) {
+                    showAlert('success', 'Éxito', 'Seguimiento guardado correctamente');
+
+                    // Limpiar formulario (excepto evidencia si fue recién agregada)
+                    document.getElementById('comentarioCausa').value = '';
+                    document.getElementById('proximaAccionCausa').value = '';
+                    document.getElementById('fechaProximaCausa').value = '';
+
+                    // Mantener evidencia si se está completando o cerrando
+                    if (estado !== 'Completado' && estado !== 'Cerrado') {
+                        document.getElementById('evidenciaCausa').value = '';
+                    }
+
+                    // Recargar historial
+                    cargarHistorialCausa(
+                        window.causaSeleccionada.cicloId,
+                        window.causaSeleccionada.causaIndex
+                    );
+
+                    // Actualizar estado actual
+                    cargarEstadoActualCausa(
+                        window.causaSeleccionada.cicloId,
+                        window.causaSeleccionada.causaIndex
+                    );
+                } else {
+                    showAlert('error', 'Error', result.message || 'No se pudo guardar el seguimiento');
+                }
+            })
+            .withFailureHandler(function (error) {
+                // Restaurar botón
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                btn.style.opacity = '1';
+
+                console.error('❌ Error guardando seguimiento:', error);
+                showAlert('error', 'Error', 'Error al guardar: ' + error.message);
+            })
+            .guardarSeguimientoCausa(seguimientoData);
+    }
+
+    function renderHistorialCausa(historial) {
+        const timeline = document.getElementById('timelineCausa');
+        const contador = document.getElementById('contadorHistorial');
+
+        if (!timeline) return;
+
+        if (!historial || historial.length === 0) {
+            timeline.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-clock"></i>
+                <p class="empty-title">No hay seguimientos registrados</p>
+                <p class="empty-subtitle">Agrega el primer seguimiento para esta causa</p>
+            </div>
+        `;
+
+            if (contador) contador.textContent = '0 registros';
+            return;
+        }
+
+        // Actualizar contador
+        if (contador) contador.textContent = `${historial.length} ${historial.length === 1 ? 'registro' : 'registros'}`;
+
+        let html = '';
+        historial.forEach((registro, index) => {
+            const fecha = new Date(registro.fecha);
+            const fechaStr = fecha.toLocaleDateString('es-ES', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            // Colores por estado
+            const estadoColors = {
+                'Pendiente': '#6b7280',
+                'En Analisis': '#3b82f6',
+                'En Implementacion': '#f59e0b',
+                'Validando': '#10b981',
+                'Completado': '#22c55e',
+                'Cerrado': '#6b7280'
+            };
+
+            const color = estadoColors[registro.estado] || '#6b7280';
+            const isCompleted = registro.estado === 'Completado' || registro.estado === 'Cerrado';
+
+            html += `
+            <div class="timeline-item ${isCompleted ? 'completed' : ''}">
+                <div class="timeline-header">
+                    <div class="timeline-estado-badge" style="background-color: ${color}15; color: ${color};">
+                        ${isCompleted ? '✓ ' : ''}${registro.estado}
+                    </div>
+                    <div class="timeline-fecha">
+                        <i class="far fa-clock"></i>
+                        ${fechaStr}
+                    </div>
+                </div>
+                
+                <div class="timeline-content">
+                    <div class="timeline-comentario">
+                        ${registro.comentario || '<span class="sin-comentario">Sin comentario</span>'}
+                    </div>
+                </div>
+                
+                <div class="timeline-footer">
+                    <div class="timeline-autor">
+                        <i class="fas fa-user"></i>
+                        ${registro.autor || 'Usuario'}
+                    </div>
+                    ${registro.fechaProximaRevision ? `
+                    <div class="timeline-proxima-fecha">
+                        <i class="far fa-calendar-check"></i>
+                        Próxima: ${registro.fechaProximaRevision}
+                    </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+        });
+
+        timeline.innerHTML = html;
+    }
+
+</script>

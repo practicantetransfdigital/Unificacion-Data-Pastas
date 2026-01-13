@@ -1,0 +1,1007 @@
+<script>
+
+    function cargarContadorInicial(idCausa, cicloId) {
+        const fila = document.querySelector(`tr[data-causa-index="${idCausa}"]`);
+        if (!fila || !cicloId) return;
+
+        google.script.run
+            .withSuccessHandler(function (contador) {
+                const btn = fila.querySelector('.btn-acciones-causa');
+                if (!btn) return;
+
+                if (contador > 0) {
+                    // Verificar si ya existe un contador
+                    let countSpan = btn.querySelector('.acciones-count');
+                    if (!countSpan) {
+                        countSpan = document.createElement('span');
+                        countSpan.className = 'acciones-count';
+                        btn.appendChild(countSpan);
+                    }
+                    countSpan.textContent = contador;
+                    btn.title = `${contador} acción(es) adjunta(s)`;
+                } else {
+                    // Limpiar contador si existe
+                    const countSpan = btn.querySelector('.acciones-count');
+                    if (countSpan) countSpan.remove();
+                    btn.title = 'Agregar acciones';
+                }
+            })
+            .withFailureHandler(function (error) {
+                console.error('Error cargando contador inicial:', error);
+            })
+            .getContadorAccionesCausa(cicloId, idCausa);
+    }
+
+    function mostrarAccionesCausa(idCausa, nombreCausa) {
+        console.log('🔍 DEBUG mostrarAccionesCausa - INICIO');
+        console.log('ID Causa recibido:', idCausa);
+        console.log('Nombre Causa recibido:', nombreCausa);
+        console.log('window.causaActual ANTES:', window.causaActual);
+        console.log('accionCausaActual ANTES:', accionCausaActual);
+        console.log('cicloActual:', cicloActual);
+
+        try {
+            // Validaciones más robustas
+            if (!cicloActual) {
+                console.error('❌ ERROR: cicloActual no está definido');
+                showAlert('error', 'Error', 'No hay un ciclo cargado. Vuelve a abrir el ciclo.');
+                return;
+            }
+
+            // 🔹 CORRECCIÓN: Asegurar que los datos se guarden GLOBALMENTE
+            const causaData = {
+                id: parseInt(idCausa),
+                nombre: nombreCausa,
+                cicloId: cicloActual.id,
+                causaIndex: parseInt(idCausa),
+                causaTexto: nombreCausa,
+                timestamp: new Date().getTime()
+            };
+
+            // 1. Guardar en variable global
+            window.causaActual = causaData;
+
+            // 2. Guardar en variable del script
+            accionCausaActual = causaData;
+
+            // 3. Guardar en localStorage como backup
+            localStorage.setItem('ultimaCausaSeleccionada', JSON.stringify(causaData));
+
+            // 4. Guardar en sessionStorage también
+            sessionStorage.setItem('causaActual', JSON.stringify(causaData));
+
+            console.log('✅ Causa guardada en todos los lugares:', causaData);
+            console.log('✅ Datos guardados en window.causaActual:', window.causaActual);
+            console.log('✅ Datos guardados en accionCausaActual:', accionCausaActual);
+
+            // Crear el modal si no existe
+            crearModalAccionesCausa();
+
+            // Pequeño delay para asegurar que el DOM se actualice
+            setTimeout(() => {
+                const modal = document.getElementById('modalAccionesCausa');
+
+                if (!modal) {
+                    console.error('❌ Modal no se pudo crear');
+                    showAlert('error', 'Error', 'No se pudo crear el modal. Por favor, recarga la página.');
+                    return;
+                }
+
+                console.log('✅ Modal encontrado');
+
+                // Establecer título y subtítulo
+                const tituloEl = document.getElementById('modalAccionesTitulo');
+                const subtituloEl = document.getElementById('modalAccionesSubtitulo');
+
+                if (tituloEl) {
+                    tituloEl.textContent = `Acciones de Causa`;
+                }
+                if (subtituloEl) {
+                    subtituloEl.textContent = nombreCausa;
+                }
+
+                // Auto-completar responsable si existe el campo
+                const responsableInput = document.getElementById('nuevaAccionResponsable');
+                if (responsableInput && currentUser && currentUser.nombre) {
+                    responsableInput.value = currentUser.nombre;
+                    console.log('✅ Responsable autocompletado:', currentUser.nombre);
+                }
+
+                // Mostrar modal
+                modal.classList.add('active');
+                document.body.style.overflow = 'hidden';
+                console.log('✅ Modal mostrado');
+
+                // Cargar acciones
+                cargarAccionesCausa(idCausa);
+
+            }, 100);
+
+        } catch (error) {
+            console.error('💥 ERROR en mostrarAccionesCausa:', error);
+            showAlert('error', 'Error', `Error al mostrar acciones: ${error.message}`);
+        }
+    }
+
+    function crearModalAccionesCausa() {
+        // Verificar si el modal ya existe
+        if (document.getElementById('modalAccionesCausa')) {
+            console.log('Modal ya existe, reutilizando...');
+            return;
+        }
+
+        const nombreCiclo = cicloActual ? cicloActual.nombre || 'Ciclo sin nombre' : 'Ciclo no disponible';
+
+        console.log('Creando nuevo modal de acciones...');
+
+        const modalHTML = `
+        <div id="modalAccionesCausa" class="modal-causa-acciones">
+            <div class="modal-causa-content">
+                <div class="modal-causa-header">
+                    <div class="modal-header-content">
+                        <div class="modal-header-icon">
+                            <i class="fas fa-tasks"></i>
+                        </div>
+                        <div>
+                            <h3 id="modalAccionesTitulo">Acciones de Causa</h3>
+                            <p class="modal-subtitle" id="modalAccionesSubtitulo">Cargando...</p>
+                        </div>
+                    </div>
+                    <button type="button" class="modal-causa-close" aria-label="Cerrar">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="modal-causa-body">
+                    <div class="modal-causa-panel" style="flex: 1;">
+                        <div class="panel-header">
+                            <h4 class="panel-title">
+                                <i class="far fa-clock"></i>
+                                Historial de Acciones
+                            </h4>
+                        </div>
+                        
+                        <div class="acciones-estado-resumen" id="resumenEstados">
+                            <div class="estado-resumen-item completada">
+                                <div class="estado-icon">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <span class="estado-count" id="contadorCompletadas">0</span>
+                                <span class="estado-label">Completadas</span>
+                            </div>
+                            <div class="estado-resumen-item en-progreso">
+                                <div class="estado-icon">
+                                    <i class="fas fa-spinner"></i>
+                                </div>
+                                <span class="estado-count" id="contadorEnProgreso">0</span>
+                                <span class="estado-label">En Progreso</span>
+                            </div>
+                            <div class="estado-resumen-item pendiente">
+                                <div class="estado-icon">
+                                    <i class="far fa-clock"></i>
+                                </div>
+                                <span class="estado-count" id="contadorPendientes">0</span>
+                                <span class="estado-label">Pendientes</span>
+                            </div>
+                        </div>
+                        
+                        <div class="acciones-causa-list" id="listaAccionesCausa">
+                            <div class="loading-acciones">
+                                <div class="loading-spinner">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                </div>
+                                <p>Cargando acciones...</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-causa-panel" style="flex: 1.5;">
+                        <div class="panel-header">
+                            <h4 class="panel-title">
+                                <i class="fas fa-plus-circle"></i>
+                                Nueva Acción 5W+2H
+                            </h4>
+                        </div>
+                        
+                        <div class="acciones-causa-form">
+                            <!-- QUÉ (Descripción) -->
+                            <div class="form-group">
+                                <label for="nuevaAccionQue">
+                                    <i class="far fa-question-circle"></i>
+                                    QUÉ (Descripción)
+                                </label>
+                                <textarea id="nuevaAccionQue" 
+                                          class="form-textarea" 
+                                          placeholder="Describe QUÉ se debe hacer para solucionar esta causa..."
+                                          rows="3"></textarea>
+                                <div class="form-hint">Describe claramente la acción específica</div>
+                            </div>
+                            
+                            <div class="form-row-2col">
+                                <!-- DÓNDE -->
+                                <div class="form-group">
+                                    <label for="nuevaAccionDonde">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                        DÓNDE
+                                    </label>
+                                    <input type="text" 
+                                           id="nuevaAccionDonde" 
+                                           class="form-input"
+                                           placeholder="Proceso, línea, área, equipo...">
+                                    <div class="form-hint">Ej: Línea A, Molino, Almacén</div>
+                                </div>
+                                
+                                <!-- QUIÉN -->
+                                <div class="form-group">
+                                    <label for="nuevaAccionQuien">
+                                        <i class="fas fa-user-tie"></i>
+                                        QUIÉN
+                                    </label>
+                                    <input type="text" 
+                                           id="nuevaAccionQuien" 
+                                           class="form-input"
+                                           placeholder="Responsable de ejecutar"
+                                           value="${currentUser ? currentUser.nombre || '' : ''}">
+                                    <div class="form-hint">Persona encargada</div>
+                                </div>
+                            </div>
+                            
+                            <!-- CÓMO -->
+                            <div class="form-group">
+                                <label for="nuevaAccionComo">
+                                    <i class="fas fa-cogs"></i>
+                                    CÓMO
+                                </label>
+                                <textarea id="nuevaAccionComo" 
+                                          class="form-textarea" 
+                                          placeholder="Describe CÓMO se realizará la acción (procedimiento, método, herramienta)..."
+                                          rows="2"></textarea>
+                                <div class="form-hint">Procedimiento, método o herramienta a utilizar</div>
+                            </div>
+                            
+                            <div class="form-row-3col">
+                                <!-- CUÁNDO -->
+                                <div class="form-group">
+                                    <label for="nuevaAccionCuando">
+                                        <i class="far fa-calendar-alt"></i>
+                                        CUÁNDO
+                                    </label>
+                                    <input type="date" 
+                                           id="nuevaAccionCuando" 
+                                           class="form-input">
+                                    <div class="form-hint">Fecha límite</div>
+                                </div>
+                                
+                                <!-- CUÁNTO -->
+                                <div class="form-group">
+                                    <label for="nuevaAccionCuanto">
+                                        <i class="fas fa-money-bill-wave"></i>
+                                        CUÁNTO
+                                    </label>
+                                    <input type="text" 
+                                           id="nuevaAccionCuanto" 
+                                           class="form-input"
+                                           placeholder="$ o recursos">
+                                    <div class="form-hint">Costo, horas, recursos</div>
+                                </div>
+                                
+                                <!-- ESTADO -->
+                                <div class="form-group">
+                                    <label for="nuevaAccionEstado">
+                                        <i class="fas fa-flag"></i>
+                                        Estado
+                                    </label>
+                                    <select id="nuevaAccionEstado" class="form-select">
+                                        <option value="pendiente">
+                                            <i class="far fa-clock"></i> Pendiente
+                                        </option>
+                                        <option value="en_progreso">
+                                            <i class="fas fa-spinner"></i> En Progreso
+                                        </option>
+                                        <option value="completada">
+                                            <i class="fas fa-check-circle"></i> Completada
+                                        </option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="button" class="btn-secondary" onclick="cerrarModalAccionesCausa()">
+                                    <i class="fas fa-times"></i>
+                                    Cancelar
+                                </button>
+                                <button type="button" class="btn-primary" onclick="guardarAccionCausa()">
+                                    <i class="fas fa-save"></i>
+                                    Guardar Acción
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-causa-footer">
+                    <div class="footer-info">
+                        <i class="fas fa-info-circle"></i>
+                        <span>Acciones para: <strong id="footerCausaNombre">${nombreCiclo}</strong></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        console.log('Modal creado exitosamente');
+
+        // Agregar event listeners DESPUÉS de que el modal se haya agregado al DOM
+        setTimeout(() => {
+            const modal = document.getElementById('modalAccionesCausa');
+            if (!modal) {
+                console.error('Modal no encontrado después de creación');
+                return;
+            }
+
+            const closeBtn = modal.querySelector('.modal-causa-close');
+
+            // Listener para cerrar con el botón X
+            if (closeBtn) {
+                closeBtn.addEventListener('click', cerrarModalAccionesCausa);
+            }
+
+            // Listener para cerrar haciendo clic fuera
+            modal.addEventListener('click', function (e) {
+                if (e.target === modal) {
+                    cerrarModalAccionesCausa();
+                }
+            });
+
+            // Listener para cerrar con ESC
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && modal.classList.contains('active')) {
+                    cerrarModalAccionesCausa();
+                }
+            });
+
+        }, 50); // Aumentado a 50ms para dar tiempo al DOM
+    }
+
+    function cerrarModalAccionesCausa() {
+        const modal = document.getElementById('modalAccionesCausa');
+        if (modal) {
+            modal.classList.remove('active');
+        }
+
+        document.body.style.overflow = '';
+
+        // Limpiar formulario
+        const elementosFormulario = [
+            { id: 'nuevaAccionQue', defaultValue: '' },
+            { id: 'nuevaAccionDonde', defaultValue: '' },
+            { id: 'nuevaAccionComo', defaultValue: '' },
+            { id: 'nuevaAccionCuando', defaultValue: '' },
+            { id: 'nuevaAccionCuanto', defaultValue: '' }
+        ];
+
+        elementosFormulario.forEach(item => {
+            const elemento = document.getElementById(item.id);
+            if (elemento) {
+                elemento.value = item.defaultValue;
+            }
+        });
+    }
+
+
+    // Manejar clic fuera del modal
+    document.addEventListener('click', function (e) {
+        const modal = document.getElementById('modalAccionesCausa');
+        if (modal && e.target === modal) {
+            cerrarModalAccionesCausa();
+        }
+    });
+
+    // Cerrar con ESC
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('modalAccionesCausa');
+            if (modal && modal.classList.contains('active')) {
+                cerrarModalAccionesCausa();
+            }
+        }
+    });
+
+    function cargarAccionesCausa(idCausa) {
+        const lista = document.getElementById('listaAccionesCausa');
+        if (!lista) {
+            console.error('Elemento listaAccionesCausa no encontrado');
+            return;
+        }
+
+        console.log('Cargando acciones para ID Causa:', idCausa);
+
+        // Mostrar loading
+        lista.innerHTML = `
+        <div class="loading-acciones">
+            <svg class="spinner-icon" width="20" height="20" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" opacity="0.25"/>
+                <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round"/>
+            </svg>
+            Cargando acciones...
+        </div>
+    `;
+
+        google.script.run
+            .withSuccessHandler(function (acciones) {
+                console.log('Acciones recibidas del backend:', acciones);
+                console.log('Tipo:', typeof acciones);
+                console.log('Es array?', Array.isArray(acciones));
+                console.log('Longitud:', acciones ? acciones.length : 0);
+
+                if (acciones && Array.isArray(acciones)) {
+                    console.log('Primera acción (si existe):', acciones[0]);
+                }
+
+                renderListaAccionesCausa(acciones || []);
+            })
+            .withFailureHandler(function (error) {
+                console.error('Error cargando acciones:', error);
+                lista.innerHTML = `
+                <div class="error-acciones">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 8v4m0 4h.01"/>
+                    </svg>
+                    <p>Error al cargar las acciones</p>
+                    <p class="error-details">${error.message || 'Error desconocido'}</p>
+                    <button onclick="cargarAccionesCausa(${idCausa})" class="btn-reintentar">
+                        Reintentar
+                    </button>
+                </div>
+            `;
+            })
+            .getAccionesCausa(cicloActual.id, idCausa);
+    }
+
+    function renderListaAccionesCausa(acciones) {
+        const lista = document.getElementById('listaAccionesCausa');
+        if (!lista) return;
+
+        if (!acciones || !Array.isArray(acciones) || acciones.length === 0) {
+            lista.innerHTML = `
+            <div class="no-acciones">
+                <div class="no-acciones-icon" style="
+                    width: 80px;
+                    height: 80px;
+                    background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin: 0 auto 1.5rem;
+                    border: 3px dashed #cbd5e1;
+                ">
+                    <i class="far fa-clipboard" style="font-size: 2rem; color: #94a3b8;"></i>
+                </div>
+                <p style="font-size: 1.1rem; color: #475569; font-weight: 500; margin-bottom: 0.5rem;">
+                    No hay acciones registradas
+                </p>
+                <p class="hint-text" style="color: #94a3b8; font-size: 0.95rem;">
+                    Agregue la primera acción usando el formulario 5W+2H
+                </p>
+            </div>
+        `;
+
+            actualizarResumenEstados({ completada: 0, en_progreso: 0, pendiente: 0 });
+            return;
+        }
+
+        acciones.sort((a, b) => {
+            const fechaA = a.fechaCreacion ? new Date(a.fechaCreacion) : new Date(0);
+            const fechaB = b.fechaCreacion ? new Date(b.fechaCreacion) : new Date(0);
+            return fechaB - fechaA;
+        });
+
+        const contadores = { completada: 0, en_progreso: 0, pendiente: 0 };
+
+        let html = '';
+
+        // Obtener el texto de la causa desde la variable global window.causaActual
+        const causaTexto = window.causaActual ? window.causaActual.nombre || 'Causa' : 'Causa';
+
+        acciones.forEach((accion, index) => {
+            const estado = accion.estado || 'pendiente';
+            contadores[estado] = (contadores[estado] || 0) + 1;
+
+            const estadoClass = estado === 'completada' ? 'completada' :
+                estado === 'en_progreso' ? 'en-progreso' : 'pendiente';
+
+            const estadoIcon = estado === 'completada' ? 'fas fa-check-circle' :
+                estado === 'en_progreso' ? 'fas fa-spinner fa-spin' : 'far fa-clock';
+
+            const estadoText = estado === 'completada' ? 'Completada' :
+                estado === 'en_progreso' ? 'En Progreso' : 'Pendiente';
+
+            // Formatear fechas
+            const fechaCreacion = accion.fechaCreacion ?
+                new Date(accion.fechaCreacion).toLocaleDateString('es-CO', {
+                    day: '2-digit',
+                    month: 'short',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }) : 'Sin fecha';
+
+            const fechaLimite = accion.cuando ?
+                new Date(accion.cuando).toLocaleDateString('es-CO', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric'
+                }) : 'Sin fecha límite';
+
+            // Escapar el texto de la causa para HTML/JS
+            const causaTextoEscapada = causaTexto
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, "\\'")
+                .replace(/\\/g, '\\\\')
+                .replace(/\n/g, '\\n')
+                .replace(/\r/g, '\\r');
+
+            html += `
+            <div class="accion-item ${estadoClass}">
+                <div class="accion-header">
+                    <div class="accion-header-left">
+                        <div class="accion-estado">
+                            <i class="${estadoIcon}"></i>
+                            <span class="accion-estado-text">${estadoText}</span>
+                        </div>
+                        <div class="accion-fecha">
+                            <i class="far fa-calendar"></i>
+                            ${fechaCreacion}
+                        </div>
+                    </div>
+                    <button type="button" class="btn-secondary" onclick="abrirSeguimientoAccion(${index}, '${causaTextoEscapada}', '${cicloActual.id}')" title="Seguimiento" style="
+    margin-bottom: 12px;
+    max-height: 25px;
+    font-size: 11px;
+">
+    Seguimiento
+</button>
+                    <button type="button" class="btn-eliminar-accion" onclick="eliminarAccionCausa(${index})" title="Eliminar">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+                
+                <div class="accion-content-5w2h">
+                    <div class="accion-descripcion">
+                        <strong>QUÉ:</strong> ${accion.que || 'Sin descripción'}
+                    </div>
+                    
+                    <div class="accion-details-grid">
+                        <div class="accion-detail ${estadoClass} ${!accion.donde ? 'empty' : ''}">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <div class="accion-detail-content">
+                                <strong>DÓNDE</strong>
+                                <span>${accion.donde || 'No especificado'}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="accion-detail ${estadoClass} ${!accion.quien ? 'empty' : ''}">
+                            <i class="fas fa-user-tie"></i>
+                            <div class="accion-detail-content">
+                                <strong>QUIÉN</strong>
+                                <span>${accion.quien || 'Sin asignar'}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="accion-detail ${estadoClass} ${!accion.como ? 'empty' : ''}">
+                            <i class="fas fa-cogs"></i>
+                            <div class="accion-detail-content">
+                                <strong>CÓMO</strong>
+                                <span>${accion.como || 'No especificado'}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="accion-detail ${estadoClass} ${!accion.cuando ? 'empty' : ''}">
+                            <i class="far fa-calendar-check"></i>
+                            <div class="accion-detail-content">
+                                <strong>CUÁNDO</strong>
+                                <span>${fechaLimite}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="accion-detail ${estadoClass} ${!accion.cuanto ? 'empty' : ''}">
+                            <i class="fas fa-money-bill-wave"></i>
+                            <div class="accion-detail-content">
+                                <strong>CUÁNTO</strong>
+                                <span>${accion.cuanto || 'No especificado'}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="accion-detail ${estadoClass}">
+                            <i class="fas fa-user"></i>
+                            <div class="accion-detail-content">
+                                <strong>Creado por</strong>
+                                <span>${accion.autor || 'Sistema'}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        });
+
+        lista.innerHTML = html;
+        actualizarResumenEstados(contadores);
+    }
+
+    // Nueva función para actualizar el resumen de estados
+    function actualizarResumenEstados(contadores) {
+        document.getElementById('contadorCompletadas').textContent = contadores.completada || 0;
+        document.getElementById('contadorEnProgreso').textContent = contadores.en_progreso || 0;
+        document.getElementById('contadorPendientes').textContent = contadores.pendiente || 0;
+    }
+
+    function formatearFechaCorta(fecha) {
+        if (!fecha) return '-';
+        try {
+            const d = new Date(fecha);
+            if (isNaN(d.getTime())) return fecha;
+            return d.toLocaleDateString('es-CO', {
+                day: '2-digit',
+                month: 'short'
+            });
+        } catch (e) {
+            return fecha;
+        }
+    }
+
+    function guardarAccionCausa() {
+        console.log('🔍 DEBUG guardarAccionCausa - INICIO');
+        console.log('window.causaActual:', window.causaActual);
+        console.log('accionCausaActual:', accionCausaActual);
+        console.log('cicloActual:', cicloActual);
+
+        // 🔹 CORRECCIÓN: Verificar AMBAS variables
+        let causaSeleccionada = window.causaActual || accionCausaActual;
+
+        if (!causaSeleccionada) {
+            console.error('❌ ERROR: No se encontró causa seleccionada');
+            console.log('Buscando en localStorage...');
+
+            // Intentar recuperar del localStorage
+            const savedCausa = localStorage.getItem('ultimaCausaSeleccionada');
+            if (savedCausa) {
+                try {
+                    causaSeleccionada = JSON.parse(savedCausa);
+                    console.log('✅ Causa recuperada de localStorage:', causaSeleccionada);
+                } catch (e) {
+                    console.error('Error parseando localStorage:', e);
+                }
+            }
+
+            if (!causaSeleccionada) {
+                showAlert('error', 'Error', 'No hay causa seleccionada. Por favor, selecciona una causa primero.');
+                return;
+            }
+        }
+
+        // Obtener todos los valores del formulario
+        const que = document.getElementById('nuevaAccionQue')?.value.trim();
+        const donde = document.getElementById('nuevaAccionDonde')?.value.trim();
+        const quien = document.getElementById('nuevaAccionQuien')?.value.trim();
+        const como = document.getElementById('nuevaAccionComo')?.value.trim();
+        const cuando = document.getElementById('nuevaAccionCuando')?.value;
+        const cuanto = document.getElementById('nuevaAccionCuanto')?.value.trim();
+        const estado = document.getElementById('nuevaAccionEstado')?.value;
+
+        console.log('📋 Datos del formulario:', { que, donde, quien, como, cuando, cuanto, estado });
+
+        // Validaciones
+        if (!que) {
+            showAlert('warning', 'Campo requerido', 'El campo QUÉ (Descripción) es obligatorio');
+            document.getElementById('nuevaAccionQue')?.focus();
+            return;
+        }
+
+        if (!quien) {
+            showAlert('warning', 'Campo requerido', 'El campo QUIÉN (Responsable) es obligatorio');
+            document.getElementById('nuevaAccionQuien')?.focus();
+            return;
+        }
+
+        const btn = document.querySelector('.btn-primary');
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.innerHTML = '<svg class="spinner-icon" width="16" height="16" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round"/></svg> Guardando...';
+
+        const accionData = {
+            cicloId: causaSeleccionada.cicloId,
+            idCausa: causaSeleccionada.id,
+            que: que,
+            donde: donde,
+            quien: quien,
+            como: como,
+            cuando: cuando,
+            cuanto: cuanto,
+            estado: estado,
+            autor: currentUser ? currentUser.nombre : 'Usuario',
+            fechaCreacion: new Date().toISOString()
+        };
+
+        console.log('📤 Enviando datos al backend:', accionData);
+
+        google.script.run
+            .withSuccessHandler(function (result) {
+                console.log('✅ Respuesta del backend:', result);
+
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+
+                if (result.success) {
+                    showAlert('success', 'Éxito', 'Acción 5W+2H guardada correctamente');
+
+                    // Limpiar formulario
+                    document.getElementById('nuevaAccionQue').value = '';
+                    document.getElementById('nuevaAccionDonde').value = '';
+                    document.getElementById('nuevaAccionComo').value = '';
+                    document.getElementById('nuevaAccionCuando').value = '';
+                    document.getElementById('nuevaAccionCuanto').value = '';
+                    document.getElementById('nuevaAccionEstado').value = 'pendiente';
+
+                    // Auto-completar responsable
+                    if (currentUser) {
+                        document.getElementById('nuevaAccionQuien').value = currentUser.nombre || '';
+                    }
+
+                    // Recargar lista
+                    cargarAccionesCausa(causaSeleccionada.id);
+
+                    // Actualizar contador en tabla
+                    actualizarContadorAcciones(causaSeleccionada.id);
+                } else {
+                    showAlert('error', 'Error', result.message || 'No se pudo guardar la acción');
+                }
+            })
+            .withFailureHandler(function (error) {
+                console.error('❌ Error en guardarAccionCausa:', error);
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                showAlert('error', 'Error', 'Error al guardar: ' + (error.message || error));
+            })
+            .guardarAccionCausa(accionData);
+    }
+
+    // Eliminar acción
+    function eliminarAccionCausa(indexAccion) {
+        if (!confirm('¿Está seguro de eliminar esta acción?')) return;
+
+        google.script.run
+            .withSuccessHandler(function (result) {
+                if (result.success) {
+                    showAlert('success', 'Éxito', 'Acción eliminada');
+                    cargarAccionesCausa(window.causaActual.id);
+                    actualizarContadorAcciones(window.causaActual.id);
+                } else {
+                    showAlert('error', 'Error', result.message || 'No se pudo eliminar la acción');
+                }
+            })
+            .withFailureHandler(function (error) {
+                showAlert('error', 'Error', 'Error al eliminar: ' + error.message);
+            })
+            .eliminarAccionCausa(window.causaActual.cicloId, window.causaActual.id, indexAccion);
+    }
+
+    function actualizarContadorAcciones(idCausa) {
+        if (!cicloActual || !window.causaActual) return;
+
+        const fila = document.querySelector(`tr[data-causa-index="${idCausa}"]`);
+        if (!fila) {
+            console.warn('Fila no encontrada para actualizar contador');
+            return;
+        }
+
+        google.script.run
+            .withSuccessHandler(function (contador) {
+                const btn = fila.querySelector('.btn-acciones-causa');
+                if (!btn) return;
+
+                if (contador > 0) {
+                    let countSpan = btn.querySelector('.acciones-count');
+                    if (!countSpan) {
+                        countSpan = document.createElement('span');
+                        countSpan.className = 'acciones-count';
+                        btn.appendChild(countSpan);
+                    }
+                    countSpan.textContent = contador;
+                    btn.title = `${contador} acción(es) adjunta(s)`;
+                } else {
+                    const countSpan = btn.querySelector('.acciones-count');
+                    if (countSpan) countSpan.remove();
+                    btn.title = 'Agregar acciones';
+                }
+            })
+            .withFailureHandler(function (error) {
+                console.error('Error actualizando contador:', error);
+            })
+            .getContadorAccionesCausa(cicloActual.id, idCausa);
+    }
+
+    // Cargar historial de seguimiento
+    function cargarHistorialCiclo(cicloId) {
+        const container = document.getElementById('timelineCiclo');
+        if (!container) return;
+
+        container.innerHTML = '<div class="ciclos-loading-spinner"><span>Cargando historial...</span></div>';
+
+        google.script.run
+            .withSuccessHandler(function (historial) {
+                console.log('📋 Historial recibido del backend:', historial);
+                renderHistorialCiclo(historial || []);
+            })
+            .withFailureHandler(function (error) {
+                console.error('Error cargando historial:', error);
+                container.innerHTML = '<p class="no-data-msg">Error al cargar el historial: ' + error.message + '</p>';
+            })
+            .getHistorialCiclo(cicloId);
+    }
+
+    // Renderizar historial
+    function renderHistorialCiclo(historial) {
+        const container = document.getElementById('timelineCiclo');
+        if (!container) return;
+
+        if (!historial || historial.length === 0) {
+            container.innerHTML = `
+            <div class="timeline-empty">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.5">
+                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                    <polyline points="14,2 14,8 20,8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                    <polyline points="10,9 9,9 8,9"/>
+                </svg>
+                <p>No hay registros de seguimiento todavía</p>
+                <p class="timeline-empty-hint">Agregue el primer comentario para comenzar el historial</p>
+            </div>
+        `;
+            return;
+        }
+
+        // Ordenar por fecha descendente (más reciente primero)
+        historial.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+        let html = '';
+        historial.forEach(item => {
+            const estadoClass = getEstadoClass(item.estado);
+            const fechaFormateada = formatearFechaHora(item.fecha);
+
+            html += `
+            <div class="timeline-entry">
+                <div class="timeline-header">
+                    <div class="timeline-fecha">${fechaFormateada}</div>
+                    <div class="timeline-estado">
+                        <span class="estado-badge ${estadoClass}">${item.estado || 'Sin estado'}</span>
+                    </div>
+                </div>
+                <div class="timeline-comentario">
+                    <div class="comentario-content">
+                        ${item.comentario || '<em style="color:#9ca3af;">Sin comentario</em>'}
+                    </div>
+                </div>
+                <div class="timeline-autor">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                    ${item.autor || 'Sistema'}
+                </div>
+            </div>
+        `;
+        });
+
+        container.innerHTML = html;
+    }
+
+    // Formatear fecha y hora
+    function formatearFechaHora(fecha) {
+        if (!fecha) return '-';
+        try {
+            const d = new Date(fecha);
+            if (isNaN(d.getTime())) return fecha;
+            return d.toLocaleDateString('es-CO', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } catch (e) {
+            return fecha;
+        }
+    }
+
+    // Guardar seguimiento
+    function guardarSeguimientoCiclo() {
+        if (!cicloActual) {
+            showAlert('error', 'Error', 'No hay ciclo seleccionado');
+            return;
+        }
+
+        const nuevoEstado = document.getElementById('nuevoEstadoCiclo').value;
+        const comentario = document.getElementById('comentarioCiclo').value.trim();
+
+        if (!comentario) {
+            showAlert('warning', 'Atención', 'Por favor agregue un comentario para el seguimiento');
+            return;
+        }
+
+        const btn = document.querySelector('.btn-guardar-seguimiento');
+        btn.disabled = true;
+        btn.innerHTML = '<svg class="spinner-icon" width="16" height="16" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round"/></svg> Guardando...';
+
+        const seguimiento = {
+            cicloId: cicloActual.id,
+            estado: nuevoEstado,
+            comentario: comentario,
+            autor: currentUser ? currentUser.nombre : 'Usuario'
+        };
+
+        google.script.run
+            .withSuccessHandler(function (result) {
+                btn.disabled = false;
+                btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17,21 17,13 7,13 7,21"/><polyline points="7,3 7,8 15,8"/></svg> Guardar Seguimiento';
+
+                if (result.success) {
+                    showAlert('success', 'Éxito', 'Seguimiento guardado correctamente');
+
+                    // Actualizar estado en modal
+                    const estadoEl = document.getElementById('modalCicloEstado');
+                    estadoEl.textContent = nuevoEstado;
+                    estadoEl.className = 'modal-ciclo-estado-badge estado-badge ' + getEstadoClass(nuevoEstado);
+
+                    // Actualizar ciclo actual
+                    cicloActual.estado = nuevoEstado;
+
+                    // Actualizar en array
+                    const idx = ciclosData.findIndex(c => c.id === cicloActual.id);
+                    if (idx !== -1) {
+                        ciclosData[idx].estado = nuevoEstado;
+                    }
+
+                    // Limpiar comentario
+                    document.getElementById('comentarioCiclo').value = '';
+
+                    // Recargar historial
+                    cargarHistorialCiclo(cicloActual.id);
+
+                    // Actualizar tabla y estadísticas
+                    renderCiclosTable(ciclosData);
+                    actualizarEstadisticasCiclos(ciclosData);
+                } else {
+                    showAlert('error', 'Error', result.message || 'No se pudo guardar el seguimiento');
+                }
+            })
+            .withFailureHandler(function (error) {
+                btn.disabled = false;
+                btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17,21 17,13 7,13 7,21"/><polyline points="7,3 7,8 15,8"/></svg> Guardar Seguimiento';
+                showAlert('error', 'Error', 'Error al guardar: ' + (error.message || error));
+            })
+            .guardarSeguimientoCiclo(seguimiento);
+    }
+
+    // Cerrar modal al hacer clic fuera
+    document.addEventListener('click', function (e) {
+        const modal = document.getElementById('modalDetalleCiclo');
+        if (e.target === modal) {
+            cerrarModalCiclo();
+        }
+    });
+
+    // Cerrar modal con ESC
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('modalDetalleCiclo');
+            if (modal && modal.classList.contains('active')) {
+                cerrarModalCiclo();
+            }
+        }
+    });
+
+</script>

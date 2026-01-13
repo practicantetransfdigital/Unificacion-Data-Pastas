@@ -1,0 +1,208 @@
+<script>
+
+    // Mostrar/ocultar sección 5 Por Qué
+    function mostrar5Porques(mostrar) {
+        const seccion = document.getElementById('seccion5Porques');
+        const btnSi = document.getElementById('btnSiPorques');
+        const btnNo = document.getElementById('btnNoPorques');
+
+        if (mostrar) {
+            seccion.style.display = 'block';
+            btnSi.classList.add('active');
+            btnNo.classList.remove('active');
+            actualizarTabla5Porques();
+        } else {
+            seccion.style.display = 'none';
+            btnSi.classList.remove('active');
+            btnNo.classList.add('active');
+        }
+    }
+
+    // Recopilar todas las causas agrupadas por categoría
+    function recopilarTodasLasCausas() {
+        const causasPorCategoria = {};
+        const categorias = ['ambiente', 'mano', 'materiales', 'tiempo', 'metodo', 'maquina'];
+
+        categorias.forEach(cat => {
+            causasPorCategoria[cat] = [];
+            const container = document.getElementById('causas-' + cat);
+            if (container) {
+                container.querySelectorAll('.cause-input-pro').forEach(input => {
+                    const valor = input.value.trim();
+                    if (valor) {
+                        causasPorCategoria[cat].push(valor);
+                    }
+                });
+            }
+        });
+
+        return causasPorCategoria;
+    }
+
+    // Actualizar la tabla de 5 Por Qué automáticamente
+    function actualizarTabla5Porques() {
+        const tbody = document.getElementById('tbody5Porques');
+        if (!tbody) return;
+
+        const causasPorCategoria = recopilarTodasLasCausas();
+        let hayAlgunaCausa = false;
+
+        Object.values(causasPorCategoria).forEach(causas => {
+            if (causas.length > 0) hayAlgunaCausa = true;
+        });
+
+        if (!hayAlgunaCausa) {
+            tbody.innerHTML = `
+            <tr class="empty-row">
+                <td colspan="9" class="empty-message">  <!-- Cambiado de 7 a 9 columnas -->
+                    Complete las causas en el diagrama de Espina de Pescado para generar el análisis
+                </td>
+            </tr>
+        `;
+            return;
+        }
+
+        const valoresExistentes = guardarValoresTabla();
+
+        let html = '';
+        const categorias = ['ambiente', 'mano', 'materiales', 'tiempo', 'metodo', 'maquina'];
+
+        categorias.forEach(cat => {
+            const causas = causasPorCategoria[cat];
+            if (causas.length === 0) return;
+
+            causas.forEach((causa, index) => {
+                const rowKey = `${cat}-${index}`;
+                const valores = valoresExistentes[rowKey] || {};
+
+                html += `
+                <tr data-row-key="${rowKey}">
+                    ${index === 0 ? `<td class="td-categoria" rowspan="${causas.length}">${categoriaLabels[cat]}</td>` : ''}
+                    <td class="td-causa-cell">
+                        <div class="causa-display">${causa}</div>
+                    </td>
+                    <td class="td-porque-cell">
+                        <div class="porque-wrapper">
+                            <textarea class="porque-input porque-pregunta" data-tipo="pregunta" data-porque="1" placeholder="¿Por qué ocurrió la Causa Raíz Inicial?">${valores.p1_pregunta || ''}</textarea>
+                            <div class="porque-separator">Respuesta</div>
+                            <textarea class="porque-input porque-respuesta" data-tipo="respuesta" data-porque="1" placeholder="Escriba la respuesta...">${valores.p1_respuesta || ''}</textarea>
+                        </div>
+                    </td>
+                    <td class="td-porque-cell">
+                        <div class="porque-wrapper">
+                            <textarea class="porque-input porque-pregunta" data-tipo="pregunta" data-porque="2" placeholder=" ¿Por qué ocurrió la respuesta al 1er Por Qué?">${valores.p2_pregunta || ''}</textarea>
+                            <div class="porque-separator">Respuesta</div>
+                            <textarea class="porque-input porque-respuesta" data-tipo="respuesta" data-porque="2" placeholder="Escriba la respuesta...">${valores.p2_respuesta || ''}</textarea>
+                        </div>
+                    </td>
+                    <td class="td-porque-cell">
+                        <div class="porque-wrapper">
+                            <textarea class="porque-input porque-pregunta" data-tipo="pregunta" data-porque="3" placeholder="¿Por qué ocurrió la respuesta al 2do Por Qué?">${valores.p3_pregunta || ''}</textarea>
+                            <div class="porque-separator">Respuesta</div>
+                            <textarea class="porque-input porque-respuesta" data-tipo="respuesta" data-porque="3" placeholder="Escriba la respuesta...">${valores.p3_respuesta || ''}</textarea>
+                        </div>
+                    </td>
+                    <td class="td-porque-cell">
+                        <div class="porque-wrapper">
+                            <textarea class="porque-input porque-pregunta" data-tipo="pregunta" data-porque="4" placeholder="¿Por qué ocurrió la respuesta al 3er Por Qué?">${valores.p4_pregunta || ''}</textarea>
+                            <div class="porque-separator">Respuesta</div>
+                            <textarea class="porque-input porque-respuesta" data-tipo="respuesta" data-porque="4" placeholder="Escriba la respuesta...">${valores.p4_respuesta || ''}</textarea>
+                        </div>
+                    </td>
+                    <td class="td-porque-cell">
+                        <div class="porque-wrapper">
+                            <textarea class="porque-input porque-pregunta" data-tipo="pregunta" data-porque="5" placeholder="¿Por qué ocurrió la respuesta al 4to Por Qué?">${valores.p5_pregunta || ''}</textarea>
+                            <div class="porque-separator">Respuesta</div>
+                            <textarea class="porque-input porque-respuesta" data-tipo="respuesta" data-porque="5" placeholder="Escriba la respuesta...">${valores.p5_respuesta || ''}</textarea>
+                        </div>
+                    </td>
+                    <td class="td-raiz-cell">
+                        <textarea class="raiz-input" placeholder="Causa Raíz Final (La ultima respuesta de los 5 Por que)">${valores.raiz || ''}</textarea>
+                    </td>
+                </tr>
+            `;
+            });
+        });
+
+        tbody.innerHTML = html;
+    }
+
+    // Guardar valores actuales de la tabla
+    function guardarValoresTabla() {
+        const valores = {};
+        document.querySelectorAll('#tbody5Porques tr[data-row-key]').forEach(row => {
+            const key = row.dataset.rowKey;
+            valores[key] = {
+                p1_pregunta: row.querySelector('[data-porque="1"][data-tipo="pregunta"]')?.value || '',
+                p1_respuesta: row.querySelector('[data-porque="1"][data-tipo="respuesta"]')?.value || '',
+                p2_pregunta: row.querySelector('[data-porque="2"][data-tipo="pregunta"]')?.value || '',
+                p2_respuesta: row.querySelector('[data-porque="2"][data-tipo="respuesta"]')?.value || '',
+                p3_pregunta: row.querySelector('[data-porque="3"][data-tipo="pregunta"]')?.value || '',
+                p3_respuesta: row.querySelector('[data-porque="3"][data-tipo="respuesta"]')?.value || '',
+                p4_pregunta: row.querySelector('[data-porque="4"][data-tipo="pregunta"]')?.value || '',
+                p4_respuesta: row.querySelector('[data-porque="4"][data-tipo="respuesta"]')?.value || '',
+                p5_pregunta: row.querySelector('[data-porque="5"][data-tipo="pregunta"]')?.value || '',
+                p5_respuesta: row.querySelector('[data-porque="5"][data-tipo="respuesta"]')?.value || '',
+                raiz: row.querySelector('.raiz-input')?.value || ''
+            };
+        });
+        return valores;
+    }
+
+    // Recopilar datos de la tabla 5 Por Qué - VERSIÓN REVISADA
+    function recopilarDatosTabla5Porques() {
+        const datos = [];
+        document.querySelectorAll('#tbody5Porques tr[data-row-key]').forEach(row => {
+            const causaCell = row.querySelector('.causa-display');
+            if (!causaCell) return;
+
+            // Buscar la categoría
+            let categoria = '';
+            const catCell = row.querySelector('.td-categoria');
+            if (catCell) {
+                categoria = catCell.textContent;
+            } else {
+                // Buscar en filas anteriores
+                let prevRow = row.previousElementSibling;
+                while (prevRow) {
+                    const prevCat = prevRow.querySelector('.td-categoria');
+                    if (prevCat) {
+                        categoria = prevCat.textContent;
+                        break;
+                    }
+                    prevRow = prevRow.previousElementSibling;
+                }
+            }
+
+            const datosPorque = {
+                categoria: categoria,
+                causa: causaCell.textContent,
+                porque1: {
+                    pregunta: row.querySelector('[data-porque="1"][data-tipo="pregunta"]')?.value || '',
+                    respuesta: row.querySelector('[data-porque="1"][data-tipo="respuesta"]')?.value || ''
+                },
+                porque2: {
+                    pregunta: row.querySelector('[data-porque="2"][data-tipo="pregunta"]')?.value || '',
+                    respuesta: row.querySelector('[data-porque="2"][data-tipo="respuesta"]')?.value || ''
+                },
+                porque3: {
+                    pregunta: row.querySelector('[data-porque="3"][data-tipo="pregunta"]')?.value || '',
+                    respuesta: row.querySelector('[data-porque="3"][data-tipo="respuesta"]')?.value || ''
+                },
+                porque4: {
+                    pregunta: row.querySelector('[data-porque="4"][data-tipo="pregunta"]')?.value || '',
+                    respuesta: row.querySelector('[data-porque="4"][data-tipo="respuesta"]')?.value || ''
+                },
+                porque5: {
+                    pregunta: row.querySelector('[data-porque="5"][data-tipo="pregunta"]')?.value || '',
+                    respuesta: row.querySelector('[data-porque="5"][data-tipo="respuesta"]')?.value || ''
+                },
+                causaRaiz: row.querySelector('.raiz-input')?.value || ''
+            };
+
+            datos.push(datosPorque);
+        });
+        return datos;
+    }
+
+</script>

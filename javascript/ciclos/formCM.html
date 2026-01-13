@@ -1,0 +1,205 @@
+<script>
+
+    // ========== FUNCIONES CICLO DE MEJORA ==========
+
+    // Mapeo de categorías para mostrar en la tabla
+    const categoriaLabels = {
+        'ambiente': 'Medio Ambiente',
+        'mano': 'Mano de Obra',
+        'materiales': 'Materiales',
+        'tiempo': 'Tiempo',
+        'metodo': 'Método',
+        'maquina': 'Máquina'
+    };
+
+    function initCicloMejoraForm() {
+        const fechaField = document.getElementById('fechaCiclo');
+        if (fechaField) {
+            const now = new Date();
+            const options = {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            };
+            fechaField.value = now.toLocaleDateString('es-CO', options);
+        }
+
+        google.script.run
+            .withSuccessHandler(function (nextId) {
+                const idField = document.getElementById('cicloMejoraId');
+                if (idField) idField.value = nextId;
+            })
+            .withFailureHandler(function (error) {
+                console.error('Error obteniendo ID de ciclo:', error);
+                document.getElementById('cicloMejoraId').value = 'CM-001';
+            })
+            .getNextCicloId();
+
+        // Limpiar integrantes seleccionados
+        limpiarIntegrantesCiclo();
+        setupCausaListeners();
+        limpiarPlanAccion();
+        setupCausaListeners();
+    }
+
+    // Configurar listeners en inputs de causas
+    function setupCausaListeners() {
+        document.querySelectorAll('.cause-input-pro').forEach(input => {
+            input.removeEventListener('input', actualizarTabla5Porques);
+            input.addEventListener('input', actualizarTabla5Porques);
+        });
+
+        // Listener para el defecto principal
+        const defectoInput = document.getElementById('defectoPrincipal');
+        const defectBox = document.getElementById('defectBox');
+        if (defectoInput && defectBox) {
+            defectoInput.addEventListener('input', function () {
+                const text = this.value.trim();
+                defectBox.textContent = text.length > 15 ? text.substring(0, 15) + '...' : (text || 'DEFECTO');
+            });
+        }
+    }
+
+    // Enviar formulario de Ciclo de Mejora
+    function submitCicloForm(event) {
+        event.preventDefault();
+
+        const submitBtn = event.target.querySelector('.submit-btn');
+        buttonStateManager.bloquear(submitBtn, 'Enviar Ciclo de Mejora');
+
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, "0");
+        const day = String(now.getDate()).padStart(2, "0");
+        const hour = String(now.getHours()).padStart(2, "0");
+        const minute = String(now.getMinutes()).padStart(2, "0");
+        const fechaLocal = `${year}-${month}-${day} ${hour}:${minute}`;
+
+        const espinaPescado = {
+            medioAmbiente: recopilarCausas('ambiente'),
+            manoDeObra: recopilarCausas('mano'),
+            materiales: recopilarCausas('materiales'),
+            tiempo: recopilarCausas('tiempo'),
+            metodo: recopilarCausas('metodo'),
+            maquina: recopilarCausas('maquina')
+        };
+
+        const seccion5Porques = document.getElementById('seccion5Porques');
+        let analisis5Porques = null;
+
+        if (seccion5Porques && seccion5Porques.style.display !== 'none') {
+            analisis5Porques = recopilarDatosTabla5Porques();
+        }
+
+        // <CHANGE> Obtener foco de mejora seleccionado
+        const focoSeleccionado = document.querySelector('input[name="focoMejora"]:checked');
+        const tipoFoco = focoSeleccionado ? focoSeleccionado.value : '';
+
+        // <CHANGE> Recopilar datos según el foco
+        let datosFoco = {};
+        if (tipoFoco === 'indicador') {
+            datosFoco = {
+                tipo: 'indicador',
+                nombreKPI: document.getElementById('nombreKPI').value,
+                direccion: document.getElementById('direccionIndicador').value,
+                resultadoActual: document.getElementById('resultadoActual').value,
+                meta: document.getElementById('metaIndicador').value,
+                brecha: document.getElementById('brechaIndicador').value,
+                ahorroDinero: document.getElementById('ahorroIndicadorDinero').value,
+                ahorroPorcentaje: document.getElementById('ahorroIndicadorPorcentaje').value
+            };
+        } else if (tipoFoco === 'proceso') {
+            const metrica = document.getElementById('metricaFlujo').value;
+            datosFoco = {
+                tipo: 'proceso',
+                procesoSimplificar: document.getElementById('procesoSimplificar').value,
+                metricaFlujo: metrica === 'otro' ? document.getElementById('metricaOtro').value : metrica,
+                valorActual: document.getElementById('valorActualFlujo').value,
+                meta: document.getElementById('metaFlujo').value,
+                reduccion: document.getElementById('reduccionFlujo').value,
+                ahorroTiempo: document.getElementById('ahorroTiempoTotal').value,
+                impactoDinero: document.getElementById('impactoProcesoDinero').value
+            };
+        } else if (tipoFoco === 'error') {
+            datosFoco = {
+                tipo: 'error',
+                declaracionProblema: document.getElementById('declaracionProblema').value,
+                evidenciaFallo: document.getElementById('evidenciaFallo').value,
+                frecuenciaActual: document.getElementById('frecuenciaActual').value,
+                metaFrecuencia: '0',
+                brechaRecurrencia: document.getElementById('brechaRecurrencia').value,
+                objetivoReduccion: document.getElementById('objetivoReduccionRiesgo').value,
+                impactoCosto: document.getElementById('impactoCostoIndirecto').value
+            };
+        }
+
+        const formData = {
+            cicloId: document.getElementById('cicloMejoraId').value,
+            nombreCiclo: document.getElementById('nombreCicloMejora').value,
+            fecha: fechaLocal,
+            avisoMantenimiento: document.getElementById('avisoMantenimiento').value,
+            proceso: document.getElementById('procesoCiclo').value,
+            equipoMaquina: document.getElementById('equipoMaquina').value,
+            lider: document.getElementById('liderCicloSearch').value,
+            integrantes: document.getElementById('integrantesAnalisis').value,
+            // <CHANGE> Agregar foco de mejora
+            focoMejora: datosFoco,
+            defecto: document.getElementById('defectoPrincipal').value,
+            espinaPescado: espinaPescado,
+            analisis5Porques: analisis5Porques,
+            planAccion: recopilarDatosPlanAccion(),
+            creadoPor: currentUser ? currentUser.nombre : ''
+        };
+
+        showAlert('info', 'Enviando...', 'Procesando su ciclo de mejora, por favor espere', 3000);
+
+        google.script.run
+            .withSuccessHandler(function (response) {
+                buttonStateManager.desbloquear(submitBtn);
+                handleCicloSubmitSuccess(response);
+            })
+            .withFailureHandler(function (error) {
+                buttonStateManager.desbloquear(submitBtn);
+                handleError(error);
+            })
+            .submitCicloMejora(formData);
+    }
+
+    function handleCicloSubmitSuccess(result) {
+        if (result.success) {
+            showAlert('success', 'Registro Exitoso', 'Ciclo de Mejora registrado con ID: ' + result.cicloId);
+            document.getElementById('cicloForm').reset();
+
+            document.getElementById('liderCicloSearch').value = '';
+            limpiarIntegrantesCiclo();
+            limpiarFocoMejora();
+            limpiarPlanAccion();
+
+            document.querySelectorAll('.cause-input-pro').forEach(input => {
+                input.value = '';
+            });
+
+            mostrar5Porques(false);
+            initCicloMejoraForm();
+        } else {
+            showAlert('error', 'Error', result.message || 'Error al enviar el ciclo de mejora');
+        }
+    }
+
+    // Extender showReportForm para inicializar el formulario de ciclo
+    const originalShowReportForm = typeof showReportForm !== 'undefined' ? showReportForm : null;
+    showReportForm = function (formType, event) {
+        if (originalShowReportForm) {
+            originalShowReportForm(formType, event);
+        }
+
+        if (formType === 'ciclo') {
+            setTimeout(() => {
+                initCicloMejoraForm();
+            }, 100);
+        }
+    };
+
+</script>

@@ -1,0 +1,140 @@
+<script>
+
+  // Form submission
+  function submitN2Form(event) {
+    event.preventDefault();
+
+    const submitBtn = event.target.querySelector('.submit-btn');
+    buttonStateManager.bloquear(submitBtn, 'Enviar Reporte');
+
+    const selectedCedula = document.getElementById('selectedLeaderCedula').value;
+    if (!selectedCedula) {
+      alert('Por favor seleccione un líder responsable de la lista');
+      buttonStateManager.desbloquear(submitBtn);
+      return;
+    }
+
+    let zonaProceso = "";
+    const zonaProcesoInput = document.getElementById('zonaProceso');
+    if (zonaProcesoInput) {
+      zonaProceso = zonaProcesoInput.value;
+    }
+
+    const otroInput = document.getElementById('otroProceso');
+    if (otroInput && otroInput.value.trim() !== "") {
+      zonaProceso = otroInput.value.trim();
+    }
+
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    const hour = String(now.getHours()).padStart(2, "0");
+    const minute = String(now.getMinutes()).padStart(2, "0");
+    const fechaLocal = `${year}-${month}-${day} ${hour}:${minute}`;
+
+    const formData = {
+      liderResponsable: selectedCedula,
+      proceso: document.getElementById('proceso').value,
+      zonaProceso: zonaProceso,
+      anormalidad: document.getElementById('anormalidad').value,
+      procesoResponsable: document.getElementById('procesoResponsable').value,
+      fechaSolucion: document.getElementById('fechaSolucion').value,
+      tipoReporte: 'N2',
+      fecha: fechaLocal,
+      nombreCedula: document.getElementById('nombreCedula').value,
+      fotos: selectedFilesN2 || [] // ✅ Esto ya es Base64 igual que tarjetas
+    };
+
+    console.log("📸 Fotos a enviar N2 (Base64):", formData.fotos.length);
+    if (formData.fotos.length > 0) {
+      console.log("📸 Primera foto (primeros 100 chars):", formData.fotos[0].substring(0, 100));
+    }
+
+    showAlert('info', 'Enviando...', 'Procesando su reporte, por favor espere', 3000);
+
+    google.script.run
+      .withSuccessHandler(function (response) {
+        buttonStateManager.desbloquear(submitBtn);
+        handleSubmitSuccess(response);
+      })
+      .withFailureHandler(function (error) {
+        buttonStateManager.desbloquear(submitBtn);
+        handleError(error);
+      })
+      .submitN2Report(formData);
+  }
+
+  // CAMPOS DINAMICOS DEL FORM DE N2
+
+  const zonaProceso = document.getElementById("zonaProceso");
+  const otroProceso = document.getElementById("otroProceso");
+  const proceso = document.getElementById("proceso");
+
+  // Opciones dinámicas por proceso
+  const opcionesPorProceso = {
+    Pastificio: [
+      "Línea A", "Línea B", "Línea C", "Línea D",
+      "SIRCEM", "Girapasta"
+    ],
+    Empaque: [
+      "Máquina 02", "Máquina 03", "Máquina 04", "Máquina 05", "Máquina 06",
+      "Máquina 17", "Máquina 18", "Máquina 19", "Máquina 20", "Máquina 21",
+      "Encartonadora PL", "Encartonadora PC", "Empaque Fideo Nestle",
+      "Tolvas de Verduras", "Vaso", "Celdas Robóticas", "CEMPA"
+    ],
+    Molino: [
+      "Dechinadora", "Sortex", "Plansifter", "Bancos Molienda",
+      "Sasores", "Básculas"
+    ],
+    CEDI: [
+      "Racks", "Pasillos", "Muelles", "Recepción", "Cuarto de Cargue Baterías"
+    ],
+    Mantenimiento: [
+      "Red contraincendios", "Taller", "Cuarto de lubricantes", "Caldera", "Compresores y Bomba de vacio",
+      "Torres de enfriamiento", "Contenedores", "Aire ambiente Pastificio", "Oficinas"
+    ],
+    Almacenes: [
+      "Racks", "Pasillos", "Muelles", "Recepción", "Cuarto de Cargue Baterías"
+    ]
+  };
+
+  // Cuando cambia el proceso, actualizar las zonas
+  proceso.addEventListener("change", () => {
+    const seleccionado = proceso.value;
+    zonaProceso.innerHTML = '<option value="">Selecciona zona</option>'; // reset
+
+    if (opcionesPorProceso[seleccionado]) {
+      opcionesPorProceso[seleccionado].forEach(op => {
+        const option = document.createElement("option");
+        option.value = op;
+        option.textContent = op;
+        zonaProceso.appendChild(option);
+      });
+    }
+
+    // Habilitar ambos otra vez
+    zonaProceso.disabled = false;
+    otroProceso.disabled = false;
+  });
+
+  // Lógica: solo uno se puede llenar
+  zonaProceso.addEventListener("change", () => {
+    if (zonaProceso.value) {
+      otroProceso.disabled = true;
+      otroProceso.value = "";
+    } else {
+      otroProceso.disabled = false;
+    }
+  });
+
+  otroProceso.addEventListener("input", () => {
+    if (otroProceso.value.trim() !== "") {
+      zonaProceso.disabled = true;
+      zonaProceso.value = "";
+    } else {
+      zonaProceso.disabled = false;
+    }
+  });
+
+</script>

@@ -1,0 +1,153 @@
+<script>
+
+    function createReportCard(report) {
+        const card = document.createElement('div');
+        card.className = 'report-card';
+        card.setAttribute('data-report-id', report.id);
+
+        let dueDateClass = '';
+        let dueDateText = '';
+        let editButton = '';
+
+        if (report.estado !== 'Completado') {
+            const dueDate = new Date(report.fechaSolucion);
+            const today = new Date();
+
+            today.setHours(0, 0, 0, 0);
+            dueDate.setHours(0, 0, 0, 0);
+
+            const diffTime = dueDate - today;
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+            dueDateText = formatDate(dueDate);
+
+            if (diffDays < 0) {
+                dueDateClass = 'overdue';
+                dueDateText += ' (Vencido)';
+            } else if (diffDays === 0) {
+                dueDateClass = 'due-today';
+                dueDateText += ' (Vence hoy)';
+            } else if (diffDays <= 3) {
+                dueDateClass = 'due-soon';
+                dueDateText += ` (Faltan ${diffDays} días)`;
+            }
+
+            editButton = `
+            <button 
+                class="edit-date-btn" 
+                title="Editar fecha"
+                onclick="showChangeDateModal('${report.id}', '${report.fechaSolucion}')"
+                style="background:none; border:none; cursor:pointer; margin-left:6px; color:#1E88E5; vertical-align:middle;"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 20h9" />
+                    <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                </svg>
+            </button>
+        `;
+        } else {
+            dueDateText = formatDate(new Date(report.fechaSolucion));
+        }
+
+        const cardHTML = [
+            '<div class="card-header">',
+            '<span class="card-id">' + (report.id || '') + '</span>',
+            '<span class="card-date">' + (formatDate(report.fechaRegistro) || '') + '</span>',
+            '</div>',
+            '<div class="card-description">' + (report.liderResponsable || '') + '</div>',
+            '<div class="card-title">' + (report.proceso || '') + '</div>',
+            '<div class="card-description">' + (report.zonaProceso || '') + '</div>',
+            '<div class="card-description">' + (report.anormalidad || '') + '</div>',
+            '<div class="card-images" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;margin-bottom:15px;"></div>',
+            '<div class="card-meta">',
+            '<span class="card-process">' + (report.procesoResponsable || '') + '</span>',
+            '<span class="card-due-date ' + dueDateClass + '">' + dueDateText + editButton + '</span>',
+            '<span class="comment-count" id="comment-count-' + report.id + '" style="color:black; border-radius:8px; padding:2px 6px; font-size:12px; margin-left:8px;">0</span>',
+            '</div>',
+            '<div class="card-actions">',
+            '<button class="card-action-btn" onclick="viewReportDetails(\'' + report.id + '\')">Ver</button>',
+            '<button class="card-action-btn" onclick="showCommentsModal(\'' + report.id + '\')">Comentarios</button>',
+            '<button class="card-action-btn" onclick="showChangeResponsibleModal(\'' + report.id + '\')">Reasignar</button>',
+            '<button class="card-action-btn" onclick="changeReportStatus(\'' + report.id + '\')">Cambiar Estado</button>',
+            '</div>'
+        ].join('');
+
+        card.innerHTML = cardHTML;
+        card.innerHTML = cardHTML;
+        const imagesContainer = card.querySelector('.card-images');
+
+        if (report.fotos && report.fotos.length > 0) {
+            console.log("🖼️ Fotos disponibles (Base64):", report.fotos.length);
+
+            // ✅ GUARDAR COPIA LOCAL DE LAS FOTOS
+            const fotosLocal = [...report.fotos];
+
+            report.fotos.forEach((fotoBase64, i) => {
+                const img = document.createElement('img');
+                img.alt = 'Foto ' + (i + 1);
+                img.className = 'card-img-thumb';
+
+                img.src = fotoBase64;
+
+                // Estilos
+                img.style.width = '70px';
+                img.style.height = '70px';
+                img.style.objectFit = 'cover';
+                img.style.borderRadius = '8px';
+                img.style.border = '1px solid #ccc';
+                img.style.cursor = 'pointer';
+                img.style.margin = '2px';
+                img.style.transition = 'transform 0.2s ease';
+
+                // ✅ FUNCIÓN MEJORADA - Usar closure para capturar la foto correcta
+                const setupImageClick = (fotoData) => {
+                    img.addEventListener('click', function () {
+                        console.log("🖱️ Clic en imagen - Expandir");
+                        expandImage(fotoData);
+                    });
+                };
+
+                // Llamar la función con la foto correspondiente
+                setupImageClick(fotosLocal[i]);
+
+                // Efectos hover
+                img.addEventListener('mouseover', function () {
+                    this.style.transform = 'scale(1.1)';
+                });
+                img.addEventListener('mouseout', function () {
+                    this.style.transform = 'scale(1)';
+                });
+
+                imagesContainer.appendChild(img);
+            });
+        }
+
+        return card;
+    }
+
+    function viewReportDetails(reportId) {
+        const report = n2Reports.find(r => r.id === reportId);
+        if (report) {
+            let detallesHTML = `
+            <br><strong>Proceso:</strong> ${report.proceso}\n <br><br>
+            <strong>Líder:</strong> ${report.liderResponsable}\n <br><br>
+            <strong>Anormalidad:</strong> ${report.anormalidad}\n <br><br>
+            <strong>Proceso Responsable:</strong> ${report.procesoResponsable}\n <br><br>
+            <strong>Fecha Solución:</strong> ${formatDate(report.fechaSolucion)}\n <br><br>
+            <strong>Estado:</strong> ${report.estado}
+        `;
+
+            // Solo si está completado, mostrar responsable y fecha de cierre
+            if (report.estado === 'Completado') {
+                const responsable = report.responsableCierreN2 || 'N/A';
+                const fechaCierre = report.fechaCierreN2 ? formatDate(report.fechaCierreN2) : 'N/A';
+
+                detallesHTML += `\n <br><br><strong>Cerrado por:</strong> ${responsable}`;
+                detallesHTML += `\n <br><br><strong>Fecha de Cierre:</strong> ${fechaCierre}`;
+            }
+
+            showAlert('info', `Reporte ${reportId}`, detallesHTML, 8000);
+        }
+    }
+
+</script>

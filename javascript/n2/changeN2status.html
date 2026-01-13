@@ -1,0 +1,115 @@
+<script>
+
+  function changeReportStatus(reportId) {
+    showStatusModal(reportId);
+  }
+
+  function showStatusModal(reportId) {
+    const statusOptions = [
+      { value: 'Pendiente', label: 'Pendiente', color: '#6c757d' },
+      { value: 'En Progreso', label: 'En Progreso', color: '#007bff' },
+      { value: 'En Revision', label: 'En Revision', color: '#fd7e14' },
+      { value: 'Completado', label: 'Completado', color: '#28a745' }
+    ];
+
+    // Eliminar modal existente
+    const existingModal = document.getElementById('statusModal');
+    if (existingModal) existingModal.remove();
+
+    // Overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'statusModal';
+    overlay.style.cssText = `
+    position: fixed; top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5); backdrop-filter: blur(5px);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 10000;
+  `;
+
+    // Contenido
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+    background: #fff; padding: 1.5rem;
+    border-radius: 16px; width: 90%; max-width: 400px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  `;
+
+    modal.innerHTML = `
+    <h2 style="margin-bottom: 1rem; font-size: 18px; font-weight: 600; color: #1e293b; text-align:center">
+      Cambiar Estado
+    </h2>
+    <div id="statusOptionsContainer" style="display: flex; flex-direction: column; gap: 0.75rem;"></div>
+    <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
+      <button id="cancelBtn" style="padding: 0.5rem 1rem; border: 1px solid #cbd5e1; border-radius: 8px; cursor: pointer;">Cancelar</button>
+      <button id="confirmBtn" style="padding: 0.5rem 1rem; border: none; background: #3b82f6; color: #fff; border-radius: 8px; cursor: pointer;" disabled>Confirmar</button>
+    </div>
+  `;
+
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    // Insertar opciones dinámicamente
+    const container = modal.querySelector('#statusOptionsContainer');
+    statusOptions.forEach(opt => {
+      const div = document.createElement('div');
+      div.className = 'status-option';
+      div.dataset.status = opt.value;
+      div.style.cssText = `
+      padding: 0.75rem 1rem; border: 2px solid #e2e8f0; border-radius: 10px;
+      cursor: pointer; display: flex; align-items: center; gap: 0.75rem;
+    `;
+      div.innerHTML = `
+      <div style="width:12px; height:12px; border-radius:50%; background:${opt.color};"></div>
+      <span>${opt.label}</span>
+    `;
+      container.appendChild(div);
+    });
+
+    let selectedStatus = null;
+
+    // Manejo de selección
+    container.querySelectorAll('.status-option').forEach(option => {
+      option.addEventListener('click', () => {
+        container.querySelectorAll('.status-option').forEach(o => {
+          o.style.borderColor = '#e2e8f0';
+          o.style.background = '#fff';
+        });
+        option.style.borderColor = '#3b82f6';
+        option.style.background = 'rgba(59,130,246,0.05)';
+        selectedStatus = option.dataset.status;
+        modal.querySelector('#confirmBtn').disabled = false;
+      });
+    });
+
+    // Botón cancelar
+    modal.querySelector('#cancelBtn').addEventListener('click', () => overlay.remove());
+
+    // Botón confirmar
+    modal.querySelector('#confirmBtn').addEventListener('click', () => {
+      if (!selectedStatus) return;
+      overlay.remove();
+
+      showAlert('info', 'Actualizando...', 'Cambiando estado del reporte', 2000);
+
+      const nombreUsuario = currentUser ? currentUser.nombre : 'Usuario desconocido';
+
+      google.script.run
+        .withSuccessHandler(() => {
+          showAlert('success', '¡Éxito!', `Estado cambiado a "${selectedStatus}"`);
+          reloadReportsKeepFilters();
+        })
+        .withFailureHandler(err => {
+          console.error('Error:', err);
+          showAlert('error', 'Error', 'No se pudo actualizar el estado');
+        })
+        .updateReportStatus(reportId, selectedStatus, nombreUsuario);
+    });
+
+    // Cerrar modal clickeando afuera
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) overlay.remove();
+    });
+  }
+
+</script>

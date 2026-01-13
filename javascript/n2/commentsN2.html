@@ -1,0 +1,137 @@
+<script>
+
+  function showCommentsModal(reportId) {
+    // Eliminar modal existente si ya hay uno
+    const existingModal = document.getElementById('commentModal');
+    if (existingModal) existingModal.remove();
+
+    // Overlay (igual que el de "Cambiar Estado")
+    const overlay = document.createElement('div');
+    overlay.id = 'commentModal';
+    overlay.style.cssText = `
+    position: fixed; top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5); backdrop-filter: blur(5px);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 10000;
+  `;
+
+    // Contenedor del modal
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+    background: #fff; padding: 1.5rem;
+    border-radius: 16px; width: 90%; max-width: 480px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    display: flex; flex-direction: column; gap: 1rem;
+  `;
+
+    modal.innerHTML = `
+    <h2 style="text-align:center; color:#1e293b; font-size:18px; font-weight:600; margin:0;">
+      <i class="fa-regular fa-comments"></i> Comentarios del reporte
+    </h2>
+
+    <div id="commentsList" style="
+      max-height:240px; overflow:auto; border:1px solid #e2e8f0;
+      border-radius:8px; padding:0.75rem; background:#f8fafc;
+    ">
+      <div style="text-align:center; color:#94a3b8;">Cargando comentarios...</div>
+    </div>
+
+    <textarea id="newComment" placeholder="Escribe tu comentario..." rows="3"
+      style="width:100%; padding:0.75rem; border:1px solid #cbd5e1; border-radius:8px; resize:vertical;"></textarea>
+
+    <div style="display:flex; justify-content:flex-end; gap:0.75rem;">
+      <button id="cancelComment" style="
+        padding:0.5rem 1rem; border:1px solid #cbd5e1;
+        border-radius:8px; cursor:pointer; background:#fff;
+      ">Cancelar</button>
+
+      <button id="saveComment" style="
+        padding:0.5rem 1rem; border:none; background:#3b82f6;
+        color:#fff; border-radius:8px; cursor:pointer;
+      ">Guardar</button>
+    </div>
+  `;
+
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    const commentsList = modal.querySelector('#commentsList');
+    const textarea = modal.querySelector('#newComment');
+    const saveBtn = modal.querySelector('#saveComment');
+
+    // === Función para cargar comentarios ===
+    function loadComments() {
+      google.script.run
+        .withSuccessHandler(comments => {
+          if (!comments || comments.length === 0) {
+            commentsList.innerHTML = `<div style="color:#94a3b8;">No hay comentarios todavía</div>`;
+            return;
+          }
+
+          commentsList.innerHTML = comments.map(c => `
+          <div style="padding:0.5rem 0; border-bottom:1px solid #e2e8f0;">
+            <div style="font-weight:600; color:#0f172a; font-size:13px;">${escapeHtml(c.autor)}</div>
+            <div style="font-size:12px; color:#94a3b8;">${escapeHtml(c.fecha)}</div>
+            <div style="margin-top:4px; font-size:14px; color:#334155;">${escapeHtml(c.comentario)}</div>
+          </div>
+        `).join('');
+          commentsList.scrollTop = commentsList.scrollHeight;
+        })
+        .withFailureHandler(err => {
+          console.error(err);
+          commentsList.innerHTML = `<div style="color:#ef4444;">Error al cargar comentarios</div>`;
+        })
+        .getCommentsForReport(reportId);
+    }
+
+    // === Cargar comentarios iniciales ===
+    loadComments();
+    loadCommentsCount(); // actualiza contadores globalmente
+
+
+    // === Botón Cancelar ===
+    modal.querySelector('#cancelComment').addEventListener('click', () => overlay.remove());
+
+    // === Botón Guardar ===
+    saveBtn.addEventListener('click', () => {
+      const comment = textarea.value.trim();
+      if (!comment) {
+        showAlert('warning', 'Campo vacío', 'Debes escribir un comentario');
+        return;
+      }
+
+      // Obtener autor desde el cliente
+      const autor = (typeof currentUser !== 'undefined' && (currentUser.nombre || currentUser.cedula))
+        ? (currentUser.nombre || currentUser.cedula)
+        : 'Usuario desconocido';
+
+      // Desactivar botón mientras guarda
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Guardando...';
+
+      google.script.run
+        .withSuccessHandler(() => {
+          showAlert('success', 'Comentario agregado', 'Se guardó correctamente');
+          textarea.value = '';
+          saveBtn.disabled = false;
+          saveBtn.textContent = 'Guardar';
+          loadComments(); // recargar comentarios
+          loadCommentsCount(); // actualiza contadores globalmente
+        })
+        .withFailureHandler(err => {
+          console.error(err);
+          showAlert('error', 'Error', 'No se pudo guardar el comentario');
+          saveBtn.disabled = false;
+          saveBtn.textContent = 'Guardar';
+        })
+        .addCommentToReport(reportId, comment, autor);
+    });
+
+    // === Cerrar al hacer clic fuera ===
+    overlay.addEventListener('click', e => {
+      if (e.target === overlay) overlay.remove();
+    });
+  }
+
+</script>

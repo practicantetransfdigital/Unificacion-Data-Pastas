@@ -1,0 +1,29 @@
+<script>
+
+    // 🔹 Cargar y actualizar contador de comentarios por tarjeta
+    function loadCommentsCount() {
+        google.script.run
+            .withSuccessHandler(updateCommentCounters)
+            .getCommentsCountForReports();
+    }
+
+    // 🔹 Actualiza visualmente los contadores
+    function updateCommentCounters(counts) {
+        for (const [reportId, count] of Object.entries(counts)) {
+            const badge = document.getElementById(`comment-count-${reportId}`);
+            if (badge) {
+                badge.textContent = count;
+
+                // Cambiar color de fondo según el número de comentarios
+                if (count > 0) {
+                    badge.style.backgroundColor = '#007bff';
+                    badge.style.color = 'white';
+                } else {
+                    badge.style.backgroundColor = 'transparent';
+                    badge.style.color = 'black';
+                }
+            }
+        }
+    }
+
+</script>

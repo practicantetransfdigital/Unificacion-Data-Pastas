@@ -1,19 +1,19 @@
 <script>
 
-// Modal para estadísticas de tarjetas
-function openStatsForTarjetas() {
-    showTarjetasStatsModal();
-}
+    // Modal para estadísticas de tarjetas
+    function openStatsForTarjetas() {
+        showTarjetasStatsModal();
+    }
 
-function showTarjetasStatsModal() {
-    // Eliminar modal existente si hay
-    const existingModal = document.getElementById('tarjetasStatsModal');
-    if (existingModal) existingModal.remove();
-    
-    // Crear overlay
-    const overlay = document.createElement('div');
-    overlay.id = 'tarjetasStatsModal';
-    overlay.style.cssText = `
+    function showTarjetasStatsModal() {
+        // Eliminar modal existente si hay
+        const existingModal = document.getElementById('tarjetasStatsModal');
+        if (existingModal) existingModal.remove();
+
+        // Crear overlay
+        const overlay = document.createElement('div');
+        overlay.id = 'tarjetasStatsModal';
+        overlay.style.cssText = `
         position: fixed;
         top: 0;
         left: 0;
@@ -26,10 +26,10 @@ function showTarjetasStatsModal() {
         justify-content: center;
         z-index: 10000;
     `;
-    
-    // Crear modal
-    const modal = document.createElement('div');
-    modal.style.cssText = `
+
+        // Crear modal
+        const modal = document.createElement('div');
+        modal.style.cssText = `
         background: white;
         border-radius: 12px;
         width: 95%;
@@ -39,9 +39,9 @@ function showTarjetasStatsModal() {
         flex-direction: column;
         box-shadow: 0 20px 60px rgba(0,0,0,0.3);
     `;
-    
-    // Header del modal
-    modal.innerHTML = `
+
+        // Header del modal
+        modal.innerHTML = `
         <div style="
             padding: 20px 24px;
             border-bottom: 1px solid #e5e7eb;
@@ -114,102 +114,102 @@ function showTarjetasStatsModal() {
             <!-- Contenido se cargará dinámicamente -->
         </div>
     `;
-    
-    overlay.appendChild(modal);
-    document.body.appendChild(overlay);
-    
-    // Cargar la primera pestaña por defecto
-    switchTab('riesgo-problema');
-    
-    // Cerrar al hacer clic fuera
-    overlay.addEventListener('click', function(e) {
-        if (e.target === overlay) {
-            closeTarjetasStatsModal();
-        }
-    });
-    
-    // Cerrar con ESC
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            closeTarjetasStatsModal();
-        }
-    });
-}
 
-function switchTab(tabName) {
-    // Crear efecto ripple
-    const activeTab = document.querySelector('.stats-tab.active');
-    if (activeTab) {
-        createRippleEffect(activeTab);
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+
+        // Cargar la primera pestaña por defecto
+        switchTab('riesgo-problema');
+
+        // Cerrar al hacer clic fuera
+        overlay.addEventListener('click', function (e) {
+            if (e.target === overlay) {
+                closeTarjetasStatsModal();
+            }
+        });
+
+        // Cerrar con ESC
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                closeTarjetasStatsModal();
+            }
+        });
     }
-    
-    // Actualizar clases de los tabs
-    document.querySelectorAll('.stats-tab').forEach(tab => {
-        tab.classList.remove('active');
-        if (tab.dataset.tab === tabName) {
-            tab.classList.add('active');
+
+    function switchTab(tabName) {
+        // Crear efecto ripple
+        const activeTab = document.querySelector('.stats-tab.active');
+        if (activeTab) {
+            createRippleEffect(activeTab);
         }
-    });
-    
-    // Animar el indicador
-    const indicator = document.getElementById('tabIndicator');
-    const targetTab = document.querySelector(`.stats-tab[data-tab="${tabName}"]`);
-    
-    if (indicator && targetTab) {
-        const tabRect = targetTab.getBoundingClientRect();
-        const containerRect = document.getElementById('statsTabs').getBoundingClientRect();
-        
-        indicator.style.width = `${tabRect.width}px`;
-        indicator.style.left = `${tabRect.left - containerRect.left}px`;
-        indicator.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-    }
-    
-    // Mostrar contenido según la pestaña con animación de fade
-    const tabContent = document.getElementById('tabContent');
-    tabContent.style.opacity = '0.5';
-    tabContent.style.transform = 'translateY(10px)';
-    
-    setTimeout(() => {
-        // Cambia las llamadas para usar las funciones correctas
-        if (tabName === 'riesgo-problema') {
-            loadRiesgoProblemaTab();
-        } else if (tabName === 'riesgo-anual') {
-            loadRiesgoAnualTab(); 
-        } else if (tabName === 'responsable-cargo') {
-            loadResponsableCargoTab();
-        } else if (tabName === 'lider-solucion') {
-            loadLiderSolucionTab();
-        } else if (tabName === 'zona-riesgo') {
-            loadZonaRiesgoTab();
-        } else if (tabName === 'tipo-reporte') {
-            loadTipoReporteTab();
-        } else if (tabName === 'mensual') {
-            loadMensualTab();
+
+        // Actualizar clases de los tabs
+        document.querySelectorAll('.stats-tab').forEach(tab => {
+            tab.classList.remove('active');
+            if (tab.dataset.tab === tabName) {
+                tab.classList.add('active');
+            }
+        });
+
+        // Animar el indicador
+        const indicator = document.getElementById('tabIndicator');
+        const targetTab = document.querySelector(`.stats-tab[data-tab="${tabName}"]`);
+
+        if (indicator && targetTab) {
+            const tabRect = targetTab.getBoundingClientRect();
+            const containerRect = document.getElementById('statsTabs').getBoundingClientRect();
+
+            indicator.style.width = `${tabRect.width}px`;
+            indicator.style.left = `${tabRect.left - containerRect.left}px`;
+            indicator.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
         }
-        
-        // Restaurar animación
+
+        // Mostrar contenido según la pestaña con animación de fade
+        const tabContent = document.getElementById('tabContent');
+        tabContent.style.opacity = '0.5';
+        tabContent.style.transform = 'translateY(10px)';
+
         setTimeout(() => {
-            tabContent.style.opacity = '1';
-            tabContent.style.transform = 'translateY(0)';
-            tabContent.style.transition = 'all 0.3s ease';
-        }, 50);
-    }, 150);
-}
+            // Cambia las llamadas para usar las funciones correctas
+            if (tabName === 'riesgo-problema') {
+                loadRiesgoProblemaTab();
+            } else if (tabName === 'riesgo-anual') {
+                loadRiesgoAnualTab();
+            } else if (tabName === 'responsable-cargo') {
+                loadResponsableCargoTab();
+            } else if (tabName === 'lider-solucion') {
+                loadLiderSolucionTab();
+            } else if (tabName === 'zona-riesgo') {
+                loadZonaRiesgoTab();
+            } else if (tabName === 'tipo-reporte') {
+                loadTipoReporteTab();
+            } else if (tabName === 'mensual') {
+                loadMensualTab();
+            }
 
-
-function closeTarjetasStatsModal() {
-    const modal = document.getElementById('tarjetasStatsModal');
-    if (modal) {
-        modal.remove();
+            // Restaurar animación
+            setTimeout(() => {
+                tabContent.style.opacity = '1';
+                tabContent.style.transform = 'translateY(0)';
+                tabContent.style.transition = 'all 0.3s ease';
+            }, 50);
+        }, 150);
     }
-}
 
-function loadTarjetasStats() {
-    const tableBody = document.getElementById('statsTableBody');
-    const summaryContainer = document.getElementById('statsSummary');
-    
-    if (tableBody) {
-        tableBody.innerHTML = `
+
+    function closeTarjetasStatsModal() {
+        const modal = document.getElementById('tarjetasStatsModal');
+        if (modal) {
+            modal.remove();
+        }
+    }
+
+    function loadTarjetasStats() {
+        const tableBody = document.getElementById('statsTableBody');
+        const summaryContainer = document.getElementById('statsSummary');
+
+        if (tableBody) {
+            tableBody.innerHTML = `
             <tr>
                 <td colspan="6" style="padding: 40px; text-align: center; color: #9ca3af;">
                     <div style="margin-bottom: 12px;">
@@ -219,32 +219,32 @@ function loadTarjetasStats() {
                 </td>
             </tr>
         `;
-    }
-    
-    google.script.run
-        .withSuccessHandler(function(result) {
-            if (result.success) {
-                renderTarjetasStats(result.data, result.summary);
-            } else {
-                showErrorInStats(result.message);
-            }
-        })
-        .withFailureHandler(function(error) {
-            console.error('Error cargando estadísticas:', error);
-            showErrorInStats('Error al cargar las estadísticas: ' + error.message);
-        })
-        .getTarjetasStats();
-}
+        }
 
-function renderTarjetasStats(data, summary) {
-    const tableBody = document.getElementById('statsTableBody');
-    const summaryContainer = document.getElementById('statsSummary');
-    
-    if (!tableBody) return;
-    
-    // Actualizar resumen
-    if (summaryContainer && summary) {
-        summaryContainer.innerHTML = `
+        google.script.run
+            .withSuccessHandler(function (result) {
+                if (result.success) {
+                    renderTarjetasStats(result.data, result.summary);
+                } else {
+                    showErrorInStats(result.message);
+                }
+            })
+            .withFailureHandler(function (error) {
+                console.error('Error cargando estadísticas:', error);
+                showErrorInStats('Error al cargar las estadísticas: ' + error.message);
+            })
+            .getTarjetasStats();
+    }
+
+    function renderTarjetasStats(data, summary) {
+        const tableBody = document.getElementById('statsTableBody');
+        const summaryContainer = document.getElementById('statsSummary');
+
+        if (!tableBody) return;
+
+        // Actualizar resumen
+        if (summaryContainer && summary) {
+            summaryContainer.innerHTML = `
             <div style="text-align: center; padding: 20px; background: #007bff; border-radius: 8px; color: white;">
                 <div style="font-size: 12px; opacity: 0.9;">Total Tarjetas</div>
                 <div style="font-size: 32px; font-weight: 700; margin: 8px 0;">${summary.totalTarjetas || 0}</div>
@@ -266,11 +266,11 @@ function renderTarjetasStats(data, summary) {
                 <div style="font-size: 12px;">eficiencia</div>
             </div>
         `;
-    }
-    
-    // Renderizar tabla
-    if (!data || data.length === 0) {
-        tableBody.innerHTML = `
+        }
+
+        // Renderizar tabla
+        if (!data || data.length === 0) {
+            tableBody.innerHTML = `
             <tr>
                 <td colspan="6" style="padding: 40px; text-align: center; color: #9ca3af;">
                     <div style="margin-bottom: 12px;">
@@ -280,37 +280,37 @@ function renderTarjetasStats(data, summary) {
                 </td>
             </tr>
         `;
-        return;
-    }
-    
-    let html = '';
-    data.forEach((row, index) => {
-        const isTotal = row.isTotal;
-        const isGlobalTotal = row.isGlobalTotal;
-        
-        let rowStyle = '';
-        let cellStyle = '';
-        
-        if (isGlobalTotal) {
-            rowStyle = 'background: #1f2937; color: white; font-weight: 700;';
-            cellStyle = 'font-weight: 700;';
-        } else if (isTotal) {
-            rowStyle = 'background: #374151; color: white; font-weight: 600;';
-            cellStyle = 'font-weight: 600;';
-        } else if (index % 2 === 0) {
-            rowStyle = 'background: #f9fafb;';
+            return;
         }
-        
-        // Determinar color para porcentaje
-        let porcentajeColor = '#374151';
-        if (row.porcentaje) {
-            const porcentajeNum = parseFloat(row.porcentaje);
-            if (porcentajeNum >= 80) porcentajeColor = '#10b981';
-            else if (porcentajeNum >= 50) porcentajeColor = '#f59e0b';
-            else porcentajeColor = '#ef4444';
-        }
-        
-        html += `
+
+        let html = '';
+        data.forEach((row, index) => {
+            const isTotal = row.isTotal;
+            const isGlobalTotal = row.isGlobalTotal;
+
+            let rowStyle = '';
+            let cellStyle = '';
+
+            if (isGlobalTotal) {
+                rowStyle = 'background: #1f2937; color: white; font-weight: 700;';
+                cellStyle = 'font-weight: 700;';
+            } else if (isTotal) {
+                rowStyle = 'background: #374151; color: white; font-weight: 600;';
+                cellStyle = 'font-weight: 600;';
+            } else if (index % 2 === 0) {
+                rowStyle = 'background: #f9fafb;';
+            }
+
+            // Determinar color para porcentaje
+            let porcentajeColor = '#374151';
+            if (row.porcentaje) {
+                const porcentajeNum = parseFloat(row.porcentaje);
+                if (porcentajeNum >= 80) porcentajeColor = '#10b981';
+                else if (porcentajeNum >= 50) porcentajeColor = '#f59e0b';
+                else porcentajeColor = '#ef4444';
+            }
+
+            html += `
             <tr style="${rowStyle}">
                 <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; ${cellStyle}">
                     ${row.tipoRiesgo || ''}
@@ -332,15 +332,15 @@ function renderTarjetasStats(data, summary) {
                 </td>
             </tr>
         `;
-    });
-    
-    tableBody.innerHTML = html;
-}
+        });
 
-function showErrorInStats(message) {
-    const tableBody = document.getElementById('statsTableBody');
-    if (tableBody) {
-        tableBody.innerHTML = `
+        tableBody.innerHTML = html;
+    }
+
+    function showErrorInStats(message) {
+        const tableBody = document.getElementById('statsTableBody');
+        if (tableBody) {
+            tableBody.innerHTML = `
             <tr>
                 <td colspan="6" style="padding: 40px; text-align: center; color: #ef4444;">
                     <div style="margin-bottom: 12px;">
@@ -362,44 +362,44 @@ function showErrorInStats(message) {
                 </td>
             </tr>
         `;
+        }
     }
-}
 
-function exportTarjetasStats() {
-    google.script.run
-        .withSuccessHandler(function(result) {
-            if (result.success) {
-                // Crear archivo CSV
-                const csvContent = result.csv;
-                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement("a");
-                
-                if (link.download !== undefined) {
-                    const url = URL.createObjectURL(blob);
-                    link.setAttribute("href", url);
-                    link.setAttribute("download", `estadisticas_tarjetas_${new Date().toISOString().split('T')[0]}.csv`);
-                    link.style.visibility = 'hidden';
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
+    function exportTarjetasStats() {
+        google.script.run
+            .withSuccessHandler(function (result) {
+                if (result.success) {
+                    // Crear archivo CSV
+                    const csvContent = result.csv;
+                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement("a");
+
+                    if (link.download !== undefined) {
+                        const url = URL.createObjectURL(blob);
+                        link.setAttribute("href", url);
+                        link.setAttribute("download", `estadisticas_tarjetas_${new Date().toISOString().split('T')[0]}.csv`);
+                        link.style.visibility = 'hidden';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    }
+
+                    showAlert('success', 'Exportado', 'Estadísticas exportadas correctamente');
+                } else {
+                    showAlert('error', 'Error', 'No se pudo exportar las estadísticas');
                 }
-                
-                showAlert('success', 'Exportado', 'Estadísticas exportadas correctamente');
-            } else {
-                showAlert('error', 'Error', 'No se pudo exportar las estadísticas');
-            }
-        })
-        .withFailureHandler(function(error) {
-            showAlert('error', 'Error', 'Error al exportar: ' + error.message);
-        })
-        .exportTarjetasStatsToCSV();
-}
+            })
+            .withFailureHandler(function (error) {
+                showAlert('error', 'Error', 'Error al exportar: ' + error.message);
+            })
+            .exportTarjetasStatsToCSV();
+    }
 
-// Función para cargar pestaña de Riesgo/Problema
-function loadRiesgoProblemaTab() {
-    const tabContent = document.getElementById('tabContent');
-    
-    tabContent.innerHTML = `
+    // Función para cargar pestaña de Riesgo/Problema
+    function loadRiesgoProblemaTab() {
+        const tabContent = document.getElementById('tabContent');
+
+        tabContent.innerHTML = `
         <div style="margin-bottom: 24px;">
             <h3 style="margin: 0 0 16px 0; color: #374151; font-size: 18px;">
                 <i class="fa-solid fa-triangle-exclamation" style="margin-right: 10px;"></i> Gestión por Riesgo y Problema asociado
@@ -465,7 +465,7 @@ function loadRiesgoProblemaTab() {
                         align-items: center;
                         gap: 6px;
                     ">
-                        <i class="fa-solid fa-file-export"></i> Exportar
+                        <i class="fa-solid fa-file-export"></i> Exportar CSV
                     </button>
                 </div>
             </div>
@@ -500,16 +500,16 @@ function loadRiesgoProblemaTab() {
             </div>
         </div>
     `;
-    
-    // Cargar datos para esta pestaña
-    loadRiesgoProblemaStats();
-}
 
-// Función para cargar pestaña de Responsable por Cargo
-function loadResponsableCargoTab() {
-    const tabContent = document.getElementById('tabContent');
-    
-    tabContent.innerHTML = `
+        // Cargar datos para esta pestaña
+        loadRiesgoProblemaStats();
+    }
+
+    // Función para cargar pestaña de Responsable por Cargo
+    function loadResponsableCargoTab() {
+        const tabContent = document.getElementById('tabContent');
+
+        tabContent.innerHTML = `
         <div style="margin-bottom: 24px;">
             <h3 style="margin: 0 0 16px 0; color: #374151; font-size: 18px;">
                 <i class="fa-solid fa-user-tie" style="margin-right: 10px;"></i> Gestión por Responsable por Cargo de la Solución
@@ -546,7 +546,7 @@ function loadResponsableCargoTab() {
                         align-items: center;
                         gap: 6px;
                     ">
-                        <i class="fa-solid fa-file-export"></i> Exportar
+                        <i class="fa-solid fa-file-export"></i> Exportar CSV
                     </button>
                 </div>
             </div>
@@ -580,16 +580,16 @@ function loadResponsableCargoTab() {
             </div>
         </div>
     `;
-    
-    // Cargar datos para esta pestaña
-    loadResponsableCargoStats();
-}
 
-// Funciones similares para las otras pestañas (puedes crear los templates necesarios)
-function loadLiderSolucionTab() {
-    const tabContent = document.getElementById('tabContent');
-    
-    tabContent.innerHTML = `
+        // Cargar datos para esta pestaña
+        loadResponsableCargoStats();
+    }
+
+    // Funciones similares para las otras pestañas (puedes crear los templates necesarios)
+    function loadLiderSolucionTab() {
+        const tabContent = document.getElementById('tabContent');
+
+        tabContent.innerHTML = `
         <div style="margin-bottom: 24px;">
             <h3 style="margin: 0 0 16px 0; color: #374151; font-size: 18px;">
                 <i class="fa-solid fa-user-check" style="margin-right: 10px;"></i> Gestión por Líder de la Solución
@@ -626,7 +626,7 @@ function loadLiderSolucionTab() {
                         align-items: center;
                         gap: 6px;
                     ">
-                        <i class="fa-solid fa-file-export"></i> Exportar
+                        <i class="fa-solid fa-file-export"></i> Exportar CSV
                     </button>
                 </div>
             </div>
@@ -660,48 +660,48 @@ function loadLiderSolucionTab() {
             </div>
         </div>
     `;
-    
-    loadLiderSolucionStats();
-}
 
-// Función para detectar la pestaña activa y cargar los datos correspondientes
-function loadCurrentTabStats() {
-    const activeTab = document.querySelector('.stats-tab.active');
-    if (!activeTab) return;
-    
-    const tabName = activeTab.dataset.tab;
-    
-    switch(tabName) {
-        case 'riesgo-problema':
-            loadRiesgoProblemaStats();
-            break;
-        case 'riesgo-anual':
-            loadRiesgoAnualStats();
-            break;
-        case 'responsable-cargo':
-            loadResponsableCargoStats();
-            break;
-        case 'lider-solucion':
-            loadLiderSolucionStats();
-            break;
-        case 'zona-riesgo':
-            loadZonaRiesgoStats();
-            break;
-        case 'tipo-reporte':
-            loadTipoReporteStats();
-            break;
-        case 'mensual':
-            loadMensualStats();
-            break;
+        loadLiderSolucionStats();
     }
-}
 
-// Función para cargar estadísticas de riesgo/problema
-function loadRiesgoProblemaStats() {
-    const tableBody = document.getElementById('statsTableBody');
-    
-    if (tableBody) {
-        tableBody.innerHTML = `
+    // Función para detectar la pestaña activa y cargar los datos correspondientes
+    function loadCurrentTabStats() {
+        const activeTab = document.querySelector('.stats-tab.active');
+        if (!activeTab) return;
+
+        const tabName = activeTab.dataset.tab;
+
+        switch (tabName) {
+            case 'riesgo-problema':
+                loadRiesgoProblemaStats();
+                break;
+            case 'riesgo-anual':
+                loadRiesgoAnualStats();
+                break;
+            case 'responsable-cargo':
+                loadResponsableCargoStats();
+                break;
+            case 'lider-solucion':
+                loadLiderSolucionStats();
+                break;
+            case 'zona-riesgo':
+                loadZonaRiesgoStats();
+                break;
+            case 'tipo-reporte':
+                loadTipoReporteStats();
+                break;
+            case 'mensual':
+                loadMensualStats();
+                break;
+        }
+    }
+
+    // Función para cargar estadísticas de riesgo/problema
+    function loadRiesgoProblemaStats() {
+        const tableBody = document.getElementById('statsTableBody');
+
+        if (tableBody) {
+            tableBody.innerHTML = `
             <tr>
                 <td colspan="6" style="padding: 40px; text-align: center; color: #9ca3af;">
                     <div style="margin-bottom: 12px;">
@@ -711,29 +711,29 @@ function loadRiesgoProblemaStats() {
                 </td>
             </tr>
         `;
-    }
-    
-    google.script.run
-        .withSuccessHandler(function(result) {
-            if (result.success) {
-                renderTarjetasStats(result.data, result.summary);
-            } else {
-                showErrorInStats(result.message);
-            }
-        })
-        .withFailureHandler(function(error) {
-            console.error('Error cargando estadísticas:', error);
-            showErrorInStats('Error al cargar las estadísticas: ' + error.message);
-        })
-        .getTarjetasStats(); // Esta es tu función existente
-}
+        }
 
-// Función para cargar estadísticas de responsable por cargo
-function loadResponsableCargoStats() {
-    const tableBody = document.getElementById('statsTableBody');
-    
-    if (tableBody) {
-        tableBody.innerHTML = `
+        google.script.run
+            .withSuccessHandler(function (result) {
+                if (result.success) {
+                    renderTarjetasStats(result.data, result.summary);
+                } else {
+                    showErrorInStats(result.message);
+                }
+            })
+            .withFailureHandler(function (error) {
+                console.error('Error cargando estadísticas:', error);
+                showErrorInStats('Error al cargar las estadísticas: ' + error.message);
+            })
+            .getTarjetasStats(); // Esta es tu función existente
+    }
+
+    // Función para cargar estadísticas de responsable por cargo
+    function loadResponsableCargoStats() {
+        const tableBody = document.getElementById('statsTableBody');
+
+        if (tableBody) {
+            tableBody.innerHTML = `
             <tr>
                 <td colspan="5" style="padding: 40px; text-align: center; color: #9ca3af;">
                     <div style="margin-bottom: 12px;">
@@ -743,29 +743,29 @@ function loadResponsableCargoStats() {
                 </td>
             </tr>
         `;
-    }
-    
-    google.script.run
-        .withSuccessHandler(function(result) {
-            if (result.success) {
-                renderResponsableCargoStats(result.data);
-            } else {
-                showErrorInStats(result.message);
-            }
-        })
-        .withFailureHandler(function(error) {
-            console.error('Error cargando estadísticas:', error);
-            showErrorInStats('Error al cargar las estadísticas: ' + error.message);
-        })
-        .getResponsableCargoStats();
-}
+        }
 
-// Función para cargar estadísticas de líder de solución
-function loadLiderSolucionStats() {
-    const tableBody = document.getElementById('statsTableBody');
-    
-    if (tableBody) {
-        tableBody.innerHTML = `
+        google.script.run
+            .withSuccessHandler(function (result) {
+                if (result.success) {
+                    renderResponsableCargoStats(result.data);
+                } else {
+                    showErrorInStats(result.message);
+                }
+            })
+            .withFailureHandler(function (error) {
+                console.error('Error cargando estadísticas:', error);
+                showErrorInStats('Error al cargar las estadísticas: ' + error.message);
+            })
+            .getResponsableCargoStats();
+    }
+
+    // Función para cargar estadísticas de líder de solución
+    function loadLiderSolucionStats() {
+        const tableBody = document.getElementById('statsTableBody');
+
+        if (tableBody) {
+            tableBody.innerHTML = `
             <tr>
                 <td colspan="5" style="padding: 40px; text-align: center; color: #9ca3af;">
                     <div style="margin-bottom: 12px;">
@@ -775,30 +775,30 @@ function loadLiderSolucionStats() {
                 </td>
             </tr>
         `;
-    }
-    
-    google.script.run
-        .withSuccessHandler(function(result) {
-            if (result.success) {
-                renderLiderSolucionStats(result.data);
-            } else {
-                showErrorInStats(result.message);
-            }
-        })
-        .withFailureHandler(function(error) {
-            console.error('Error cargando estadísticas:', error);
-            showErrorInStats('Error al cargar las estadísticas: ' + error.message);
-        })
-        .getLiderSolucionStats();
-}
+        }
 
-function renderResponsableCargoStats(data) {
-    const tableBody = document.getElementById('statsTableBody');
-    
-    if (!tableBody) return;
-    
-    if (!data || data.length === 0) {
-        tableBody.innerHTML = `
+        google.script.run
+            .withSuccessHandler(function (result) {
+                if (result.success) {
+                    renderLiderSolucionStats(result.data);
+                } else {
+                    showErrorInStats(result.message);
+                }
+            })
+            .withFailureHandler(function (error) {
+                console.error('Error cargando estadísticas:', error);
+                showErrorInStats('Error al cargar las estadísticas: ' + error.message);
+            })
+            .getLiderSolucionStats();
+    }
+
+    function renderResponsableCargoStats(data) {
+        const tableBody = document.getElementById('statsTableBody');
+
+        if (!tableBody) return;
+
+        if (!data || data.length === 0) {
+            tableBody.innerHTML = `
             <tr>
                 <td colspan="5" style="padding: 40px; text-align: center; color: #9ca3af;">
                     <div style="margin-bottom: 12px;">
@@ -808,33 +808,33 @@ function renderResponsableCargoStats(data) {
                 </td>
             </tr>
         `;
-        return;
-    }
-    
-    let html = '';
-    data.forEach((row, index) => {
-        const isGlobalTotal = row.isGlobalTotal;
-        
-        let rowStyle = '';
-        let cellStyle = '';
-        
-        if (isGlobalTotal) {
-            rowStyle = 'background: #1f2937; color: white; font-weight: 700;';
-            cellStyle = 'font-weight: 700;';
-        } else if (index % 2 === 0) {
-            rowStyle = 'background: #f9fafb;';
+            return;
         }
-        
-        // Determinar color para porcentaje
-        let porcentajeColor = '#374151';
-        if (row.porcentaje) {
-            const porcentajeNum = parseFloat(row.porcentaje);
-            if (porcentajeNum >= 80) porcentajeColor = '#10b981';
-            else if (porcentajeNum >= 50) porcentajeColor = '#f59e0b';
-            else porcentajeColor = '#ef4444';
-        }
-        
-        html += `
+
+        let html = '';
+        data.forEach((row, index) => {
+            const isGlobalTotal = row.isGlobalTotal;
+
+            let rowStyle = '';
+            let cellStyle = '';
+
+            if (isGlobalTotal) {
+                rowStyle = 'background: #1f2937; color: white; font-weight: 700;';
+                cellStyle = 'font-weight: 700;';
+            } else if (index % 2 === 0) {
+                rowStyle = 'background: #f9fafb;';
+            }
+
+            // Determinar color para porcentaje
+            let porcentajeColor = '#374151';
+            if (row.porcentaje) {
+                const porcentajeNum = parseFloat(row.porcentaje);
+                if (porcentajeNum >= 80) porcentajeColor = '#10b981';
+                else if (porcentajeNum >= 50) porcentajeColor = '#f59e0b';
+                else porcentajeColor = '#ef4444';
+            }
+
+            html += `
             <tr style="${rowStyle}">
                 <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; ${cellStyle}">
                     ${row.responsable || ''}
@@ -853,18 +853,18 @@ function renderResponsableCargoStats(data) {
                 </td>
             </tr>
         `;
-    });
-    
-    tableBody.innerHTML = html;
-}
+        });
 
-function renderLiderSolucionStats(data) {
-    const tableBody = document.getElementById('statsTableBody');
-    
-    if (!tableBody) return;
-    
-    if (!data || data.length === 0) {
-        tableBody.innerHTML = `
+        tableBody.innerHTML = html;
+    }
+
+    function renderLiderSolucionStats(data) {
+        const tableBody = document.getElementById('statsTableBody');
+
+        if (!tableBody) return;
+
+        if (!data || data.length === 0) {
+            tableBody.innerHTML = `
             <tr>
                 <td colspan="5" style="padding: 40px; text-align: center; color: #9ca3af;">
                     <div style="margin-bottom: 12px;">
@@ -874,33 +874,33 @@ function renderLiderSolucionStats(data) {
                 </td>
             </tr>
         `;
-        return;
-    }
-    
-    let html = '';
-    data.forEach((row, index) => {
-        const isGlobalTotal = row.isGlobalTotal;
-        
-        let rowStyle = '';
-        let cellStyle = '';
-        
-        if (isGlobalTotal) {
-            rowStyle = 'background: #1f2937; color: white; font-weight: 700;';
-            cellStyle = 'font-weight: 700;';
-        } else if (index % 2 === 0) {
-            rowStyle = 'background: #f9fafb;';
+            return;
         }
-        
-        // Determinar color para porcentaje
-        let porcentajeColor = '#374151';
-        if (row.porcentaje) {
-            const porcentajeNum = parseFloat(row.porcentaje);
-            if (porcentajeNum >= 80) porcentajeColor = '#10b981';
-            else if (porcentajeNum >= 50) porcentajeColor = '#f59e0b';
-            else porcentajeColor = '#ef4444';
-        }
-        
-        html += `
+
+        let html = '';
+        data.forEach((row, index) => {
+            const isGlobalTotal = row.isGlobalTotal;
+
+            let rowStyle = '';
+            let cellStyle = '';
+
+            if (isGlobalTotal) {
+                rowStyle = 'background: #1f2937; color: white; font-weight: 700;';
+                cellStyle = 'font-weight: 700;';
+            } else if (index % 2 === 0) {
+                rowStyle = 'background: #f9fafb;';
+            }
+
+            // Determinar color para porcentaje
+            let porcentajeColor = '#374151';
+            if (row.porcentaje) {
+                const porcentajeNum = parseFloat(row.porcentaje);
+                if (porcentajeNum >= 80) porcentajeColor = '#10b981';
+                else if (porcentajeNum >= 50) porcentajeColor = '#f59e0b';
+                else porcentajeColor = '#ef4444';
+            }
+
+            html += `
             <tr style="${rowStyle}">
                 <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; ${cellStyle}">
                     ${row.lider || ''}
@@ -919,115 +919,115 @@ function renderLiderSolucionStats(data) {
                 </td>
             </tr>
         `;
-    });
-    
-    tableBody.innerHTML = html;
-}
+        });
 
-function exportCurrentTabStats() {
-    const activeTab = document.querySelector('.stats-tab.active');
-    if (!activeTab) return;
-    
-    const tabName = activeTab.dataset.tab;
-    let functionName = '';
-    
-    switch(tabName) {
-        case 'riesgo-problema':
-            functionName = 'exportTarjetasStatsToCSV';
-            break;
-        case 'riesgo-anual':
-            functionName = 'exportRiesgoAnualStatsToCSV'; 
-            break;
-        case 'responsable-cargo':
-            functionName = 'exportResponsableCargoStatsToCSV';
-            break;
-        case 'lider-solucion':
-            functionName = 'exportLiderSolucionStatsToCSV';
-            break;
-        // Agrega los casos para las otras pestañas
-        default:
-            showAlert('info', 'Exportación', 'Función de exportación no implementada para esta pestaña');
-            return;
+        tableBody.innerHTML = html;
     }
-    
-    google.script.run
-        .withSuccessHandler(function(result) {
-            if (result.success) {
-                // Crear archivo CSV
-                const csvContent = result.csv;
-                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement("a");
-                
-                if (link.download !== undefined) {
-                    const url = URL.createObjectURL(blob);
-                    const date = new Date().toISOString().split('T')[0];
-                    const fileName = `estadisticas_${tabName}_${date}.csv`;
-                    
-                    link.setAttribute("href", url);
-                    link.setAttribute("download", fileName);
-                    link.style.visibility = 'hidden';
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
+
+    function exportCurrentTabStats() {
+        const activeTab = document.querySelector('.stats-tab.active');
+        if (!activeTab) return;
+
+        const tabName = activeTab.dataset.tab;
+        let functionName = '';
+
+        switch (tabName) {
+            case 'riesgo-problema':
+                functionName = 'exportTarjetasStatsToCSV';
+                break;
+            case 'riesgo-anual':
+                functionName = 'exportRiesgoAnualStatsToCSV';
+                break;
+            case 'responsable-cargo':
+                functionName = 'exportResponsableCargoStatsToCSV';
+                break;
+            case 'lider-solucion':
+                functionName = 'exportLiderSolucionStatsToCSV';
+                break;
+            // Agrega los casos para las otras pestañas
+            default:
+                showAlert('info', 'Exportación', 'Función de exportación no implementada para esta pestaña');
+                return;
+        }
+
+        google.script.run
+            .withSuccessHandler(function (result) {
+                if (result.success) {
+                    // Crear archivo CSV
+                    const csvContent = result.csv;
+                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement("a");
+
+                    if (link.download !== undefined) {
+                        const url = URL.createObjectURL(blob);
+                        const date = new Date().toISOString().split('T')[0];
+                        const fileName = `estadisticas_${tabName}_${date}.csv`;
+
+                        link.setAttribute("href", url);
+                        link.setAttribute("download", fileName);
+                        link.style.visibility = 'hidden';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    }
+
+                    showAlert('success', 'Exportado', 'Estadísticas exportadas correctamente');
+                } else {
+                    showAlert('error', 'Error', 'No se pudo exportar las estadísticas');
                 }
-                
-                showAlert('success', 'Exportado', 'Estadísticas exportadas correctamente');
-            } else {
-                showAlert('error', 'Error', 'No se pudo exportar las estadísticas');
-            }
-        })
-        .withFailureHandler(function(error) {
-            showAlert('error', 'Error', 'Error al exportar: ' + error.message);
-        })[functionName]();
-}
-
-function createRippleEffect(element) {
-    const ripple = document.createElement('span');
-    ripple.classList.add('stats-tab-ripple');
-    
-    const rect = element.getBoundingClientRect();
-    const size = Math.max(rect.width, rect.height);
-    const x = event ? event.clientX - rect.left - size / 2 : size / 2;
-    const y = event ? event.clientY - rect.top - size / 2 : size / 2;
-    
-    ripple.style.width = ripple.style.height = `${size}px`;
-    ripple.style.left = `${x}px`;
-    ripple.style.top = `${y}px`;
-    
-    element.appendChild(ripple);
-    
-    setTimeout(() => {
-        ripple.remove();
-    }, 600);
-}
-
-// Inicializar el indicador cuando se carga el modal
-function initTabIndicator() {
-    const activeTab = document.querySelector('.stats-tab.active');
-    if (activeTab) {
-        const indicator = document.getElementById('tabIndicator');
-        if (!indicator) return;
-        
-        const tabRect = activeTab.getBoundingClientRect();
-        const containerRect = document.getElementById('statsTabs').getBoundingClientRect();
-        
-        indicator.style.width = `${tabRect.width}px`;
-        indicator.style.left = `${tabRect.left - containerRect.left}px`;
-        indicator.style.height = '3px';
-        indicator.style.background = 'linear-gradient(90deg, #0f307f 0%, #3b82f6 100%)';
-        indicator.style.position = 'absolute';
-        indicator.style.bottom = '-3px';
-        indicator.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-        indicator.style.zIndex = '4';
-        indicator.style.borderRadius = '3px 3px 0 0';
+            })
+            .withFailureHandler(function (error) {
+                showAlert('error', 'Error', 'Error al exportar: ' + error.message);
+            })[functionName]();
     }
-}
 
-// Función para cargar pestaña de Zona de Riesgo
-function loadZonaRiesgoTab() {
-    const tabContent = document.getElementById('tabContent');
-    
-    tabContent.innerHTML = `
+    function createRippleEffect(element) {
+        const ripple = document.createElement('span');
+        ripple.classList.add('stats-tab-ripple');
+
+        const rect = element.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height);
+        const x = event ? event.clientX - rect.left - size / 2 : size / 2;
+        const y = event ? event.clientY - rect.top - size / 2 : size / 2;
+
+        ripple.style.width = ripple.style.height = `${size}px`;
+        ripple.style.left = `${x}px`;
+        ripple.style.top = `${y}px`;
+
+        element.appendChild(ripple);
+
+        setTimeout(() => {
+            ripple.remove();
+        }, 600);
+    }
+
+    // Inicializar el indicador cuando se carga el modal
+    function initTabIndicator() {
+        const activeTab = document.querySelector('.stats-tab.active');
+        if (activeTab) {
+            const indicator = document.getElementById('tabIndicator');
+            if (!indicator) return;
+
+            const tabRect = activeTab.getBoundingClientRect();
+            const containerRect = document.getElementById('statsTabs').getBoundingClientRect();
+
+            indicator.style.width = `${tabRect.width}px`;
+            indicator.style.left = `${tabRect.left - containerRect.left}px`;
+            indicator.style.height = '3px';
+            indicator.style.background = 'linear-gradient(90deg, #0f307f 0%, #3b82f6 100%)';
+            indicator.style.position = 'absolute';
+            indicator.style.bottom = '-3px';
+            indicator.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+            indicator.style.zIndex = '4';
+            indicator.style.borderRadius = '3px 3px 0 0';
+        }
+    }
+
+    // Función para cargar pestaña de Zona de Riesgo
+    function loadZonaRiesgoTab() {
+        const tabContent = document.getElementById('tabContent');
+
+        tabContent.innerHTML = `
         <div style="margin-bottom: 24px;">
             <h3 style="margin: 0 0 16px 0; color: #374151; font-size: 18px;">
                 <i class="fa-solid fa-map-marker-alt" style="margin-right: 10px;"></i> Gestión por Zona de Riesgo
@@ -1064,7 +1064,7 @@ function loadZonaRiesgoTab() {
                         align-items: center;
                         gap: 6px;
                     ">
-                        <i class="fa-solid fa-file-export"></i> Exportar
+                        <i class="fa-solid fa-file-export"></i> Exportar CSV
                     </button>
                 </div>
             </div>
@@ -1107,15 +1107,15 @@ function loadZonaRiesgoTab() {
             </div>
         </div>
     `;
-    
-    loadZonaRiesgoStats();
-}
 
-// Función para cargar pestaña de Tipo de Reporte
-function loadTipoReporteTab() {
-    const tabContent = document.getElementById('tabContent');
-    
-    tabContent.innerHTML = `
+        loadZonaRiesgoStats();
+    }
+
+    // Función para cargar pestaña de Tipo de Reporte
+    function loadTipoReporteTab() {
+        const tabContent = document.getElementById('tabContent');
+
+        tabContent.innerHTML = `
         <div style="margin-bottom: 24px;">
             <h3 style="margin: 0 0 16px 0; color: #374151; font-size: 18px;">
                 <i class="fa-solid fa-file-alt" style="margin-right: 10px;"></i> Gestión por Tipo de Reporte
@@ -1152,7 +1152,7 @@ function loadTipoReporteTab() {
                         align-items: center;
                         gap: 6px;
                     ">
-                        <i class="fa-solid fa-file-export"></i> Exportar
+                        <i class="fa-solid fa-file-export"></i> Exportar CSV
                     </button>
                 </div>
             </div>
@@ -1195,15 +1195,15 @@ function loadTipoReporteTab() {
             </div>
         </div>
     `;
-    
-    loadTipoReporteStats();
-}
 
-// Función para cargar pestaña Mensual
-function loadMensualTab() {
-    const tabContent = document.getElementById('tabContent');
-    
-    tabContent.innerHTML = `
+        loadTipoReporteStats();
+    }
+
+    // Función para cargar pestaña Mensual
+    function loadMensualTab() {
+        const tabContent = document.getElementById('tabContent');
+
+        tabContent.innerHTML = `
         <div style="margin-bottom: 24px;">
             <h3 style="margin: 0 0 16px 0; color: #374151; font-size: 18px;">
                 <i class="fa-solid fa-calendar-alt" style="margin-right: 10px;"></i> Gestión Mensual
@@ -1240,7 +1240,7 @@ function loadMensualTab() {
                         align-items: center;
                         gap: 6px;
                     ">
-                        <i class="fa-solid fa-file-export"></i> Exportar
+                        <i class="fa-solid fa-file-export"></i> Exportar CSV
                     </button>
                 </div>
             </div>
@@ -1284,16 +1284,16 @@ function loadMensualTab() {
             </div>
         </div>
     `;
-    
-    loadMensualStats();
-}
 
-// Función para cargar estadísticas de zona de riesgo
-function loadZonaRiesgoStats() {
-    const tableBody = document.getElementById('statsTableBody');
-    
-    if (tableBody) {
-        tableBody.innerHTML = `
+        loadMensualStats();
+    }
+
+    // Función para cargar estadísticas de zona de riesgo
+    function loadZonaRiesgoStats() {
+        const tableBody = document.getElementById('statsTableBody');
+
+        if (tableBody) {
+            tableBody.innerHTML = `
             <tr>
                 <td colspan="5" style="padding: 40px; text-align: center; color: #9ca3af;">
                     <div style="margin-bottom: 12px;">
@@ -1303,29 +1303,29 @@ function loadZonaRiesgoStats() {
                 </td>
             </tr>
         `;
-    }
-    
-    google.script.run
-        .withSuccessHandler(function(result) {
-            if (result.success) {
-                renderZonaRiesgoStats(result.data);
-            } else {
-                showErrorInStats(result.message);
-            }
-        })
-        .withFailureHandler(function(error) {
-            console.error('Error cargando estadísticas:', error);
-            showErrorInStats('Error al cargar las estadísticas: ' + error.message);
-        })
-        .getZonaRiesgoStats();
-}
+        }
 
-// Función para cargar estadísticas de tipo de reporte
-function loadTipoReporteStats() {
-    const tableBody = document.getElementById('statsTableBody');
-    
-    if (tableBody) {
-        tableBody.innerHTML = `
+        google.script.run
+            .withSuccessHandler(function (result) {
+                if (result.success) {
+                    renderZonaRiesgoStats(result.data);
+                } else {
+                    showErrorInStats(result.message);
+                }
+            })
+            .withFailureHandler(function (error) {
+                console.error('Error cargando estadísticas:', error);
+                showErrorInStats('Error al cargar las estadísticas: ' + error.message);
+            })
+            .getZonaRiesgoStats();
+    }
+
+    // Función para cargar estadísticas de tipo de reporte
+    function loadTipoReporteStats() {
+        const tableBody = document.getElementById('statsTableBody');
+
+        if (tableBody) {
+            tableBody.innerHTML = `
             <tr>
                 <td colspan="5" style="padding: 40px; text-align: center; color: #9ca3af;">
                     <div style="margin-bottom: 12px;">
@@ -1335,29 +1335,29 @@ function loadTipoReporteStats() {
                 </td>
             </tr>
         `;
-    }
-    
-    google.script.run
-        .withSuccessHandler(function(result) {
-            if (result.success) {
-                renderTipoReporteStats(result.data);
-            } else {
-                showErrorInStats(result.message);
-            }
-        })
-        .withFailureHandler(function(error) {
-            console.error('Error cargando estadísticas:', error);
-            showErrorInStats('Error al cargar las estadísticas: ' + error.message);
-        })
-        .getTipoReporteStats();
-}
+        }
 
-// Función para cargar estadísticas mensuales
-function loadMensualStats() {
-    const tableBody = document.getElementById('statsTableBody');
-    
-    if (tableBody) {
-        tableBody.innerHTML = `
+        google.script.run
+            .withSuccessHandler(function (result) {
+                if (result.success) {
+                    renderTipoReporteStats(result.data);
+                } else {
+                    showErrorInStats(result.message);
+                }
+            })
+            .withFailureHandler(function (error) {
+                console.error('Error cargando estadísticas:', error);
+                showErrorInStats('Error al cargar las estadísticas: ' + error.message);
+            })
+            .getTipoReporteStats();
+    }
+
+    // Función para cargar estadísticas mensuales
+    function loadMensualStats() {
+        const tableBody = document.getElementById('statsTableBody');
+
+        if (tableBody) {
+            tableBody.innerHTML = `
             <tr>
                 <td colspan="6" style="padding: 40px; text-align: center; color: #9ca3af;">
                     <div style="margin-bottom: 12px;">
@@ -1367,31 +1367,31 @@ function loadMensualStats() {
                 </td>
             </tr>
         `;
-    }
-    
-    google.script.run
-        .withSuccessHandler(function(result) {
-            if (result.success) {
-                renderMensualStats(result.data);
-            } else {
-                showErrorInStats(result.message);
-            }
-        })
-        .withFailureHandler(function(error) {
-            console.error('Error cargando estadísticas:', error);
-            showErrorInStats('Error al cargar las estadísticas: ' + error.message);
-        })
-        .getMensualStats();
-}
+        }
 
-// Función de renderizado para Zona de Riesgo
-function renderZonaRiesgoStats(data) {
-    const tableBody = document.getElementById('statsTableBody');
-    
-    if (!tableBody) return;
-    
-    if (!data || data.length === 0) {
-        tableBody.innerHTML = `
+        google.script.run
+            .withSuccessHandler(function (result) {
+                if (result.success) {
+                    renderMensualStats(result.data);
+                } else {
+                    showErrorInStats(result.message);
+                }
+            })
+            .withFailureHandler(function (error) {
+                console.error('Error cargando estadísticas:', error);
+                showErrorInStats('Error al cargar las estadísticas: ' + error.message);
+            })
+            .getMensualStats();
+    }
+
+    // Función de renderizado para Zona de Riesgo
+    function renderZonaRiesgoStats(data) {
+        const tableBody = document.getElementById('statsTableBody');
+
+        if (!tableBody) return;
+
+        if (!data || data.length === 0) {
+            tableBody.innerHTML = `
             <tr>
                 <td colspan="5" style="padding: 40px; text-align: center; color: #9ca3af;">
                     <div style="margin-bottom: 12px;">
@@ -1401,33 +1401,33 @@ function renderZonaRiesgoStats(data) {
                 </td>
             </tr>
         `;
-        return;
-    }
-    
-    let html = '';
-    data.forEach((row, index) => {
-        const isGlobalTotal = row.isGlobalTotal;
-        
-        let rowStyle = '';
-        let cellStyle = '';
-        
-        if (isGlobalTotal) {
-            rowStyle = 'background: linear-gradient(135deg, #1f2937 0%, #111827 100%); color: white; font-weight: 700;';
-            cellStyle = 'font-weight: 700;';
-        } else if (index % 2 === 0) {
-            rowStyle = 'background: #f9fafb;';
+            return;
         }
-        
-        // Determinar color para porcentaje
-        let porcentajeColor = '#374151';
-        if (row.porcentaje) {
-            const porcentajeNum = parseFloat(row.porcentaje);
-            if (porcentajeNum >= 80) porcentajeColor = '#10b981';
-            else if (porcentajeNum >= 50) porcentajeColor = '#f59e0b';
-            else porcentajeColor = '#ef4444';
-        }
-        
-        html += `
+
+        let html = '';
+        data.forEach((row, index) => {
+            const isGlobalTotal = row.isGlobalTotal;
+
+            let rowStyle = '';
+            let cellStyle = '';
+
+            if (isGlobalTotal) {
+                rowStyle = 'background: linear-gradient(135deg, #1f2937 0%, #111827 100%); color: white; font-weight: 700;';
+                cellStyle = 'font-weight: 700;';
+            } else if (index % 2 === 0) {
+                rowStyle = 'background: #f9fafb;';
+            }
+
+            // Determinar color para porcentaje
+            let porcentajeColor = '#374151';
+            if (row.porcentaje) {
+                const porcentajeNum = parseFloat(row.porcentaje);
+                if (porcentajeNum >= 80) porcentajeColor = '#10b981';
+                else if (porcentajeNum >= 50) porcentajeColor = '#f59e0b';
+                else porcentajeColor = '#ef4444';
+            }
+
+            html += `
             <tr style="${rowStyle}">
                 <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; ${cellStyle}">
                     ${row.zonaRiesgo || ''}
@@ -1446,19 +1446,19 @@ function renderZonaRiesgoStats(data) {
                 </td>
             </tr>
         `;
-    });
-    
-    tableBody.innerHTML = html;
-}
+        });
 
-// Función de renderizado para Tipo de Reporte
-function renderTipoReporteStats(data) {
-    const tableBody = document.getElementById('statsTableBody');
-    
-    if (!tableBody) return;
-    
-    if (!data || data.length === 0) {
-        tableBody.innerHTML = `
+        tableBody.innerHTML = html;
+    }
+
+    // Función de renderizado para Tipo de Reporte
+    function renderTipoReporteStats(data) {
+        const tableBody = document.getElementById('statsTableBody');
+
+        if (!tableBody) return;
+
+        if (!data || data.length === 0) {
+            tableBody.innerHTML = `
             <tr>
                 <td colspan="5" style="padding: 40px; text-align: center; color: #9ca3af;">
                     <div style="margin-bottom: 12px;">
@@ -1468,33 +1468,33 @@ function renderTipoReporteStats(data) {
                 </td>
             </tr>
         `;
-        return;
-    }
-    
-    let html = '';
-    data.forEach((row, index) => {
-        const isGlobalTotal = row.isGlobalTotal;
-        
-        let rowStyle = '';
-        let cellStyle = '';
-        
-        if (isGlobalTotal) {
-            rowStyle = 'background: linear-gradient(135deg, #1f2937 0%, #111827 100%); color: white; font-weight: 700;';
-            cellStyle = 'font-weight: 700;';
-        } else if (index % 2 === 0) {
-            rowStyle = 'background: #f9fafb;';
+            return;
         }
-        
-        // Determinar color para porcentaje
-        let porcentajeColor = '#374151';
-        if (row.porcentaje) {
-            const porcentajeNum = parseFloat(row.porcentaje);
-            if (porcentajeNum >= 80) porcentajeColor = '#10b981';
-            else if (porcentajeNum >= 50) porcentajeColor = '#f59e0b';
-            else porcentajeColor = '#ef4444';
-        }
-        
-        html += `
+
+        let html = '';
+        data.forEach((row, index) => {
+            const isGlobalTotal = row.isGlobalTotal;
+
+            let rowStyle = '';
+            let cellStyle = '';
+
+            if (isGlobalTotal) {
+                rowStyle = 'background: linear-gradient(135deg, #1f2937 0%, #111827 100%); color: white; font-weight: 700;';
+                cellStyle = 'font-weight: 700;';
+            } else if (index % 2 === 0) {
+                rowStyle = 'background: #f9fafb;';
+            }
+
+            // Determinar color para porcentaje
+            let porcentajeColor = '#374151';
+            if (row.porcentaje) {
+                const porcentajeNum = parseFloat(row.porcentaje);
+                if (porcentajeNum >= 80) porcentajeColor = '#10b981';
+                else if (porcentajeNum >= 50) porcentajeColor = '#f59e0b';
+                else porcentajeColor = '#ef4444';
+            }
+
+            html += `
             <tr style="${rowStyle}">
                 <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; ${cellStyle}">
                     ${row.tipoReporte || ''}
@@ -1513,19 +1513,19 @@ function renderTipoReporteStats(data) {
                 </td>
             </tr>
         `;
-    });
-    
-    tableBody.innerHTML = html;
-}
+        });
 
-// Función de renderizado para Mensual
-function renderMensualStats(data) {
-    const tableBody = document.getElementById('statsTableBody');
-    
-    if (!tableBody) return;
-    
-    if (!data || data.length === 0) {
-        tableBody.innerHTML = `
+        tableBody.innerHTML = html;
+    }
+
+    // Función de renderizado para Mensual
+    function renderMensualStats(data) {
+        const tableBody = document.getElementById('statsTableBody');
+
+        if (!tableBody) return;
+
+        if (!data || data.length === 0) {
+            tableBody.innerHTML = `
             <tr>
                 <td colspan="6" style="padding: 40px; text-align: center; color: #9ca3af;">
                     <div style="margin-bottom: 12px;">
@@ -1535,45 +1535,45 @@ function renderMensualStats(data) {
                 </td>
             </tr>
         `;
-        return;
-    }
-    
-    let html = '';
-    let currentYear = '';
-    
-    data.forEach((row, index) => {
-        const isYearTotal = row.isYearTotal;
-        const isGlobalTotal = row.isGlobalTotal;
-        
-        let rowStyle = '';
-        let cellStyle = '';
-        
-        if (isGlobalTotal) {
-            rowStyle = 'background: linear-gradient(135deg, #1f2937 0%, #111827 100%); color: white; font-weight: 700;';
-            cellStyle = 'font-weight: 700;';
-        } else if (isYearTotal) {
-            rowStyle = 'background: #374151; color: white; font-weight: 600;';
-            cellStyle = 'font-weight: 600;';
-        } else if (index % 2 === 0) {
-            rowStyle = 'background: #f9fafb;';
+            return;
         }
-        
-        // Determinar color para porcentaje
-        let porcentajeColor = '#374151';
-        if (row.porcentaje) {
-            const porcentajeNum = parseFloat(row.porcentaje);
-            if (porcentajeNum >= 80) porcentajeColor = '#10b981';
-            else if (porcentajeNum >= 50) porcentajeColor = '#f59e0b';
-            else porcentajeColor = '#ef4444';
-        }
-        
-        // Mostrar año solo cuando cambia
-        const yearCell = (row.ano && row.ano !== currentYear) ? row.ano : '';
-        if (row.ano && row.ano !== currentYear) {
-            currentYear = row.ano;
-        }
-        
-        html += `
+
+        let html = '';
+        let currentYear = '';
+
+        data.forEach((row, index) => {
+            const isYearTotal = row.isYearTotal;
+            const isGlobalTotal = row.isGlobalTotal;
+
+            let rowStyle = '';
+            let cellStyle = '';
+
+            if (isGlobalTotal) {
+                rowStyle = 'background: linear-gradient(135deg, #1f2937 0%, #111827 100%); color: white; font-weight: 700;';
+                cellStyle = 'font-weight: 700;';
+            } else if (isYearTotal) {
+                rowStyle = 'background: #374151; color: white; font-weight: 600;';
+                cellStyle = 'font-weight: 600;';
+            } else if (index % 2 === 0) {
+                rowStyle = 'background: #f9fafb;';
+            }
+
+            // Determinar color para porcentaje
+            let porcentajeColor = '#374151';
+            if (row.porcentaje) {
+                const porcentajeNum = parseFloat(row.porcentaje);
+                if (porcentajeNum >= 80) porcentajeColor = '#10b981';
+                else if (porcentajeNum >= 50) porcentajeColor = '#f59e0b';
+                else porcentajeColor = '#ef4444';
+            }
+
+            // Mostrar año solo cuando cambia
+            const yearCell = (row.ano && row.ano !== currentYear) ? row.ano : '';
+            if (row.ano && row.ano !== currentYear) {
+                currentYear = row.ano;
+            }
+
+            html += `
             <tr style="${rowStyle}">
                 <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; ${cellStyle}">
                     ${yearCell}
@@ -1595,105 +1595,105 @@ function renderMensualStats(data) {
                 </td>
             </tr>
         `;
-    });
-    
-    tableBody.innerHTML = html;
-}
+        });
 
-// Función de exportación para Zona de Riesgo
-function exportZonaRiesgoStats() {
-    google.script.run
-        .withSuccessHandler(function(result) {
-            if (result.success) {
-                const csvContent = result.csv;
-                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement("a");
-                
-                if (link.download !== undefined) {
-                    const url = URL.createObjectURL(blob);
-                    link.setAttribute("href", url);
-                    link.setAttribute("download", `estadisticas_zona_riesgo_${new Date().toISOString().split('T')[0]}.csv`);
-                    link.style.visibility = 'hidden';
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
+        tableBody.innerHTML = html;
+    }
+
+    // Función de exportación para Zona de Riesgo
+    function exportZonaRiesgoStats() {
+        google.script.run
+            .withSuccessHandler(function (result) {
+                if (result.success) {
+                    const csvContent = result.csv;
+                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement("a");
+
+                    if (link.download !== undefined) {
+                        const url = URL.createObjectURL(blob);
+                        link.setAttribute("href", url);
+                        link.setAttribute("download", `estadisticas_zona_riesgo_${new Date().toISOString().split('T')[0]}.csv`);
+                        link.style.visibility = 'hidden';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    }
+
+                    showAlert('success', 'Exportado', 'Estadísticas exportadas correctamente');
+                } else {
+                    showAlert('error', 'Error', 'No se pudo exportar las estadísticas');
                 }
-                
-                showAlert('success', 'Exportado', 'Estadísticas exportadas correctamente');
-            } else {
-                showAlert('error', 'Error', 'No se pudo exportar las estadísticas');
-            }
-        })
-        .withFailureHandler(function(error) {
-            showAlert('error', 'Error', 'Error al exportar: ' + error.message);
-        })
-        .exportZonaRiesgoStatsToCSV();
-}
+            })
+            .withFailureHandler(function (error) {
+                showAlert('error', 'Error', 'Error al exportar: ' + error.message);
+            })
+            .exportZonaRiesgoStatsToCSV();
+    }
 
-// Función de exportación para Tipo de Reporte
-function exportTipoReporteStats() {
-    google.script.run
-        .withSuccessHandler(function(result) {
-            if (result.success) {
-                const csvContent = result.csv;
-                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement("a");
-                
-                if (link.download !== undefined) {
-                    const url = URL.createObjectURL(blob);
-                    link.setAttribute("href", url);
-                    link.setAttribute("download", `estadisticas_tipo_reporte_${new Date().toISOString().split('T')[0]}.csv`);
-                    link.style.visibility = 'hidden';
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
+    // Función de exportación para Tipo de Reporte
+    function exportTipoReporteStats() {
+        google.script.run
+            .withSuccessHandler(function (result) {
+                if (result.success) {
+                    const csvContent = result.csv;
+                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement("a");
+
+                    if (link.download !== undefined) {
+                        const url = URL.createObjectURL(blob);
+                        link.setAttribute("href", url);
+                        link.setAttribute("download", `estadisticas_tipo_reporte_${new Date().toISOString().split('T')[0]}.csv`);
+                        link.style.visibility = 'hidden';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    }
+
+                    showAlert('success', 'Exportado', 'Estadísticas exportadas correctamente');
+                } else {
+                    showAlert('error', 'Error', 'No se pudo exportar las estadísticas');
                 }
-                
-                showAlert('success', 'Exportado', 'Estadísticas exportadas correctamente');
-            } else {
-                showAlert('error', 'Error', 'No se pudo exportar las estadísticas');
-            }
-        })
-        .withFailureHandler(function(error) {
-            showAlert('error', 'Error', 'Error al exportar: ' + error.message);
-        })
-        .exportTipoReporteStatsToCSV();
-}
+            })
+            .withFailureHandler(function (error) {
+                showAlert('error', 'Error', 'Error al exportar: ' + error.message);
+            })
+            .exportTipoReporteStatsToCSV();
+    }
 
-// Función de exportación para Mensual
-function exportMensualStats() {
-    google.script.run
-        .withSuccessHandler(function(result) {
-            if (result.success) {
-                const csvContent = result.csv;
-                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement("a");
-                
-                if (link.download !== undefined) {
-                    const url = URL.createObjectURL(blob);
-                    link.setAttribute("href", url);
-                    link.setAttribute("download", `estadisticas_mensual_${new Date().toISOString().split('T')[0]}.csv`);
-                    link.style.visibility = 'hidden';
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
+    // Función de exportación para Mensual
+    function exportMensualStats() {
+        google.script.run
+            .withSuccessHandler(function (result) {
+                if (result.success) {
+                    const csvContent = result.csv;
+                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement("a");
+
+                    if (link.download !== undefined) {
+                        const url = URL.createObjectURL(blob);
+                        link.setAttribute("href", url);
+                        link.setAttribute("download", `estadisticas_mensual_${new Date().toISOString().split('T')[0]}.csv`);
+                        link.style.visibility = 'hidden';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    }
+
+                    showAlert('success', 'Exportado', 'Estadísticas exportadas correctamente');
+                } else {
+                    showAlert('error', 'Error', 'No se pudo exportar las estadísticas');
                 }
-                
-                showAlert('success', 'Exportado', 'Estadísticas exportadas correctamente');
-            } else {
-                showAlert('error', 'Error', 'No se pudo exportar las estadísticas');
-            }
-        })
-        .withFailureHandler(function(error) {
-            showAlert('error', 'Error', 'Error al exportar: ' + error.message);
-        })
-        .exportMensualStatsToCSV();
-}
+            })
+            .withFailureHandler(function (error) {
+                showAlert('error', 'Error', 'Error al exportar: ' + error.message);
+            })
+            .exportMensualStatsToCSV();
+    }
 
-function loadRiesgoAnualTab() {
-    const tabContent = document.getElementById('tabContent');
-    
-    tabContent.innerHTML = `
+    function loadRiesgoAnualTab() {
+        const tabContent = document.getElementById('tabContent');
+
+        tabContent.innerHTML = `
         <div style="margin-bottom: 24px;">
             <h3 style="style="margin: 0 0 16px 0; color: #374151; font-size: 18px;"">
                 <i class="fa-solid fa-calendar-check" style="color: #0f307f; margin-right: 10px;"></i>
@@ -1742,17 +1742,17 @@ function loadRiesgoAnualTab() {
             </div>
         </div>
     `;
-    
-    loadRiesgoAnualStats();
-}
 
-// Función para cargar las estadísticas anuales
-function loadRiesgoAnualStats() {
-    const annualStatsContent = document.getElementById('annualStatsContent');
-    
-    if (!annualStatsContent) return;
-    
-    annualStatsContent.innerHTML = `
+        loadRiesgoAnualStats();
+    }
+
+    // Función para cargar las estadísticas anuales
+    function loadRiesgoAnualStats() {
+        const annualStatsContent = document.getElementById('annualStatsContent');
+
+        if (!annualStatsContent) return;
+
+        annualStatsContent.innerHTML = `
         <div style="text-align: center; padding: 40px; color: #6b7280;">
             <div style="margin-bottom: 16px;">
                 <i class="fa-solid fa-spinner fa-spin" style="font-size: 24px;"></i>
@@ -1760,30 +1760,30 @@ function loadRiesgoAnualStats() {
             <div>Cargando estadísticas por año...</div>
         </div>
     `;
-    
-    google.script.run
-        .withSuccessHandler(function(result) {
-            if (result.success) {
-                renderRiesgoAnualStats(result.data, result.summary);
-            } else {
-                showErrorInAnnualStats(result.message);
-            }
-        })
-        .withFailureHandler(function(error) {
-            console.error('Error cargando estadísticas anuales:', error);
-            showErrorInAnnualStats('Error al cargar las estadísticas: ' + error.message);
-        })
-        .getRiesgoAnualStats('todos');
-}
 
-// Función modificada para renderizar las estadísticas anuales
-function renderRiesgoAnualStats(data, summary) {
-    const annualStatsContent = document.getElementById('annualStatsContent');
-    
-    if (!annualStatsContent) return;
-    
-    if (!data || data.length === 0) {
-        annualStatsContent.innerHTML = `
+        google.script.run
+            .withSuccessHandler(function (result) {
+                if (result.success) {
+                    renderRiesgoAnualStats(result.data, result.summary);
+                } else {
+                    showErrorInAnnualStats(result.message);
+                }
+            })
+            .withFailureHandler(function (error) {
+                console.error('Error cargando estadísticas anuales:', error);
+                showErrorInAnnualStats('Error al cargar las estadísticas: ' + error.message);
+            })
+            .getRiesgoAnualStats('todos');
+    }
+
+    // Función modificada para renderizar las estadísticas anuales
+    function renderRiesgoAnualStats(data, summary) {
+        const annualStatsContent = document.getElementById('annualStatsContent');
+
+        if (!annualStatsContent) return;
+
+        if (!data || data.length === 0) {
+            annualStatsContent.innerHTML = `
             <div style="text-align: center; padding: 40px; color: #6b7280;">
                 <div style="margin-bottom: 16px;">
                     <i class="fa-solid fa-database" style="font-size: 24px;"></i>
@@ -1791,97 +1791,86 @@ function renderRiesgoAnualStats(data, summary) {
                 <div>No hay datos disponibles</div>
             </div>
         `;
-        return;
-    }
-    
-    // Estructuras de datos para ambas tablas
-    const dataByTipoRiesgo = {}; // Para tabla 1: % Gestión
-    const dataByTipoYProblema = {}; // Para tabla 2: Detalle por problema y año
-    let globalTotalAbierta = 0;
-    let globalTotalCerrada = 0;
-    let globalTotalGeneral = 0;
-    
-    // Procesar los datos
-    data.forEach(row => {
-        const ano = row.ano || 'Sin año';
-        const tipoRiesgo = row.tipoRiesgo;
-        const problema = row.problema || 'Sin problema';
-        
-        // Para la tabla de % Gestión (primera tabla)
-        if (!row.isGlobalTotal && !row.isYearTotal && row.isRiesgoTotal) {
-            if (!dataByTipoRiesgo[tipoRiesgo]) {
-                dataByTipoRiesgo[tipoRiesgo] = {
-                    anos: {},
-                    totalAbierta: 0,
-                    totalCerrada: 0,
-                    totalGeneral: 0
-                };
-            }
-            
-            if (!dataByTipoRiesgo[tipoRiesgo].anos[ano]) {
-                dataByTipoRiesgo[tipoRiesgo].anos[ano] = {
-                    abierta: 0,
-                    cerrada: 0,
-                    total: 0
-                };
-            }
-            
-            dataByTipoRiesgo[tipoRiesgo].anos[ano].abierta = row.abierta;
-            dataByTipoRiesgo[tipoRiesgo].anos[ano].cerrada = row.cerrada;
-            dataByTipoRiesgo[tipoRiesgo].anos[ano].total = row.total;
-            
-            dataByTipoRiesgo[tipoRiesgo].totalAbierta += row.abierta;
-            dataByTipoRiesgo[tipoRiesgo].totalCerrada += row.cerrada;
-            dataByTipoRiesgo[tipoRiesgo].totalGeneral += row.total;
+            return;
         }
-        
-        // Para la tabla detallada por problema (segunda tabla)
-        if (!row.isGlobalTotal && !row.isYearTotal && !row.isRiesgoTotal) {
-            if (!dataByTipoYProblema[tipoRiesgo]) {
-                dataByTipoYProblema[tipoRiesgo] = {
-                    problemas: {},
-                    totalAbierta: 0,
-                    totalCerrada: 0,
-                    totalGeneral: 0
-                };
+
+        // Estructuras de datos para ambas tablas
+        const dataByTipoRiesgo = {}; // Para tabla 1: % Gestión
+        const dataByTipoYProblema = {}; // Para tabla 2: Detalle por problema y año
+        let globalTotalAbierta = 0;
+        let globalTotalCerrada = 0;
+        let globalTotalGeneral = 0;
+
+        // Procesar los datos
+        data.forEach(row => {
+            const ano = row.ano || 'Sin año';
+            const tipoRiesgo = row.tipoRiesgo;
+            const problema = row.problema || 'Sin problema';
+
+            // Para la tabla de % Gestión (primera tabla)
+            if (!row.isGlobalTotal && !row.isYearTotal && row.isRiesgoTotal) {
+                if (!dataByTipoRiesgo[tipoRiesgo]) {
+                    dataByTipoRiesgo[tipoRiesgo] = {
+                        anos: {},
+                        totalAbierta: 0,
+                        totalCerrada: 0,
+                        totalGeneral: 0
+                    };
+                }
+
+                if (!dataByTipoRiesgo[tipoRiesgo].anos[ano]) {
+                    dataByTipoRiesgo[tipoRiesgo].anos[ano] = {
+                        abierta: 0,
+                        cerrada: 0,
+                        total: 0
+                    };
+                }
+
+                dataByTipoRiesgo[tipoRiesgo].anos[ano].abierta = row.abierta;
+                dataByTipoRiesgo[tipoRiesgo].anos[ano].cerrada = row.cerrada;
+                dataByTipoRiesgo[tipoRiesgo].anos[ano].total = row.total;
+
+                dataByTipoRiesgo[tipoRiesgo].totalAbierta += row.abierta;
+                dataByTipoRiesgo[tipoRiesgo].totalCerrada += row.cerrada;
+                dataByTipoRiesgo[tipoRiesgo].totalGeneral += row.total;
             }
-            
-            if (!dataByTipoYProblema[tipoRiesgo].problemas[problema]) {
-                dataByTipoYProblema[tipoRiesgo].problemas[problema] = {
-                    anos: {},
-                    totalAbierta: 0,
-                    totalCerrada: 0,
-                    totalGeneral: 0
-                };
+
+            // <CHANGE> Para la tabla detallada - estructura: Tipo → Problemas con años (no anidados)
+            if (!row.isGlobalTotal && !row.isYearTotal && !row.isRiesgoTotal) {
+                if (!dataByTipoYProblema[tipoRiesgo]) {
+                    dataByTipoYProblema[tipoRiesgo] = {
+                        detalles: [],
+                        totalAbierta: 0,
+                        totalCerrada: 0,
+                        totalGeneral: 0
+                    };
+                }
+
+                dataByTipoYProblema[tipoRiesgo].detalles.push({
+                    problema: problema,
+                    ano: ano,
+                    abierta: row.abierta,
+                    cerrada: row.cerrada,
+                    total: row.total
+                });
+
+                dataByTipoYProblema[tipoRiesgo].totalAbierta += row.abierta;
+                dataByTipoYProblema[tipoRiesgo].totalCerrada += row.cerrada;
+                dataByTipoYProblema[tipoRiesgo].totalGeneral += row.total;
             }
-            
-            dataByTipoYProblema[tipoRiesgo].problemas[problema].anos[ano] = {
-                abierta: row.abierta,
-                cerrada: row.cerrada,
-                total: row.total
-            };
-            
-            dataByTipoYProblema[tipoRiesgo].problemas[problema].totalAbierta += row.abierta;
-            dataByTipoYProblema[tipoRiesgo].problemas[problema].totalCerrada += row.cerrada;
-            dataByTipoYProblema[tipoRiesgo].problemas[problema].totalGeneral += row.total;
-            
-            dataByTipoYProblema[tipoRiesgo].totalAbierta += row.abierta;
-            dataByTipoYProblema[tipoRiesgo].totalCerrada += row.cerrada;
-            dataByTipoYProblema[tipoRiesgo].totalGeneral += row.total;
-        }
-        
-        // Calcular totales globales
-        if (row.isGlobalTotal) {
-            globalTotalAbierta = row.abierta;
-            globalTotalCerrada = row.cerrada;
-            globalTotalGeneral = row.total;
-        }
-    });
-    
-    let html = '';
-    
-    // PRIMERA TABLA: % Gestión por Riesgo
-    html += `
+
+            // Calcular totales globales
+            if (row.isGlobalTotal) {
+                globalTotalAbierta = row.abierta;
+                globalTotalCerrada = row.cerrada;
+                globalTotalGeneral = row.total;
+            }
+        });
+
+        let html = '';
+
+        // PRIMERA TABLA: % Gestión por Riesgo
+        html += `
         <div style="margin-bottom: 32px;">
             <div style="
                 background: #1d4ed8;
@@ -1911,34 +1900,34 @@ function renderRiesgoAnualStats(data, summary) {
                     </thead>
                     <tbody>
     `;
-    
-    // Ordenar tipos de riesgo
-    const tiposRiesgoOrdenados = Object.keys(dataByTipoRiesgo).sort();
-    let totalSumaAbierta = 0;
-    let totalSumaCerrada = 0;
-    let totalSumaTotal = 0;
-    
-    tiposRiesgoOrdenados.forEach((tipoRiesgo, index) => {
-        const tipoData = dataByTipoRiesgo[tipoRiesgo];
-        const rowId = `riesgo-tipo-${index}`;
-        const rowStyle = index % 2 === 0 ? 'background: #ffffff;' : 'background: #f9fafb;';
-        
-        // Calcular porcentaje total del tipo de riesgo
-        const porcentajeTipo = tipoData.totalGeneral > 0 ? 
-            ((tipoData.totalCerrada / tipoData.totalGeneral) * 100).toFixed(2) : '0.00';
-        
-        let porcentajeBgColor = '#ef4444';
-        const porcentajeNum = parseFloat(porcentajeTipo);
-        if (porcentajeNum >= 80) {
-            porcentajeBgColor = '#10b981';
-        } else if (porcentajeNum >= 50) {
-            porcentajeBgColor = '#f59e0b';
-        } else if (porcentajeNum > 0) {
-            porcentajeBgColor = '#ef4444';
-        }
-        
-        // Fila principal del tipo de riesgo (expandible)
-        html += `
+
+        // Ordenar tipos de riesgo
+        const tiposRiesgoOrdenados = Object.keys(dataByTipoRiesgo).sort();
+        let totalSumaAbierta = 0;
+        let totalSumaCerrada = 0;
+        let totalSumaTotal = 0;
+
+        tiposRiesgoOrdenados.forEach((tipoRiesgo, index) => {
+            const tipoData = dataByTipoRiesgo[tipoRiesgo];
+            const rowId = `riesgo-tipo-${index}`;
+            const rowStyle = index % 2 === 0 ? 'background: #ffffff;' : 'background: #f9fafb;';
+
+            // Calcular porcentaje total del tipo de riesgo
+            const porcentajeTipo = tipoData.totalGeneral > 0 ?
+                ((tipoData.totalCerrada / tipoData.totalGeneral) * 100).toFixed(2) : '0.00';
+
+            let porcentajeBgColor = '#ef4444';
+            const porcentajeNum = parseFloat(porcentajeTipo);
+            if (porcentajeNum >= 80) {
+                porcentajeBgColor = '#10b981';
+            } else if (porcentajeNum >= 50) {
+                porcentajeBgColor = '#f59e0b';
+            } else if (porcentajeNum > 0) {
+                porcentajeBgColor = '#ef4444';
+            }
+
+            // Fila principal del tipo de riesgo (expandible)
+            html += `
             <tr style="${rowStyle} cursor: pointer;" onclick="toggleRiesgoDetalle('${rowId}')">
                 <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">
                     <i id="icon-${rowId}" class="fa-solid fa-caret-right" style="color: #6b7280; transition: transform 0.2s;"></i>
@@ -1948,33 +1937,33 @@ function renderRiesgoAnualStats(data, summary) {
                 <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; font-weight: 600;">${tipoData.totalAbierta}</td>
                 <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; font-weight: 600;">${tipoData.totalCerrada}</td>
                 <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; font-weight: 600;">${tipoData.totalGeneral}</td>
-                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; font-weight: 400; color: ${porcentajeBgColor};">${porcentajeTipo}%</td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; font-weight: 700; color: ${porcentajeBgColor};">${porcentajeTipo}%</td>
             </tr>
         `;
-        
-        // Filas expandibles con detalles por año
-        const years = Object.keys(tipoData.anos).sort((a, b) => {
-            if (a === 'Sin año') return 1;
-            if (b === 'Sin año') return -1;
-            return parseInt(a) - parseInt(b);
-        });
-        
-        years.forEach(ano => {
-            const anoData = tipoData.anos[ano];
-            const porcentajeAno = anoData.total > 0 ? 
-                ((anoData.cerrada / anoData.total) * 100).toFixed(2) : '0.00';
-            
-            let porcentajeAnoBgColor = '#ef4444';
-            const porcentajeAnoNum = parseFloat(porcentajeAno);
-            if (porcentajeAnoNum >= 80) {
-                porcentajeAnoBgColor = '#10b981';
-            } else if (porcentajeAnoNum >= 50) {
-                porcentajeAnoBgColor = '#f59e0b';
-            } else if (porcentajeAnoNum > 0) {
-                porcentajeAnoBgColor = '#ef4444';
-            }
-            
-            html += `
+
+            // Filas expandibles con detalles por año
+            const years = Object.keys(tipoData.anos).sort((a, b) => {
+                if (a === 'Sin año') return 1;
+                if (b === 'Sin año') return -1;
+                return parseInt(a) - parseInt(b);
+            });
+
+            years.forEach(ano => {
+                const anoData = tipoData.anos[ano];
+                const porcentajeAno = anoData.total > 0 ?
+                    ((anoData.cerrada / anoData.total) * 100).toFixed(2) : '0.00';
+
+                let porcentajeAnoBgColor = '#ef4444';
+                const porcentajeAnoNum = parseFloat(porcentajeAno);
+                if (porcentajeAnoNum >= 80) {
+                    porcentajeAnoBgColor = '#10b981';
+                } else if (porcentajeAnoNum >= 50) {
+                    porcentajeAnoBgColor = '#f59e0b';
+                } else if (porcentajeAnoNum > 0) {
+                    porcentajeAnoBgColor = '#ef4444';
+                }
+
+                html += `
                 <tr id="${rowId}-${ano}" style="display: none; ${rowStyle}">
                     <td style="padding: 12px 12px 12px 40px; border-bottom: 1px solid #e5e7eb;"></td>
                     <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; color: #6b7280;"></td>
@@ -1982,13 +1971,13 @@ function renderRiesgoAnualStats(data, summary) {
                     <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">${anoData.abierta}</td>
                     <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">${anoData.cerrada}</td>
                     <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">${anoData.total}</td>
-                    <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; font-weight: 400; color: ${porcentajeAnoBgColor};">${porcentajeAno}%</td>
+                    <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; font-weight: 600; color: ${porcentajeAnoBgColor};">${porcentajeAno}%</td>
                 </tr>
             `;
-        });
-        
-        // Fila de total por tipo de riesgo
-        html += `
+            });
+
+            // Fila de total por tipo de riesgo
+            html += `
             <tr style="background: #e5e7eb;">
                 <td style="padding: 12px; border-bottom: 1px solid #d1d5db;"></td>
                 <td style="padding: 12px; border-bottom: 1px solid #d1d5db; font-weight: 700; color: #1f2937;">Total ${tipoRiesgo}</td>
@@ -1996,30 +1985,30 @@ function renderRiesgoAnualStats(data, summary) {
                 <td style="padding: 12px; border-bottom: 1px solid #d1d5db; text-align: center; font-weight: 700;">${tipoData.totalAbierta}</td>
                 <td style="padding: 12px; border-bottom: 1px solid #d1d5db; text-align: center; font-weight: 700;">${tipoData.totalCerrada}</td>
                 <td style="padding: 12px; border-bottom: 1px solid #d1d5db; text-align: center; font-weight: 700;">${tipoData.totalGeneral}</td>
-                <td style="padding: 12px; border-bottom: 1px solid #d1d5db; text-align: center; font-weight: 400; color: ${porcentajeBgColor};">${porcentajeTipo}%</td>
+                <td style="padding: 12px; border-bottom: 1px solid #d1d5db; text-align: center; font-weight: 700; color: ${porcentajeBgColor};">${porcentajeTipo}%</td>
             </tr>
         `;
-        
-        totalSumaAbierta += tipoData.totalAbierta;
-        totalSumaCerrada += tipoData.totalCerrada;
-        totalSumaTotal += tipoData.totalGeneral;
-    });
-    
-    // Fila de suma total
-    const porcentajeGlobal = totalSumaTotal > 0 ? 
-        ((totalSumaCerrada / totalSumaTotal) * 100).toFixed(2) : '0.00';
-    
-    let porcentajeGlobalBgColor = '#ef4444';
-    const porcentajeGlobalNum = parseFloat(porcentajeGlobal);
-    if (porcentajeGlobalNum >= 80) {
-        porcentajeGlobalBgColor = '#10b981';
-    } else if (porcentajeGlobalNum >= 50) {
-        porcentajeGlobalBgColor = '#f59e0b';
-    } else if (porcentajeGlobalNum > 0) {
-        porcentajeGlobalBgColor = '#ef4444';
-    }
-    
-    html += `
+
+            totalSumaAbierta += tipoData.totalAbierta;
+            totalSumaCerrada += tipoData.totalCerrada;
+            totalSumaTotal += tipoData.totalGeneral;
+        });
+
+        // Fila de suma total
+        const porcentajeGlobal = totalSumaTotal > 0 ?
+            ((totalSumaCerrada / totalSumaTotal) * 100).toFixed(2) : '0.00';
+
+        let porcentajeGlobalBgColor = '#ef4444';
+        const porcentajeGlobalNum = parseFloat(porcentajeGlobal);
+        if (porcentajeGlobalNum >= 80) {
+            porcentajeGlobalBgColor = '#10b981';
+        } else if (porcentajeGlobalNum >= 50) {
+            porcentajeGlobalBgColor = '#f59e0b';
+        } else if (porcentajeGlobalNum > 0) {
+            porcentajeGlobalBgColor = '#ef4444';
+        }
+
+        html += `
                         <tr style="background: linear-gradient(135deg, #374151 0%, #1f2937 100%); color: white;">
                             <td style="padding: 12px; font-weight: 700; border-top: 2px solid #4b5563;"></td>
                             <td style="padding: 12px; font-weight: 700; border-top: 2px solid #4b5563;">Suma total</td>
@@ -2034,9 +2023,9 @@ function renderRiesgoAnualStats(data, summary) {
             </div>
         </div>
     `;
-    
-    // SEGUNDA TABLA: COUNTA de Tipo_Riesgo (Detalle por Problema y Año)
-    html += `
+
+        // <CHANGE> SEGUNDA TABLA: COUNTA de Tipo_Riesgo (año fijo, problema expandible)
+        html += `
         <div style="margin-bottom: 32px;">
             <div style="
                 background: #1d4ed8;
@@ -2067,17 +2056,27 @@ function renderRiesgoAnualStats(data, summary) {
                     </thead>
                     <tbody>
     `;
-    
-    // Ordenar tipos de riesgo para la segunda tabla
-    const tiposRiesgoOrdenados2 = Object.keys(dataByTipoYProblema).sort();
-    
-    tiposRiesgoOrdenados2.forEach((tipoRiesgo, tipoIndex) => {
-        const tipoData = dataByTipoYProblema[tipoRiesgo];
-        const rowIdTipo = `detalle-tipo-${tipoIndex}`;
-        const rowStyle = tipoIndex % 2 === 0 ? 'background: #ffffff;' : 'background: #f9fafb;';
-        
-        // Fila principal del tipo de riesgo (expandible)
-        html += `
+
+        // <CHANGE> Ordenar tipos de riesgo para la segunda tabla - estructura plana con año visible
+        const tiposRiesgoOrdenados2 = Object.keys(dataByTipoYProblema).sort();
+
+        tiposRiesgoOrdenados2.forEach((tipoRiesgo, tipoIndex) => {
+            const tipoData = dataByTipoYProblema[tipoRiesgo];
+            const rowIdTipo = `detalle-tipo-${tipoIndex}`;
+            const rowStyle = tipoIndex % 2 === 0 ? 'background: #ffffff;' : 'background: #f9fafb;';
+
+            // Ordenar detalles por problema y año
+            const detallesOrdenados = tipoData.detalles.sort((a, b) => {
+                if (a.problema !== b.problema) {
+                    return a.problema.localeCompare(b.problema);
+                }
+                if (a.ano === 'Sin año') return 1;
+                if (b.ano === 'Sin año') return -1;
+                return parseInt(a.ano) - parseInt(b.ano);
+            });
+
+            // Fila principal del tipo de riesgo (expandible)
+            html += `
             <tr style="${rowStyle} cursor: pointer;" onclick="toggleDetalleTipo('${rowIdTipo}')">
                 <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">
                     <i id="icon-${rowIdTipo}" class="fa-solid fa-caret-right" style="color: #6b7280; transition: transform 0.2s;"></i>
@@ -2091,57 +2090,27 @@ function renderRiesgoAnualStats(data, summary) {
                 <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; font-weight: 600;">${tipoData.totalGeneral}</td>
             </tr>
         `;
-        
-        // Problemas asociados (nivel 2 - también expandibles)
-        const problemas = Object.keys(tipoData.problemas).sort();
-        
-        problemas.forEach((problema, probIndex) => {
-            const problemaData = tipoData.problemas[problema];
-            const rowIdProblema = `${rowIdTipo}-prob-${probIndex}`;
-            
-            // Fila del problema (expandible para mostrar años)
-            html += `
-                <tr id="${rowIdTipo}-${probIndex}" style="display: none; ${rowStyle} cursor: pointer;" onclick="toggleDetalleProblema('${rowIdProblema}')">
+
+            // <CHANGE> Filas de problemas asociados con años visibles (no anidadas)
+            detallesOrdenados.forEach((detalle, detalleIndex) => {
+                html += `
+                <tr id="${rowIdTipo}-${detalleIndex}" style="display: none; ${rowStyle}">
                     <td style="padding: 12px 12px 12px 40px; border-bottom: 1px solid #e5e7eb;"></td>
                     <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;"></td>
                     <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">
-                        <i id="icon-${rowIdProblema}" class="fa-solid fa-caret-right" style="color: #6b7280; transition: transform 0.2s;"></i>
+                        <i class="fa-solid fa-circle" style="color: #6b7280; font-size: 6px;"></i>
                     </td>
-                    <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; font-weight: 500; color: #374151;">${problema}</td>
-                    <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center;"></td>
-                    <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; font-weight: 500;">${problemaData.totalAbierta}</td>
-                    <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; font-weight: 500;">${problemaData.totalCerrada}</td>
-                    <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; font-weight: 500;">${problemaData.totalGeneral}</td>
+                    <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; font-weight: 500; color: #374151;">${detalle.problema}</td>
+                    <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; color: #4b5563;">${detalle.ano}</td>
+                    <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">${detalle.abierta}</td>
+                    <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">${detalle.cerrada}</td>
+                    <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">${detalle.total}</td>
                 </tr>
             `;
-            
-            // Años del problema (nivel 3 - filas individuales)
-            const years = Object.keys(problemaData.anos).sort((a, b) => {
-                if (a === 'Sin año') return 1;
-                if (b === 'Sin año') return -1;
-                return parseInt(a) - parseInt(b);
             });
-            
-            years.forEach(ano => {
-                const anoData = problemaData.anos[ano];
-                
-                html += `
-                    <tr id="${rowIdProblema}-${ano}" style="display: none; ${rowStyle}">
-                        <td style="padding: 12px 12px 12px 60px; border-bottom: 1px solid #e5e7eb;"></td>
-                        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;"></td>
-                        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;"></td>
-                        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; color: #6b7280;"></td>
-                        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; color: #4b5563;">${ano}</td>
-                        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">${anoData.abierta}</td>
-                        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">${anoData.cerrada}</td>
-                        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">${anoData.total}</td>
-                    </tr>
-                `;
-            });
-        });
-        
-        // Fila de total por tipo de riesgo
-        html += `
+
+            // Fila de total por tipo de riesgo
+            html += `
             <tr style="background: #e5e7eb;">
                 <td style="padding: 12px; border-bottom: 1px solid #d1d5db;"></td>
                 <td style="padding: 12px; border-bottom: 1px solid #d1d5db; font-weight: 700; color: #1f2937;">Total ${tipoRiesgo}</td>
@@ -2153,10 +2122,10 @@ function renderRiesgoAnualStats(data, summary) {
                 <td style="padding: 12px; border-bottom: 1px solid #d1d5db; text-align: center; font-weight: 700;">${tipoData.totalGeneral}</td>
             </tr>
         `;
-    });
-    
-    // Fila de suma total global
-    html += `
+        });
+
+        // Fila de suma total global
+        html += `
                         <tr style="background: linear-gradient(135deg, #374151 0%, #1f2937 100%); color: white;">
                             <td style="padding: 12px; font-weight: 700; border-top: 2px solid #4b5563;"></td>
                             <td style="padding: 12px; font-weight: 700; border-top: 2px solid #4b5563;">Suma total</td>
@@ -2172,91 +2141,58 @@ function renderRiesgoAnualStats(data, summary) {
             </div>
         </div>
     `;
-    
-    annualStatsContent.innerHTML = html;
-}
 
-// <CHANGE> Función para expandir/colapsar años en la tabla de % Gestión
-function toggleRiesgoDetalle(rowId) {
-    const icon = document.getElementById('icon-' + rowId);
-    const allRows = document.querySelectorAll('[id^="' + rowId + '-"]');
-    const directChildren = Array.from(allRows).filter(row => {
-        const id = row.id;
-        const afterPrefix = id.substring(rowId.length + 1);
-        return !afterPrefix.includes('-');
-    });
-    
-    if (icon.classList.contains('fa-caret-right')) {
-        icon.classList.remove('fa-caret-right');
-        icon.classList.add('fa-caret-down');
-        icon.style.transform = 'rotate(90deg)';
-        directChildren.forEach(row => row.style.display = '');
-    } else {
-        icon.classList.add('fa-caret-right');
-        icon.classList.remove('fa-caret-down');
-        icon.style.transform = 'rotate(0deg)';
-        directChildren.forEach(row => row.style.display = 'none');
+        annualStatsContent.innerHTML = html;
     }
-}
 
-// <CHANGE> Función para expandir/colapsar el tipo de riesgo en la tabla detallada (nivel 1)
-function toggleDetalleTipo(rowId) {
-    const icon = document.getElementById('icon-' + rowId);
-    const allRows = document.querySelectorAll('[id^="' + rowId + '-"]');
-    const directChildren = Array.from(allRows).filter(row => {
-        const id = row.id;
-        const afterPrefix = id.substring(rowId.length + 1);
-        return afterPrefix.match(/^\d+$/) !== null; // Solo hijos directos (prob-X)
-    });
-    
-    if (icon.classList.contains('fa-caret-right')) {
-        icon.classList.remove('fa-caret-right');
-        icon.classList.add('fa-caret-down');
-        icon.style.transform = 'rotate(90deg)';
-        directChildren.forEach(row => row.style.display = '');
-    } else {
-        icon.classList.add('fa-caret-right');
-        icon.classList.remove('fa-caret-down');
-        icon.style.transform = 'rotate(0deg)';
-        // Colapsar también los problemas abiertos
-        allRows.forEach(row => {
-            row.style.display = 'none';
-            // Resetear iconos de problemas
-            const probIcon = row.querySelector('[id^="icon-"]');
-            if (probIcon && probIcon.id !== 'icon-' + rowId) {
-                probIcon.classList.add('fa-caret-right');
-                probIcon.classList.remove('fa-caret-down');
-                probIcon.style.transform = 'rotate(0deg)';
-            }
+    // Función para expandir/colapsar años en la tabla de % Gestión
+    function toggleRiesgoDetalle(rowId) {
+        const icon = document.getElementById('icon-' + rowId);
+        const allRows = document.querySelectorAll('[id^="' + rowId + '-"]');
+        const directChildren = Array.from(allRows).filter(row => {
+            const id = row.id;
+            const afterPrefix = id.substring(rowId.length + 1);
+            return !afterPrefix.includes('-');
         });
-    }
-}
 
-// <CHANGE> Función para expandir/colapsar problemas en la tabla detallada (nivel 2)
-function toggleDetalleProblema(rowId) {
-    const icon = document.getElementById('icon-' + rowId);
-    const yearRows = document.querySelectorAll('[id^="' + rowId + '-"]');
-    
-    if (icon.classList.contains('fa-caret-right')) {
-        icon.classList.remove('fa-caret-right');
-        icon.classList.add('fa-caret-down');
-        icon.style.transform = 'rotate(90deg)';
-        yearRows.forEach(row => row.style.display = '');
-    } else {
-        icon.classList.add('fa-caret-right');
-        icon.classList.remove('fa-caret-down');
-        icon.style.transform = 'rotate(0deg)';
-        yearRows.forEach(row => row.style.display = 'none');
+        if (icon.classList.contains('fa-caret-right')) {
+            icon.classList.remove('fa-caret-right');
+            icon.classList.add('fa-caret-down');
+            icon.style.transform = 'rotate(90deg)';
+            directChildren.forEach(row => row.style.display = '');
+        } else {
+            icon.classList.add('fa-caret-right');
+            icon.classList.remove('fa-caret-down');
+            icon.style.transform = 'rotate(0deg)';
+            directChildren.forEach(row => row.style.display = 'none');
+        }
     }
-}
 
-// Función para mostrar errores en el tab anual
-function showErrorInAnnualStats(message) {
-    const annualStatsContent = document.getElementById('annualStatsContent');
-    
-    if (!annualStatsContent) return;
-    
-    annualStatsContent.innerHTML = `
+    // <CHANGE> Función simplificada para expandir/colapsar tipo de riesgo (un solo nivel)
+    function toggleDetalleTipo(rowId) {
+        const icon = document.getElementById('icon-' + rowId);
+        const allRows = document.querySelectorAll('[id^="' + rowId + '-"]');
+
+        if (icon.classList.contains('fa-caret-right')) {
+            icon.classList.remove('fa-caret-right');
+            icon.classList.add('fa-caret-down');
+            icon.style.transform = 'rotate(90deg)';
+            allRows.forEach(row => row.style.display = '');
+        } else {
+            icon.classList.add('fa-caret-right');
+            icon.classList.remove('fa-caret-down');
+            icon.style.transform = 'rotate(0deg)';
+            allRows.forEach(row => row.style.display = 'none');
+        }
+    }
+
+    // Función para mostrar errores en el tab anual
+    function showErrorInAnnualStats(message) {
+        const annualStatsContent = document.getElementById('annualStatsContent');
+
+        if (!annualStatsContent) return;
+
+        annualStatsContent.innerHTML = `
         <div style="text-align: center; padding: 40px; color: #ef4444;">
             <div style="margin-bottom: 16px;">
                 <i class="fa-solid fa-exclamation-triangle" style="font-size: 24px;"></i>
@@ -2278,36 +2214,36 @@ function showErrorInAnnualStats(message) {
             </button>
         </div>
     `;
-}
+    }
 
-// Función para exportar estadísticas anuales
-function exportRiesgoAnualStats() {
-    google.script.run
-        .withSuccessHandler(function(result) {
-            if (result.success) {
-                const csvContent = result.csv;
-                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement("a");
-                
-                if (link.download !== undefined) {
-                    const url = URL.createObjectURL(blob);
-                    link.setAttribute("href", url);
-                    link.setAttribute("download", `estadisticas_riesgo_anual_${new Date().toISOString().split('T')[0]}.csv`);
-                    link.style.visibility = 'hidden';
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
+    // Función para exportar estadísticas anuales
+    function exportRiesgoAnualStats() {
+        google.script.run
+            .withSuccessHandler(function (result) {
+                if (result.success) {
+                    const csvContent = result.csv;
+                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement("a");
+
+                    if (link.download !== undefined) {
+                        const url = URL.createObjectURL(blob);
+                        link.setAttribute("href", url);
+                        link.setAttribute("download", `estadisticas_riesgo_anual_${new Date().toISOString().split('T')[0]}.csv`);
+                        link.style.visibility = 'hidden';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    }
+
+                    showAlert('success', 'Exportado', 'Estadísticas exportadas correctamente');
+                } else {
+                    showAlert('error', 'Error', 'No se pudo exportar las estadísticas');
                 }
-                
-                showAlert('success', 'Exportado', 'Estadísticas exportadas correctamente');
-            } else {
-                showAlert('error', 'Error', 'No se pudo exportar las estadísticas');
-            }
-        })
-        .withFailureHandler(function(error) {
-            showAlert('error', 'Error', 'Error al exportar: ' + error.message);
-        })
-        .exportRiesgoAnualStatsToCSV('todos');
-}
+            })
+            .withFailureHandler(function (error) {
+                showAlert('error', 'Error', 'Error al exportar: ' + error.message);
+            })
+            .exportRiesgoAnualStatsToCSV('todos');
+    }
 
 </script>

@@ -1,0 +1,23 @@
+<script>
+
+    // Filtrar ciclos
+    function applyCiclosFilters() {
+        const procesoFilter = document.getElementById('ciclosProcesoFilter')?.value || 'all';
+        const estadoFilter = document.getElementById('ciclosEstadoFilter')?.value || 'all';
+        const searchValue = (document.getElementById('ciclosSearchInput')?.value || '').toLowerCase();
+
+        const filtered = ciclosData.filter(ciclo => {
+            const matchProceso = procesoFilter === 'all' || ciclo.proceso === procesoFilter;
+            const matchEstado = estadoFilter === 'all' || ciclo.estado === estadoFilter;
+            const matchSearch = !searchValue ||
+                (ciclo.id && ciclo.id.toLowerCase().includes(searchValue)) ||
+                (ciclo.nombre && ciclo.nombre.toLowerCase().includes(searchValue)) ||
+                (ciclo.lider && ciclo.lider.toLowerCase().includes(searchValue));
+
+            return matchProceso && matchEstado && matchSearch;
+        });
+
+        renderCiclosTable(filtered);
+    }
+
+</script>

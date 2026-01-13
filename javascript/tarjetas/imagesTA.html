@@ -1,0 +1,64 @@
+<script>
+
+    let selectedFiles = []; // almacenamiento temporal
+
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const previewContainer = document.getElementById('previewContainer');
+
+    // Evento clic: abre selector de archivos
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    // Arrastrar y soltar
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('dragover');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        handleFiles(e.dataTransfer.files);
+    });
+
+    fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+
+    // Manejo de archivos
+    function handleFiles(files) {
+        [...files].forEach(file => {
+            if (!file.type.startsWith('image/')) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                selectedFiles.push(e.target.result);
+                const div = document.createElement('div');
+                div.classList.add('preview-item');
+                div.innerHTML = `
+        <img src="${e.target.result}" alt="preview">
+        <button type="button" onclick="removeImage('${e.target.result}')">×</button>
+      `;
+                previewContainer.appendChild(div);
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    // Quitar una imagen de la vista previa
+    function removeImage(base64) {
+        selectedFiles = selectedFiles.filter(img => img !== base64);
+        [...previewContainer.children].forEach(child => {
+            if (child.querySelector('img').src === base64) child.remove();
+        });
+    }
+
+    // Limpiar zona de imágenes (se llama después de enviar)
+    function limpiarDropZone() {
+        selectedFiles = [];
+        previewContainer.innerHTML = '';
+        dropZone.innerHTML = '<p>Arrastra tus imágenes aquí o haz clic para seleccionarlas</p>';
+    }
+
+</script>

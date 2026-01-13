@@ -1,0 +1,133 @@
+<script>
+
+    function expandImage(url) {
+        console.log("🔍 Expandir imagen:", url.substring(0, 50) + "...");
+
+        const modal = document.createElement('div');
+        modal.style.position = 'fixed';
+        modal.style.top = '0';
+        modal.style.left = '0';
+        modal.style.width = '100vw';
+        modal.style.height = '100vh';
+        modal.style.background = 'rgba(0,0,0,0.9)';
+        modal.style.display = 'flex';
+        modal.style.alignItems = 'center';
+        modal.style.justifyContent = 'center';
+        modal.style.cursor = 'pointer';
+        modal.style.zIndex = '9999';
+
+        const imgElement = document.createElement('img');
+        imgElement.src = url;
+        imgElement.style.maxWidth = '90%';
+        imgElement.style.maxHeight = '90%';
+        imgElement.style.borderRadius = '8px';
+        imgElement.style.objectFit = 'contain';
+
+        modal.appendChild(imgElement);
+        modal.onclick = () => {
+            console.log("❌ Cerrar modal de imagen");
+            modal.remove();
+        };
+
+        document.body.appendChild(modal);
+
+        // También cerrar con ESC
+        const closeOnEsc = (e) => {
+            if (e.key === 'Escape') {
+                modal.remove();
+                document.removeEventListener('keydown', closeOnEsc);
+            }
+        };
+        document.addEventListener('keydown', closeOnEsc);
+    }
+
+    // Inicializar dropzone para N2
+    function initializeN2Dropzone() {
+        const dropZoneN2 = document.getElementById('dropZoneN2');
+        const fileInputN2 = document.getElementById('fileInputN2');
+        const previewContainerN2 = document.getElementById('previewContainerN2');
+
+        if (!dropZoneN2) {
+            console.log("❌ dropZoneN2 no encontrado");
+            return;
+        }
+
+        // Evento clic: abre selector de archivos
+        dropZoneN2.addEventListener('click', () => fileInputN2.click());
+
+        // Arrastrar y soltar
+        dropZoneN2.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZoneN2.classList.add('dragover');
+        });
+
+        dropZoneN2.addEventListener('dragleave', () => {
+            dropZoneN2.classList.remove('dragover');
+        });
+
+        dropZoneN2.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZoneN2.classList.remove('dragover');
+            handleFilesN2(e.dataTransfer.files);
+        });
+
+        fileInputN2.addEventListener('change', (e) => handleFilesN2(e.target.files));
+    }
+
+    // Manejo de archivos para N2
+    function handleFilesN2(files) {
+        for (let file of files) {
+            if (!file.type.startsWith('image/')) continue;
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                // ✅ Esto debería ser Base64 como data:image/jpeg;base64,...
+                selectedFilesN2.push(e.target.result);
+                console.log("📸 Archivo convertido a Base64:", e.target.result.substring(0, 50) + "...");
+
+                const div = document.createElement('div');
+                div.className = 'preview-item';
+
+                const img = document.createElement('img');
+                img.src = e.target.result; // ✅ Usar Base64 directamente
+                img.alt = 'preview';
+
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.textContent = '×';
+                button.onclick = function () {
+                    removeImageN2(e.target.result);
+                };
+
+                div.appendChild(img);
+                div.appendChild(button);
+                document.getElementById('previewContainerN2').appendChild(div);
+            };
+            reader.readAsDataURL(file); // ✅ Esto convierte a Base64
+        }
+    }
+
+    // Quitar una imagen de la vista previa N2
+    function removeImageN2(base64) {
+        selectedFilesN2 = selectedFilesN2.filter(img => img !== base64);
+        const container = document.getElementById('previewContainerN2');
+        const items = container.getElementsByClassName('preview-item');
+
+        for (let item of items) {
+            if (item.querySelector('img').src === base64) {
+                item.remove();
+                break;
+            }
+        }
+    }
+
+    // Limpiar zona de imágenes N2
+    function limpiarDropZoneN2() {
+        selectedFilesN2 = [];
+        const previewContainer = document.getElementById('previewContainerN2');
+        if (previewContainer) previewContainer.innerHTML = '';
+        const dropZone = document.getElementById('dropZoneN2');
+        if (dropZone) dropZone.innerHTML = '<p>Arrastra tus imágenes aquí o haz clic para seleccionarlas</p>';
+    }
+
+</script>

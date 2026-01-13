@@ -7,7 +7,7 @@
     <title>Sistema de Reportes</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <?!= include('Styles'); ?>
+    <?!= include('frontend/Styles'); ?>
 </head>
 
 <body>
@@ -547,7 +547,6 @@
                             </form>
                         </div>
 
-                        <!-- FORMULARIO CICLO DE MEJORA -->
                         <!-- FORMULARIO CICLO DE MEJORA -->
                         <div id="form-ciclo" class="report-form" style="display: none;">
                             <form id="cicloForm" onsubmit="submitCicloForm(event)">
@@ -1232,6 +1231,9 @@
                             </svg>
                             
                         </button>
+                        <button class="refresh-btn" onclick="openStatsForN2()">
+                            <i class="fa-solid fa-chart-pie"></i>
+                        </button>
                         <select id="ProcessFilter" onchange="applyCombinedFilters()">
                               <option value="allProcess">Todos los procesos</option>
                               <option value="ProcessEmpaque">Empaque</option>
@@ -1843,9 +1845,60 @@
         </main>
     </div>
 
-    <?!= include('JavaScript'); ?>
-    <?!= include('Optimization'); ?>
-    <?!= include('Indicators'); ?>
-</body>
+    <?!= include('javascript/appFunctions'); ?>
+    <?!= include('javascript/leaders'); ?>
+    <?!= include('javascript/navbar'); ?>
+    <?!= include('javascript/register'); ?>
+    <?!= include('javascript/utilities'); ?>
+    <?!= include('javascript/variables'); ?>
 
+    <?!= include('javascript/n2/changeDateN2'); ?>
+    <?!= include('javascript/n2/changeN2status'); ?>
+    <?!= include('javascript/n2/changeResponsibleN2'); ?>
+    <?!= include('javascript/n2/commentsN2'); ?>
+    <?!= include('javascript/n2/createTarjetaN2'); ?>
+    <?!= include('javascript/n2/filtersN2'); ?>
+    <?!= include('javascript/n2/formN2'); ?>
+    <?!= include('javascript/n2/imagesN2'); ?>
+    <?!= include('javascript/n2/loadN2'); ?>
+
+    <?!= include('javascript/tarjetas/changeResponsibleTA'); ?>
+    <?!= include('javascript/tarjetas/closeTA'); ?>
+    <?!= include('javascript/tarjetas/commentsTA'); ?>
+    <?!= include('javascript/tarjetas/createTarjetaTA'); ?>
+    <?!= include('javascript/tarjetas/filtersTA'); ?>
+    <?!= include('javascript/tarjetas/imagesTA'); ?>
+    <?!= include('javascript/tarjetas/loadTA'); ?>
+    <?!= include('javascript/tarjetas/formTA'); ?>
+    <?!= include('javascript/tarjetas/statsTA'); ?>
+    <?!= include('javascript/tarjetas/seguimientoTA'); ?>
+
+    <?!= include('javascript/maquinas/changeACstatus'); ?>
+    <?!= include('javascript/maquinas/changeCriticidadStatus'); ?>
+    <?!= include('javascript/maquinas/commentsAC'); ?>
+    <?!= include('javascript/maquinas/filtersAC'); ?>
+    <?!= include('javascript/maquinas/formAC'); ?>
+    <?!= include('javascript/maquinas/loadAC'); ?>
+
+    <?!= include('javascript/ciclos/5porques'); ?>
+    <?!= include('javascript/ciclos/actionplanCM'); ?>
+    <?!= include('javascript/ciclos/causaCM'); ?>
+    <?!= include('javascript/ciclos/detailsCM'); ?>
+    <?!= include('javascript/ciclos/filtersCM'); ?>
+    <?!= include('javascript/ciclos/focusCM'); ?>
+    <?!= include('javascript/ciclos/formCM'); ?>
+    <?!= include('javascript/ciclos/loadCM'); ?>
+    <?!= include('javascript/ciclos/modalActionCausa'); ?>
+    <?!= include('javascript/ciclos/searchCM'); ?>
+    <?!= include('javascript/ciclos/seguimientoAccionCausa'); ?>
+    <?!= include('javascript/ciclos/seguimientoCausa'); ?>
+    <?!= include('javascript/ciclos/statsCM'); ?>
+    <?!= include('javascript/ciclos/tabsCM'); ?>
+
+    <?!= include('javascript/consolidado/consolidadoFilters'); ?>
+    <?!= include('javascript/consolidado/consolidadoEmpty'); ?>
+    <?!= include('javascript/consolidado/createItemConsolidado'); ?>
+    <?!= include('javascript/consolidado/loadConsolidado'); ?>
+
+</body>
 </html>

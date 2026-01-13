@@ -1,0 +1,210 @@
+<script>
+
+    // ========== GESTIÓN DE CICLOS DE MEJORA ==========
+
+    let ciclosData = [];
+    let cicloActual = null;
+
+    function loadCiclosMejora() {
+        console.log('[Frontend] Iniciando carga de ciclos...');
+
+        const tbody = document.getElementById('tbodyCiclos');
+        if (tbody) {
+            tbody.innerHTML = `
+            <tr>
+                <td colspan="9" class="ciclos-loading-cell">
+                    <div class="ciclos-loading-spinner">
+                        <svg class="spinner-icon" width="20" height="20" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" opacity="0.25"/>
+                            <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round"/>
+                        </svg>
+                        <span>Cargando ciclos de mejora...</span>
+                    </div>
+                </td>
+            </tr>
+        `;
+        }
+
+        // Primero hacer un test
+        console.log('[Frontend] Haciendo test de conexión...');
+
+        google.script.run
+            .withSuccessHandler(function (result) {
+                console.log('[Frontend] TEST exitoso:', result);
+
+                // Ahora cargar los ciclos reales
+                google.script.run
+                    .withSuccessHandler(function (data) {
+                        console.log('[Frontend] Ciclos recibidos:', data);
+
+                        // Manejar null/undefined
+                        if (data === null || data === undefined) {
+                            console.warn('[Frontend] Data es null/undefined, usando vacío');
+                            data = [];
+                        }
+
+                        if (!Array.isArray(data)) {
+                            console.warn('[Frontend] Data no es array, convirtiendo');
+                            data = [data]; // o data = []
+                        }
+
+                        console.log(`[Frontend] ${data.length} ciclos cargados`);
+
+                        // Procesar fechas ISO string a objetos Date
+                        data.forEach(ciclo => {
+                            if (ciclo.fecha && typeof ciclo.fecha === 'string') {
+                                try {
+                                    ciclo.fecha = new Date(ciclo.fecha);
+                                } catch (e) {
+                                    console.warn('Error convirtiendo fecha:', e);
+                                }
+                            }
+                        });
+
+                        ciclosData = data;
+                        renderCiclosTable(ciclosData);
+                        actualizarEstadisticasCiclos(ciclosData);
+                    })
+                    .withFailureHandler(function (error) {
+                        console.error('[Frontend] Error cargando ciclos:', error);
+
+                        // Mostrar mensaje de error pero con array vacío
+                        ciclosData = [];
+                        renderCiclosTable(ciclosData);
+                        actualizarEstadisticasCiclos(ciclosData);
+
+                        if (tbody) {
+                            tbody.innerHTML = `
+                            <tr>
+                                <td colspan="9" class="ciclos-loading-cell">
+                                    <div style="color: #dc2626;">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom: 8px;">
+                                            <circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/>
+                                        </svg>
+                                        <br>Error al cargar los ciclos
+                                        <br><small>${error.message || 'Error de conexión'}</small>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                        }
+                    })
+                    .getCiclosMejora();
+            })
+            .withFailureHandler(function (error) {
+                console.error('[Frontend] TEST fallido:', error);
+                // Mostrar error de conexión
+                if (tbody) {
+                    tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="ciclos-loading-cell">
+                            <div style="color: #dc2626;">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom: 8px;">
+                                    <circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/>
+                                </svg>
+                                <br>Error de conexión con el servidor
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                }
+            })
+            .getCiclosMejora();
+    }
+
+    // Renderizar tabla de ciclos
+    function renderCiclosTable(ciclos) {
+        const tbody = document.getElementById('tbodyCiclos');
+        if (!tbody) return;
+
+        if (!ciclos || ciclos.length === 0) {
+            tbody.innerHTML = `
+            <tr>
+                <td colspan="9" class="ciclos-loading-cell">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.5" style="margin-bottom: 8px;">
+                        <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                    </svg>
+                    <br>No hay ciclos de mejora registrados
+                </td>
+            </tr>
+        `;
+            return;
+        }
+
+        tbody.innerHTML = ciclos.map(ciclo => {
+            const estadoClass = getEstadoClass(ciclo.estado);
+            const focoInfo = getFocoInfo(ciclo.tipoFoco);
+
+            return `
+            <tr onclick="verDetalleCiclo('${ciclo.id}')" style="cursor: pointer;">
+                <td><span class="ciclo-id-badge">${ciclo.id || '-'}</span></td>
+                <td>${formatearFechaCiclo(ciclo.fecha)}</td>
+                <td class="ciclo-nombre-cell">${ciclo.nombre || '-'}</td>
+                <td>${ciclo.proceso || '-'}</td>
+                <td>${ciclo.equipo || '-'}</td>
+                <td>${ciclo.lider || '-'}</td>
+                <td>${focoInfo.html}</td>
+                <td><span class="estado-badge ${estadoClass}">${ciclo.estado || 'Abierto'}</span></td>
+                <td>
+                    <button class="btn-ver-detalle" onclick="event.stopPropagation(); verDetalleCiclo('${ciclo.id}')">
+                        <i class="fa-solid fa-eye"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+        }).join('');
+    }
+
+    // Obtener clase de estado
+    function getEstadoClass(estado) {
+        if (!estado) return 'abierto';
+        const estadoLower = estado.toLowerCase();
+        if (estadoLower === 'en progreso') return 'en-progreso';
+        if (estadoLower === 'implementado') return 'implementado';
+        if (estadoLower === 'cerrado') return 'cerrado';
+        return 'abierto';
+    }
+
+    // Obtener info del foco
+    function getFocoInfo(tipoFoco) {
+        const focos = {
+            'indicador': { label: 'Indicador', class: 'indicador' },
+            'proceso': { label: 'Proceso', class: 'proceso' },
+            'error': { label: 'Error', class: 'error' }
+        };
+
+        const foco = focos[tipoFoco] || null;
+        if (!foco) return { html: '<span style="color: #9ca3af;">-</span>' };
+
+        return {
+            html: `<span class="foco-badge ${foco.class}">${foco.label}</span>`
+        };
+    }
+
+    // Formatear fecha
+    function formatearFechaCiclo(fecha) {
+        if (!fecha) return '-';
+        try {
+            // Acepta tanto Date como string ISO
+            const d = fecha instanceof Date ? fecha : new Date(fecha);
+
+            if (isNaN(d.getTime())) {
+                // Si no es fecha válida, intentar extraer del string
+                if (typeof fecha === 'string') {
+                    return fecha.split('T')[0]; // Solo la parte de fecha
+                }
+                return fecha;
+            }
+
+            return d.toLocaleDateString('es-CO', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
+            });
+        } catch (e) {
+            console.warn('Error formateando fecha:', fecha, e);
+            return typeof fecha === 'string' ? fecha.substring(0, 10) : '-';
+        }
+    }
+
+</script>

@@ -1,0 +1,179 @@
+<script>
+
+    // ========== TABLERO DE MÁQUINAS ==========
+
+    let maquinasReports = [];
+
+    /**
+     * Carga los reportes de máquinas desde el backend
+     */
+    function loadMaquinasReports() {
+        showMaquinasLoadingSpinner();
+
+        google.script.run
+            .withSuccessHandler(function (reports) {
+                console.log('[v0] Reportes de máquinas recibidos:', reports);
+                displayMaquinasReports(reports);
+                loadMaquinasCommentsCount(); // <CHANGE> Cargar contadores de comentarios
+            })
+            .withFailureHandler(function (err) {
+                console.error('[v0] Error al cargar reportes de máquinas:', err);
+                handleMaquinasError(err);
+            })
+            .getMaquinasReports();
+    }
+
+    /**
+     * Muestra spinner de carga
+     */
+    function showMaquinasLoadingSpinner() {
+        const containers = document.querySelectorAll('#anormalidades .cards-container');
+        containers.forEach(container => {
+            container.innerHTML = `
+      <div class="loading-spinner-tarjetas">
+        ${Array(6).fill(0).map(() => `
+          <div class="skeleton-card-simple"></div>
+        `).join('')}
+      </div>
+    `;
+        });
+    }
+
+    /**
+     * Muestra los reportes de máquinas en el tablero
+     */
+    function displayMaquinasReports(reports) {
+        console.log('[v0] Mostrando reportes de máquinas:', reports.length);
+
+        if (!Array.isArray(reports)) {
+            reports = [];
+        }
+
+        // Guardar reportes globalmente para filtros
+        maquinasReports = reports;
+
+        // Limpiar contenedores
+        const containers = document.querySelectorAll('#anormalidades .cards-container');
+        containers.forEach(container => {
+            container.innerHTML = '';
+        });
+
+        // Agrupar por estado
+        const reportsByStatus = {
+            'Abierto': [],
+            'En Progreso': [],
+            'Cerrado': []
+        };
+
+        reports.forEach(report => {
+            const status = report.estado || 'Abierto';
+            if (reportsByStatus[status]) {
+                reportsByStatus[status].push(report);
+            }
+        });
+
+        // Renderizar en cada columna
+        Object.entries(reportsByStatus).forEach(([status, statusReports]) => {
+            const containerId = 'maquinas-' + status.toLowerCase().replace(' ', '-') + '-cards';
+            const countId = 'maquinas-' + status.toLowerCase().replace(' ', '-') + '-count';
+
+            const container = document.getElementById(containerId);
+            const countElement = document.getElementById(countId);
+
+            if (container && countElement) {
+                countElement.textContent = statusReports.length;
+
+                if (statusReports.length === 0) {
+                    container.innerHTML = `
+                    <div class="empty-column">
+                        <span>No hay reportes</span>
+                    </div>
+                `;
+                } else {
+                    statusReports.forEach(report => {
+                        container.appendChild(createMaquinaCard(report));
+                    });
+                }
+            }
+        });
+    }
+
+        /**
+     * Actualiza los reportes visibles en el DOM sin sobreescribir la variable global (IGUAL QUE N2)
+     */
+    function updateVisibleMaquinasReportsWithDOM(filteredReports) {
+        console.log('[v0] Actualizando reportes visibles de máquinas:', filteredReports.length);
+
+        if (!Array.isArray(filteredReports)) {
+            filteredReports = [];
+        }
+
+        // Limpiar contenedores
+        const containers = document.querySelectorAll('#anormalidades .cards-container');
+        containers.forEach(container => {
+            container.innerHTML = '';
+        });
+
+        // Agrupar por estado
+        const reportsByStatus = {
+            'Abierto': [],
+            'En Progreso': [],
+            'Cerrado': []
+        };
+
+        filteredReports.forEach(report => {
+            const status = report.estado || 'Abierto';
+            if (reportsByStatus[status]) {
+                reportsByStatus[status].push(report);
+            }
+        });
+
+        // Renderizar en cada columna
+        Object.entries(reportsByStatus).forEach(([status, statusReports]) => {
+            const containerId = 'maquinas-' + status.toLowerCase().replace(' ', '-') + '-cards';
+            const countId = 'maquinas-' + status.toLowerCase().replace(' ', '-') + '-count';
+
+            const container = document.getElementById(containerId);
+            const countElement = document.getElementById(countId);
+
+            if (container && countElement) {
+                countElement.textContent = statusReports.length;
+
+                if (statusReports.length === 0) {
+                    container.innerHTML = `
+                    <div class="empty-column">
+                        <span>No hay reportes</span>
+                    </div>
+                `;
+                } else {
+                    statusReports.forEach(report => {
+                        container.appendChild(createMaquinaCard(report));
+                    });
+                }
+            }
+        });
+    }
+
+    /**
+     * Maneja errores al cargar reportes de máquinas
+     */
+    function handleMaquinasError(error) {
+        console.error('Error loading maquinas reports:', error);
+        const containers = document.querySelectorAll('#anormalidades .cards-container');
+        containers.forEach(container => {
+            container.innerHTML = `
+            <div class="empty-column">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <span>Error al cargar reportes</span>
+            </div>
+        `;
+        });
+        showAlert('error', 'Error', 'No se pudieron cargar los reportes: ' + error.message);
+    }
+
+
+</script>

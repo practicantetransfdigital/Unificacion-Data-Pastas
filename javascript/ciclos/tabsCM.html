@@ -1,0 +1,331 @@
+<script>
+
+    // <CHANGE> Corregido para usar las clases correctas del HTML
+    function cambiarTabCiclo(tabId) {
+        // Desactivar todas las tabs
+        document.querySelectorAll('.modal-ciclo-tabs-container .modal-tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.modal-ciclo-content .modal-tab-content').forEach(tab => tab.classList.remove('active'));
+
+        // Activar la tab seleccionada
+        document.querySelector(`.modal-ciclo-tabs-container .modal-tab-btn[onclick="cambiarTabCiclo('${tabId}')"]`)?.classList.add('active');
+        document.getElementById('tab-' + tabId)?.classList.add('active');
+    }
+
+    // Renderizar detalle del foco - VERSIÓN CORREGIDA
+    function renderFocoDetalle(ciclo) {
+        const container = document.getElementById('modalCicloFocoDetalle');
+        if (!container) return;
+
+        let datosFoco = {};
+        try {
+            datosFoco = ciclo.datosFoco ? JSON.parse(ciclo.datosFoco) : {};
+        } catch (e) {
+            datosFoco = {};
+        }
+
+        const tipoFoco = ciclo.tipoFoco || '';
+        let html = '';
+
+        if (tipoFoco === 'indicador') {
+            html = `
+            <div class="foco-tipo-header indicador">Mejorar un Resultado (Indicador)</div>
+            <div class="foco-detalle-grid">
+                <div class="foco-detalle-item"><strong>Indicador</strong><span>${datosFoco.nombreKPI || '-'}</span></div>
+                <div class="foco-detalle-item"><strong>Resultado Actual</strong><span>${datosFoco.resultadoActual || '-'}</span></div>
+                <div class="foco-detalle-item"><strong>Meta</strong><span>${datosFoco.meta || '-'}</span></div>
+                <div class="foco-detalle-item"><strong>Brecha</strong><span>${datosFoco.brecha || '-'}</span></div>
+            </div>
+        `;
+        } else if (tipoFoco === 'proceso') {
+            html = `
+            <div class="foco-tipo-header proceso">Hacer el Proceso más Rápido y Fácil</div>
+            <div class="foco-detalle-grid">
+                <div class="foco-detalle-item"><strong>Proceso a Mejorar</strong><span>${datosFoco.procesoSimplificar || '-'}</span></div>
+                <div class="foco-detalle-item"><strong>Valor Actual</strong><span>${datosFoco.valorActualFlujo || '-'}</span></div>
+                <div class="foco-detalle-item"><strong>Meta</strong><span>${datosFoco.meta || '-'}</span></div>
+                <div class="foco-detalle-item"><strong>Reducción</strong><span>${datosFoco.reduccion || '-'}</span></div>
+            </div>
+        `;
+        } else if (tipoFoco === 'error') {
+            html = `
+            <div class="foco-tipo-header error">Evitar que un Error Vuelva a Pasar</div>
+            <div class="foco-detalle-grid">
+                <div class="foco-detalle-item"><strong>Declaración del Problema</strong><span>${datosFoco.declaracionProblema || '-'}</span></div>
+                <div class="foco-detalle-item"><strong>Frecuencia Actual</strong><span>${datosFoco.frecuenciaActual || '-'}</span></div>
+                <div class="foco-detalle-item"><strong>Meta</strong><span>0 (Eliminar)</span></div>
+                <div class="foco-detalle-item"><strong>Brecha de Recurrencia</strong><span>${datosFoco.brechaRecurrencia || '-'}</span></div>
+            </div>
+        `;
+        } else {
+            html = '<p style="color: #9ca3af; font-style: italic;">No se especificó el foco de mejora</p>';
+        }
+
+        container.innerHTML = html;
+    }
+
+    // Renderizar resumen de espina
+    function renderEspinaResumen(ciclo) {
+        const container = document.getElementById('modalCicloEspina');
+        if (!container) return;
+
+        const categorias = [
+            { key: 'causasAmbiente', label: 'Medio Ambiente' },
+            { key: 'causasMano', label: 'Mano de Obra' },
+            { key: 'causasMateriales', label: 'Materiales' },
+            { key: 'causasTiempo', label: 'Tiempo' },
+            { key: 'causasMetodo', label: 'Método' },
+            { key: 'causasMaquina', label: 'Máquina' }
+        ];
+
+        let html = '';
+        let hayCausas = false;
+
+        categorias.forEach(cat => {
+            const causasStr = ciclo[cat.key] || '';
+            if (causasStr && causasStr.trim()) {
+                hayCausas = true;
+                const causas = causasStr.split('|').filter(c => c.trim());
+                html += `
+                <div class="espina-categoria-card">
+                    <div class="espina-categoria-title">${cat.label}</div>
+                    <ul class="espina-categoria-list">
+                        ${causas.map(c => `<li>${c.trim()}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+            }
+        });
+
+        container.innerHTML = hayCausas ? html : '<p class="no-data-msg">No se registraron causas en la espina de pescado</p>';
+    }
+
+    // Renderizar resumen de 5 Por Qué - VERSIÓN CORREGIDA
+    function renderPorquesResumen(ciclo) {
+        const container = document.getElementById('modalCicloPorques');
+        if (!container) return;
+
+        let porques = [];
+        try {
+            porques = ciclo.analisis5Porques ? JSON.parse(ciclo.analisis5Porques) : [];
+        } catch (e) {
+            porques = [];
+        }
+
+        if (!porques || porques.length === 0) {
+            container.innerHTML = '<p class="no-data-msg">No se realizó análisis de 5 Por Qué</p>';
+            return;
+        }
+
+        let html = '';
+        porques.forEach((item, idx) => {
+            // Extraer los datos de cada porque
+            const porque1 = item.porque1 || {};
+            const porque2 = item.porque2 || {};
+            const porque3 = item.porque3 || {};
+            const porque4 = item.porque4 || {};
+            const porque5 = item.porque5 || {};
+
+            html += `
+            <div class="porque-card">
+                <div class="porque-causa-title">${item.causa || 'Causa ' + (idx + 1)}</div>
+                <div class="porque-pasos-grid">
+                    <div class="porque-paso-item ${porque1.pregunta || porque1.respuesta ? '' : 'empty'}">
+                        <strong>¿Por qué 1?</strong>
+                        <span>${porque1.pregunta || '-'}</span>
+                        ${porque1.respuesta ? `<br><strong>Respuesta:</strong> ${porque1.respuesta}` : ''}
+                    </div>
+                    <div class="porque-paso-item ${porque2.pregunta || porque2.respuesta ? '' : 'empty'}">
+                        <strong>¿Por qué 2?</strong>
+                        <span>${porque2.pregunta || '-'}</span>
+                        ${porque2.respuesta ? `<br><strong>Respuesta:</strong> ${porque2.respuesta}` : ''}
+                    </div>
+                    <div class="porque-paso-item ${porque3.pregunta || porque3.respuesta ? '' : 'empty'}">
+                        <strong>¿Por qué 3?</strong>
+                        <span>${porque3.pregunta || '-'}</span>
+                        ${porque3.respuesta ? `<br><strong>Respuesta:</strong> ${porque3.respuesta}` : ''}
+                    </div>
+                    <div class="porque-paso-item ${porque4.pregunta || porque4.respuesta ? '' : 'empty'}">
+                        <strong>¿Por qué 4?</strong>
+                        <span>${porque4.pregunta || '-'}</span>
+                        ${porque4.respuesta ? `<br><strong>Respuesta:</strong> ${porque4.respuesta}` : ''}
+                    </div>
+                    <div class="porque-paso-item ${porque5.pregunta || porque5.respuesta ? '' : 'empty'}">
+                        <strong>¿Por qué 5?</strong>
+                        <span>${porque5.pregunta || '-'}</span>
+                        ${porque5.respuesta ? `<br><strong>Respuesta:</strong> ${porque5.respuesta}` : ''}
+                    </div>
+                </div>
+                ${item.causaRaiz ? `
+                    <div class="porque-raiz-box">
+                        <strong>Causa Raíz:</strong> ${item.causaRaiz}
+                    </div>
+                ` : ''}
+            </div>
+        `;
+        });
+
+        container.innerHTML = html;
+    }
+
+    function renderPlanAccionResumen(ciclo) {
+        const container = document.getElementById('modalCicloPlanAccion');
+        if (!container) return;
+
+        console.log('🔍 DIAGNÓSTICO Frontend - Ciclo recibido:', ciclo);
+        console.log('🔍 DIAGNÓSTICO Frontend - planAccion tipo:', typeof ciclo.planAccion);
+        console.log('🔍 DIAGNÓSTICO Frontend - planAccion valor:', ciclo.planAccion);
+
+        let acciones = [];
+
+        try {
+            // DIAGNÓSTICO: Ver qué tipo de dato es planAccion
+            if (Array.isArray(ciclo.planAccion)) {
+                console.log('✅ planAccion es array, longitud:', ciclo.planAccion.length);
+                acciones = ciclo.planAccion;
+            }
+            else if (typeof ciclo.planAccion === 'string') {
+                console.log('⚠️ planAccion es string, intentando parsear');
+                const cleaned = ciclo.planAccion.trim();
+
+                if (cleaned && (cleaned.startsWith('[') || cleaned.startsWith('{'))) {
+                    try {
+                        acciones = JSON.parse(cleaned);
+                        console.log('✅ Parseo exitoso, acciones:', acciones.length);
+                    } catch (parseError) {
+                        console.error('❌ Error parseando string:', parseError);
+                    }
+                }
+            }
+            else {
+                console.warn('⚠️ planAccion no es array ni string:', ciclo.planAccion);
+            }
+
+            // Asegurar que sea array
+            if (!Array.isArray(acciones)) {
+                console.warn('⚠️ acciones no es array, asignando vacío');
+                acciones = [];
+            }
+
+        } catch (e) {
+            console.error('❌ Error procesando plan de acción:', e);
+            acciones = [];
+        }
+
+        console.log('✅ Acciones finales para renderizar:', acciones.length);
+
+        if (acciones.length === 0) {
+            container.innerHTML = '<p class="no-data-msg">No se registraron acciones en el plan</p>';
+            return;
+        }
+
+        let html = `
+        <div class="plan-accion-summary-header">
+            <h4>Plan de Acción - Total: ${acciones.length} acción(es)</h4>
+        </div>
+        <table class="plan-tabla-resumen">
+            <thead>
+                <tr>
+                    <th>Causa Raíz</th>
+                    <th>Qué</th>
+                    <th>Dónde</th>
+                    <th>Quién</th>
+                    <th>Cómo</th>
+                    <th>Cuándo</th>
+                    <th>Cuánto</th>
+                    <th style="width: 120px;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+        acciones.forEach((accion, index) => {
+            // ✅ CORRECCIÓN: Escapar correctamente para HTML/JS
+            const causaTexto = accion.cual || 'Sin causa';
+            const causaEscapada = causaTexto
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, "\\'")
+                .replace(/\\/g, '\\\\')
+                .replace(/\n/g, ' ')
+                .replace(/\r/g, ' ');
+
+            // ID del ciclo (asegurarse que sea string)
+            const cicloId = String(ciclo.id || '').replace(/'/g, "\\'");
+
+            html += `
+            <tr data-causa-index="${index}">
+                <td class="causa-cell">${causaTexto}</td>
+                <td>${accion.que || '-'}</td>
+                <td>${accion.donde || '-'}</td>
+                <td>${accion.quien || '-'}</td>
+                <td>${accion.como || '-'}</td>
+                <td>${formatearFechaCiclo(accion.cuando)}</td>
+                <td>${accion.cuanto || '-'}</td>
+                <td class="acciones-cell">
+                    <div style="display: flex; gap: 6px; justify-content: center;">
+                        <!-- Botón Agregar Acciones -->
+                        <button type="button" 
+                                class="btn-acciones-causa" 
+                                onclick="mostrarAccionesCausa(${index}, '${causaEscapada}')"
+                                title="Agregar acciones 5W+2H"
+                                style="
+                                    background: #3b82f6;
+                                    color: white;
+                                    border: none;
+                                    border-radius: 4px;
+                                    padding: 4px 8px;
+                                    font-size: 11px;
+                                    cursor: pointer;
+                                    display: flex;
+                                    align-items: center;
+                                    gap: 4px;
+                                ">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="8" x2="12" y2="16"/>
+                                <line x1="8" y1="12" x2="16" y2="12"/>
+                            </svg>
+                            <span id="accion-count-${index}" style="font-size: 10px; font-weight: bold;">0</span>
+                        </button>
+                        
+                        <!-- Botón Seguimiento - CORREGIDO -->
+                        <button type="button" 
+                                class="btn-seguimiento-causa" 
+                                onclick="event.stopPropagation(); abrirSeguimientoCausa('${cicloId}', ${index}, '${causaEscapada}')"
+                                title="Seguimiento de esta causa"
+                                style="
+                                    background: #10b981;
+                                    color: white;
+                                    border: none;
+                                    border-radius: 4px;
+                                    padding: 4px 8px;
+                                    font-size: 11px;
+                                    cursor: pointer;
+                                    display: flex;
+                                    align-items: center;
+                                    gap: 4px;
+                                ">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                                <line x1="9" y1="10" x2="15" y2="10"/>
+                                <line x1="12" y1="7" x2="12" y2="13"/>
+                            </svg>
+                            Seg.
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+        });
+
+        html += '</tbody></table>';
+        container.innerHTML = html;
+
+        // Cargar contadores después de renderizar
+        setTimeout(() => {
+            acciones.forEach((accion, index) => {
+                cargarContadorInicial(index, ciclo.id);
+            });
+        }, 100);
+    }
+
+</script>

@@ -1,0 +1,157 @@
+<script>
+
+  function showChangeResponsibleModal(reportId) {
+    const existingModal = document.getElementById('responsibleModal');
+    if (existingModal) existingModal.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'responsibleModal';
+    overlay.style.cssText = `
+    position: fixed; top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5); backdrop-filter: blur(5px);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 10000;
+  `;
+
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+    background: #fff; padding: 1.5rem;
+    border-radius: 16px; width: 90%; max-width: 400px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    display: flex; flex-direction: column; gap: 1rem;
+  `;
+
+    modal.innerHTML = `
+    <h2 style="text-align:center; color:#1e293b; font-size:18px; font-weight:600;">
+      <i class="fa-regular fa-user"></i> Reasignar Responsable
+    </h2>
+
+    <div class="search-container" style="position:relative; width:100%;">
+      <input type="text" 
+        id="liderSearch" 
+        class="search-input" 
+        placeholder="Buscar por cédula o nombre..."
+        autocomplete="off"
+        required
+        style="width:100%; padding:0.6rem 0.8rem; border:1px solid #cbd5e1; border-radius:8px; font-size:14px;">
+
+      <div id="searchResults" 
+        class="search-results" 
+        style="
+          position:absolute; 
+          top:105%; left:0; right:0; 
+          background:white; 
+          border:1px solid #cbd5e1; 
+          border-radius:8px; 
+          max-height:220px; 
+          overflow-y:auto; 
+          z-index:10001;
+          display:none;
+          box-shadow:0 4px 12px rgba(0,0,0,0.1);
+        ">
+      </div>
+
+      <input type="hidden" id="selectedLeaderCedula" name="liderResponsable">
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; gap:0.75rem; margin-top:1rem;">
+      <button id="cancelReassign" 
+        style="padding:0.5rem 1rem; border:1px solid #cbd5e1; border-radius:8px; cursor:pointer;">
+        Cancelar
+      </button>
+      <button id="saveReassign" 
+        style="padding:0.5rem 1rem; border:none; background:#3b82f6; color:#fff; border-radius:8px; cursor:pointer;">
+        Guardar
+      </button>
+    </div>
+  `;
+
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    const input = modal.querySelector('#liderSearch');
+    const resultsContainer = modal.querySelector('#searchResults');
+    const hiddenInput = modal.querySelector('#selectedLeaderCedula');
+
+    let selectedCedula = '';
+
+    input.addEventListener('input', () => {
+      const query = input.value.trim().toLowerCase();
+
+      if (!query || query.length < 2) {
+        resultsContainer.style.display = 'none';
+        return;
+      }
+
+      const filtered = leadersData.filter(l =>
+        (l.info && l.info.toLowerCase().includes(query))
+      );
+
+      if (filtered.length === 0) {
+        resultsContainer.innerHTML = '<div style="padding:8px;">No se encontraron resultados</div>';
+        resultsContainer.style.display = 'block';
+        return;
+      }
+
+      resultsContainer.innerHTML = filtered.map(l => `
+      <div class="search-result-item"
+        data-cedula="${l.info}"  // ✅ Aquí usamos l.info en lugar de l.cedula
+        style="padding:8px; cursor:pointer; border-bottom:1px solid #eee;"
+        onmouseover="this.style.background='#f1f5f9'"
+        onmouseout="this.style.background='white'">
+        ${l.info}
+      </div>
+    `).join('');
+
+      resultsContainer.querySelectorAll('.search-result-item').forEach((item, index) => {
+        item.addEventListener('click', () => {
+          const leader = filtered[index];
+          // ✅ Guardamos el string completo (nombre + cédula) que está en l.info
+          selectedCedula = leader.info;
+          hiddenInput.value = leader.info;
+          input.value = leader.info;
+          resultsContainer.style.display = 'none';
+
+          console.log('Líder seleccionado:', leader.info);
+        });
+      });
+
+      resultsContainer.style.display = 'block';
+    });
+
+    resultsContainer.addEventListener('mousedown', e => e.preventDefault());
+
+    modal.querySelector('#cancelReassign').addEventListener('click', () => overlay.remove());
+
+    modal.querySelector('#saveReassign').addEventListener('click', () => {
+      const cedula = selectedCedula || hiddenInput.value.trim();
+
+      if (!cedula) {
+        showAlert('warning', 'Campo vacío', 'Debes seleccionar un responsable');
+        return;
+      }
+
+      console.log('Enviando al servidor:', cedula);
+
+      overlay.remove();
+      showAlert('info', 'Actualizando...', 'Reasignando responsable...', 2000);
+
+      google.script.run
+        .withSuccessHandler(() => {
+          showAlert('success', 'Éxito', 'Responsable actualizado correctamente');
+          reloadReportsKeepFilters();
+        })
+        .withFailureHandler(err => {
+          console.error(err);
+          showAlert('error', 'Error', 'No se pudo actualizar el responsable');
+        })
+        .updateReportResponsible(reportId, cedula);
+    });
+
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) overlay.remove();
+    });
+  }
+
+</script>

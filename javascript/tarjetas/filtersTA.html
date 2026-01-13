@@ -1,0 +1,176 @@
+<script>
+    /**
+     * Aplica filtro por prioridad
+     */
+    function applyTarjetaPrioridadFilter() {
+        const selected = document.getElementById('tarjetaPrioridadFilter').value;
+        const cards = document.querySelectorAll('.tarjeta-card');
+
+        cards.forEach(card => {
+            const prioridad = card.getAttribute('data-prioridad');
+
+            if (selected === 'all') {
+                card.style.display = 'block';
+            } else {
+                if (prioridad === selected) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            }
+        });
+    }
+
+    function applyTarjetaFilters() {
+        // 🟢 Asegurar que la fuente base esté actualizada
+        if (!window.tarjetasBase || window.tarjetasBase.length === 0) {
+            if (typeof tarjetasReports !== "undefined" && Array.isArray(tarjetasReports) && tarjetasReports.length > 0) {
+                window.tarjetasBase = [...tarjetasReports];
+            } else {
+                console.warn("⚠️ No hay datos disponibles para inicializar las tarjetas.");
+                displayTarjetasReports([]);
+                return;
+            }
+        }
+
+        // 🟣 Capturar TODOS los filtros individualmente
+        const filtroResponsable = document.getElementById('filtroResponsable')?.value || "";
+        const filtroTipo = document.getElementById('filtroTipo')?.value || "";
+        const filtroZona = document.getElementById('filtroZona')?.value || "";
+        const filtroRiesgo = document.getElementById('filtroRiesgo')?.value || "";
+        const searchCreator = document.getElementById('searchCreator')?.value?.toLowerCase().trim() || "";
+        const searchNombreResponsable = document.getElementById('searchNombreResponsable')?.value?.toLowerCase().trim() || "";
+
+        // 🔹 Fuente base segura
+        const tarjetas = Array.isArray(window.tarjetasBase) ? window.tarjetasBase : [];
+        let filtradas = [...tarjetas];
+
+        // 🔥 APLICAR FILTROS COMBINADOS - TODOS SE PUEDEN USAR JUNTOS
+
+        // 1. Filtro por CREADOR
+        if (searchCreator) {
+            filtradas = filtradas.filter(t => {
+                const creador = String(t.nombreCedula || '').toLowerCase();
+                return creador.includes(searchCreator);
+            });
+        }
+
+        if (searchNombreResponsable) {
+            filtradas = filtradas.filter(t => {
+                const responsable = String(t.responsableNombreVisualizarReporte || '').toLowerCase();
+                return responsable.includes(searchNombreResponsable.toLowerCase());
+            });
+        }
+
+        // 2. Filtro por RESPONSABLE
+        if (filtroResponsable) {
+            filtradas = filtradas.filter(t =>
+                String(t.responsableSolucion).trim() === filtroResponsable.trim()
+            );
+        }
+
+        // 3. Filtro por TIPO
+        if (filtroTipo) {
+            filtradas = filtradas.filter(t =>
+                String(t.generadaPor).trim() === filtroTipo.trim()
+            );
+        }
+
+        // 4. Filtro por ZONA
+        if (filtroZona) {
+            filtradas = filtradas.filter(t => {
+                const zona = String(t.zonaRiesgo || '').trim();
+                const ubi = String(t.ubicacion || '').trim();
+                return zona === filtroZona || ubi.includes(filtroZona);
+            });
+        }
+
+        if (filtroRiesgo) {
+            filtradas = filtradas.filter(t =>
+                String(t.tipoRiesgo).trim() === filtroRiesgo.trim()
+            );
+        }
+
+        console.log(`✅ ${filtradas.length} tarjetas filtradas`);
+        displayTarjetasReports(filtradas);
+
+        loadTarjetasCommentsCount();
+    }
+
+    // Initialize the application
+    window.onload = function () {
+        loadLeaders();
+        initializeN2Dropzone();
+        // Load N2 reports if we're on the N2 page initially
+        if (document.getElementById('n2') && document.getElementById('n2').classList.contains('active')) {
+            loadN2Reports();
+            loadTarjetasReports();
+
+        }
+    };
+
+    function reloadReportsKeepFilters() {
+        const currentFilters = {
+            process: document.getElementById("ProcessFilter").value,
+            respo: document.getElementById("ProcessRespo").value,
+            search: document.getElementById("searchByName").value,
+            reportType: document.getElementById("reportFilter").value
+        };
+
+        showLoadingSpinner();
+
+        // Recargar datos del servidor
+        google.script.run
+            .withSuccessHandler((reports) => {
+                n2Reports = reports;
+                // Re-aplicar filtros inmediatamente después de recibir datos
+                document.getElementById("ProcessFilter").value = currentFilters.process;
+                document.getElementById("ProcessRespo").value = currentFilters.respo;
+                document.getElementById("searchByName").value = currentFilters.search;
+                document.getElementById("reportFilter").value = currentFilters.reportType;
+
+                applyCombinedFilters();
+                loadCommentsCount();
+            })
+            .withFailureHandler((err) => {
+                console.error('Error al recargar:', err);
+                handleN2Error(err);
+            })
+            .getN2Reports();
+    }
+
+    function reloadTarjetasKeepFilters() {
+        const currentFilters = {
+            responsable: document.getElementById('filtroResponsable')?.value || "",
+            tipo: document.getElementById('filtroTipo')?.value || "",
+            zona: document.getElementById('filtroZona')?.value || "",
+            riesgo: document.getElementById('filtroRiesgo')?.value || "",
+            searchCreator: document.getElementById('searchCreator')?.value || ""
+        };
+
+        showTarjetasLoadingSpinner();
+
+        google.script.run
+            .withSuccessHandler((reports) => {
+                window.tarjetasBase = reports;
+                tarjetasReports = reports;
+
+                // Restaurar filtros
+                if (currentFilters.responsable) document.getElementById('filtroResponsable').value = currentFilters.responsable;
+                if (currentFilters.tipo) document.getElementById('filtroTipo').value = currentFilters.tipo;
+                if (currentFilters.zona) document.getElementById('filtroZona').value = currentFilters.zona;
+                if (currentFilters.riesgo) document.getElementById('filtroRiesgo').value = currentFilters.riesgo;
+                if (currentFilters.searchCreator) document.getElementById('searchCreator').value = currentFilters.searchCreator;
+
+                // Aplicar filtros nuevamente
+                applyTarjetaFilters();
+                loadTarjetasCommentsCount();
+            })
+            .withFailureHandler((err) => {
+                console.error('Error al recargar tarjetas:', err);
+                handleTarjetasError(err);
+            })
+            .getTarjetasReports();
+    }
+
+</script>

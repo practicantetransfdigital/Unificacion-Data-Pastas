@@ -1,0 +1,123 @@
+<script>
+
+    function createConsolidadoReportItem(report) {
+        const item = document.createElement('div');
+        item.className = 'consolidado-report-item';
+
+        let tipo = '', badgeClass = '', titulo = '', descricao = '';
+        let nombrePersona = '';
+        let nombreRespo = '';
+        let infoExtra = '';
+
+        if (report.type === 'n2') {
+            tipo = 'N2';
+            badgeClass = 'n2';
+            titulo = report.proceso + " - " + (report.zonaProceso || '');
+            descricao = report.anormalidad || '';
+            nombrePersona = report.nombreCedula || 'Sin nombre';
+            // Para N2 usamos liderResponsable
+            nombreRespo = report.liderResponsable || 'Sin responsable';
+            infoExtra = `
+            <div class="consolidado-report-extra">
+                <span class="extra-item">Zona: ${report.zonaProceso || 'N/A'}</span>
+                <span class="extra-item">Proceso Resp.: ${report.procesoResponsable || 'N/A'}</span>
+            </div>
+        `;
+        } else if (report.type === 'tarjeta') {
+            tipo = 'Tarjeta';
+            badgeClass = 'tarjeta';
+            titulo = report.zonaRiesgo + " - " + (report.ubicacion || '');
+            descricao = report.descripcionProblema || '';
+            nombrePersona = report.nombreCedula || 'Sin nombre';
+            // CORRECCIÓN: Para tarjetas usamos responsableNombreVisualizarReporte
+            nombreRespo = report.responsableNombreVisualizarReporte || 'Sin responsable';
+            infoExtra = `
+            <div class="consolidado-report-extra">
+                <span class="extra-item">Prioridad: ${report.prioridad || 'N/A'}</span>
+                <span class="extra-item">Tipo Riesgo: ${report.tipoRiesgo || 'N/A'}</span>
+            </div>
+        `;
+        } else if (report.type === 'maquina') {
+            tipo = 'Máquina';
+            badgeClass = 'maquina';
+            titulo = report.proceso + " - " + (report.areaProceso || '');
+            descricao = report.anormalidad || '';
+            nombrePersona = report.nombreCedula || report.mecanicoResponsable || 'Sin nombre';
+            nombreRespo = report.mecanicoResponsable || 'Sin responsable';
+            infoExtra = `
+            <div class="consolidado-report-extra">
+                <span class="extra-item">Área: ${report.areaProceso || 'N/A'}</span>
+                <span class="extra-item">Criticidad: ${report.criticidad || 'N/A'}</span>
+            </div>
+        `;
+        } else if (report.type === 'ciclo') {
+            tipo = 'Ciclos de Mejora';
+            badgeClass = 'ciclo';
+            titulo = report.nombreCiclo || report.id || 'Ciclo sin nombre';
+            descricao = report.defecto || report.descripcion || 'Sin descripción';
+            nombrePersona = report.creadoPor || report.lider || 'Sin líder';
+            nombreRespo = report.lider || 'Sin responsable';
+
+            // Extraer tipo de foco (si está en datosFoco)
+            let tipoFoco = 'No especificado';
+            let focoDetalle = '';
+
+            if (report.datosFoco) {
+                try {
+                    const datosFoco = JSON.parse(report.datosFoco);
+                    if (datosFoco.tipo === 'indicador') {
+                        tipoFoco = 'Indicador';
+                        focoDetalle = datosFoco.nombreKPI || 'KPI no especificado';
+                    } else if (datosFoco.tipo === 'proceso') {
+                        tipoFoco = 'Proceso';
+                        focoDetalle = datosFoco.procesoSimplificar || 'Proceso no especificado';
+                    } else if (datosFoco.tipo === 'error') {
+                        tipoFoco = 'Error';
+                        focoDetalle = datosFoco.declaracionProblema || 'Error no especificado';
+                    }
+                } catch (e) {
+                    tipoFoco = 'Error en datos';
+                }
+            }
+
+            infoExtra = `
+            <div class="consolidado-report-extra">
+                <span class="extra-item">Foco: ${tipoFoco}</span>
+                <span class="extra-item">Equipo: ${report.equipo || 'N/A'}</span>
+                <span class="extra-item">Aviso: ${report.aviso || 'N/A'}</span>
+            </div>
+            ${focoDetalle ? `<div class="foco-detalle" style="font-size: 12px; color: #666; margin-top: 4px;">${focoDetalle}</div>` : ''}
+        `;
+        }
+
+        const fecha = report.fechaRegistro || report.fechaCreacion || report.fecha || '';
+        const estado = report.estado || 'Abierto';
+        const estadoColor = estado === 'Completado' || estado === 'Cerrada' || estado === 'Cerrado' || estado === 'Implementado' ? '#28a745' :
+            estado === 'En Progreso' || estado === 'En Progreso' ? '#007bff' :
+                estado === 'En Revision' ? '#fd7e14' : '#6c757d';
+
+        item.innerHTML = `
+        <div class="consolidado-report-header">
+            <div class="consolidado-report-type ${badgeClass}">${tipo}</div>
+            <div class="consolidado-person-name" style="display:none;">${nombrePersona}</div>
+            <div class="consolidado-respo-name" style="display:none;">${nombreRespo}</div>
+        </div>
+        <div class="consolidado-report-title">${titulo}</div>
+        <div style="font-size: 13px; color: #94a3b8; line-height: 1.2; margin: 4px 0;">${descricao || '(Sin desc.)'}</div>
+        ${infoExtra}
+        <div class="consolidado-report-meta">
+            <span style="color: ${estadoColor}; font-weight: 600;">${estado}</span>
+            <span>${fecha ? fecha.split(' ')[0] : 'S/F'}</span>
+        </div>
+        <div class="consolidado-report-person">
+            <strong>Persona que reporta:</strong> ${nombrePersona}
+        </div>
+        ${nombreRespo !== nombrePersona ? `<div class="consolidado-report-person">
+            <strong>Responsable:</strong> ${nombreRespo}
+        </div>` : ''}
+    `;
+
+        return item;
+    }
+
+</script>

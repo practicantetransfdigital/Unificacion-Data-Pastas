@@ -1,0 +1,86 @@
+<script>
+
+    /**
+     * Recarga los datos de máquinas manteniendo los filtros aplicados (igual que N2)
+     */
+    function reloadMaquinasKeepFilters() {
+        const currentFilters = {
+            proceso: document.getElementById('maquinasProcesoFilter').value,
+            area: document.getElementById('maquinasAreaFilter').value,
+            areaProc: document.getElementById('maquinasAreaprocFilter').value,
+            search: document.getElementById('maquinasSearchByName').value
+        };
+
+        showMaquinasLoadingSpinner();
+
+        // Recargar datos del servidor
+        google.script.run
+            .withSuccessHandler((reports) => {
+                maquinasReports = reports;
+                // Re-aplicar filtros inmediatamente después de recibir datos
+                document.getElementById('maquinasProcesoFilter').value = currentFilters.proceso;
+                document.getElementById('maquinasAreaFilter').value = currentFilters.area;
+                document.getElementById('maquinasAreaprocFilter').value = currentFilters.areaProc;
+                document.getElementById('maquinasSearchByName').value = currentFilters.search;
+
+                applyMaquinasFilters();
+                loadMaquinasCommentsCount();
+            })
+            .withFailureHandler((err) => {
+                console.error('Error al recargar máquinas:', err);
+                handleMaquinasError(err);
+            })
+            .getMaquinasReports();
+    }
+
+    /**
+     * Aplica filtros combinados al tablero de máquinas
+     */
+    function applyMaquinasFilters() {
+        const selectedProceso = document.getElementById('maquinasProcesoFilter').value;
+        const selectedArea = document.getElementById('maquinasAreaFilter').value;
+        const selectedAreaProc = document.getElementById('maquinasAreaprocFilter').value;
+        const searchQuery = document.getElementById('maquinasSearchByName').value.toLowerCase();
+
+        if (!Array.isArray(maquinasReports) || maquinasReports.length === 0) return;
+
+        // 🔹 Empezamos filtrando desde los datos base (IGUAL QUE N2)
+        let filteredReports = [...maquinasReports];
+
+        // 1️⃣ FILTRO: Proceso
+        if (selectedProceso !== 'all') {
+            filteredReports = filteredReports.filter(r =>
+                r.proceso && r.proceso.trim() === selectedProceso
+            );
+        }
+
+        // 2️⃣ FILTRO: Área Responsable
+        if (selectedArea !== 'all') {
+            filteredReports = filteredReports.filter(r =>
+                r.areaResponsable && r.areaResponsable.trim() === selectedArea
+            );
+        }
+
+        // 3️⃣ FILTRO: Área del Proceso
+        if (selectedAreaProc !== 'all') {
+            filteredReports = filteredReports.filter(r =>
+                r.areaProceso && r.areaProceso.trim() === selectedAreaProc
+            );
+        }
+
+        // 4️⃣ FILTRO: Búsqueda por nombre del mecánico
+        if (searchQuery) {
+            filteredReports = filteredReports.filter(r =>
+                (r.mecanicoResponsable && r.mecanicoResponsable.toLowerCase().includes(searchQuery))
+            );
+        }
+
+        console.log(`✅ ${filteredReports.length} reportes de máquinas tras filtros`);
+
+        // 🔹 CORRECIÓN: Usar función que no sobreescribe maquinasReports (IGUAL QUE N2)
+        updateVisibleMaquinasReportsWithDOM(filteredReports);
+        loadMaquinasCommentsCount();
+    }
+
+
+</script>

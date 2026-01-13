@@ -1,0 +1,131 @@
+<script>
+
+    function submitMaquinasForm(event) {
+        event.preventDefault();
+
+        const submitBtn = event.target.querySelector('.submit-btn');
+        buttonStateManager.bloquear(submitBtn, 'Enviar Reporte');
+
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, "0");
+        const day = String(now.getDate()).padStart(2, "0");
+        const hour = String(now.getHours()).padStart(2, "0");
+        const minute = String(now.getMinutes()).padStart(2, "0");
+        const fechaLocal = `${year}-${month}-${day} ${hour}:${minute}`;
+
+        const formData = {
+            fecha: fechaLocal,
+            mecanicoResponsable: document.getElementById('nombreMecanico').value,
+            proceso: document.getElementById('procesoMaquina').value,
+            areaProceso: document.getElementById('areaProceso').value,
+            subsistema: document.getElementById('subsistema').value || document.getElementById('otroSubsistema').value,
+            anormalidad: document.getElementById('anormalidadMaquina').value,
+            areaResponsable: document.getElementById('areaResponsable').value,
+            criticidad: document.getElementById('criticidadMaquina').value,
+            nombreCedula: currentUser.nombre + ' - ' + currentUser.cedula
+        };
+
+        showAlert('info', 'Enviando...', 'Procesando su reporte, por favor espere', 3000);
+
+        google.script.run
+            .withSuccessHandler(function (response) {
+                // Desbloquear el botón en éxito
+                buttonStateManager.desbloquear(submitBtn);
+
+                if (response.success) {
+                    showAlert('success', '¡Éxito!', 'Reporte de Anormalidad Crítica enviado exitosamente');
+                    document.getElementById('maquinasForm').reset();
+                } else {
+                    showAlert('error', 'Error', response.message || 'Error al enviar el reporte');
+                }
+
+                const nombreMecanicoField = document.getElementById('nombreMecanico');
+                if (nombreMecanicoField && typeof currentUser !== 'undefined') {
+                    nombreMecanicoField.value = currentUser.nombre;
+                }
+            })
+            .withFailureHandler(function (error) {
+                // Desbloquear el botón en error
+                buttonStateManager.desbloquear(submitBtn);
+                showAlert('Error al enviar el reporte: ' + error.message, 'error');
+            })
+            .submitMaquinasReport(formData);
+    }
+
+    const areasPorProceso = {
+        "Pastificio": ["Línea A", "Línea B", "Línea C", "Línea D", "SIRCEM", "Girapasta"],
+        "Empaque": [
+            "Máquina 02", "Máquina 03", "Máquina 04", "Máquina 05", "Máquina 06",
+            "Máquina 17", "Máquina 18", "Máquina 19", "Máquina 20", "Máquina 21",
+            "Encartonadora PL", "Encartonadora PC"
+        ]
+    };
+
+    const subsistemasPorArea = {
+        "maquinas": ["EMPACADORA", "CHEQUEADORA DE PESO", "ENFARDADORA", "ETIQUETADORA", "BANDAS", "EMBOLSADORA"],
+        "encartonadoras": ["ENCARTONADORA", "BANDAS", "ETIQUETADORA"]
+    };
+
+    // Actualizar áreas según proceso seleccionado
+    function updateAreaProceso() {
+        const proceso = document.getElementById('procesoMaquina').value;
+        const areaSelect = document.getElementById('areaProceso');
+        const subsistemaSelect = document.getElementById('subsistema');
+
+        // Limpiar selects
+        areaSelect.innerHTML = '<option value="">Selecciona el área</option>';
+        subsistemaSelect.innerHTML = '<option value="">Selecciona el subsistema</option>';
+
+        if (proceso && areasPorProceso[proceso]) {
+            areasPorProceso[proceso].forEach(area => {
+                const option = document.createElement('option');
+                option.value = area;
+                option.textContent = area;
+                areaSelect.appendChild(option);
+            });
+        }
+    }
+
+    // Actualizar subsistemas según área seleccionada
+    function updateSubsistema() {
+        const area = document.getElementById('areaProceso').value;
+        const subsistemaSelect = document.getElementById('subsistema');
+
+        subsistemaSelect.innerHTML = '<option value="">Selecciona el subsistema</option>';
+
+        let subsistemas = [];
+
+        if (area.includes("Encartonadora")) {
+            subsistemas = subsistemasPorArea["encartonadoras"];
+        } else if (area.startsWith("Máquina") || area.startsWith("Línea")) {
+            subsistemas = subsistemasPorArea["maquinas"];
+        }
+
+        subsistemas.forEach(sub => {
+            const option = document.createElement('option');
+            option.value = sub;
+            option.textContent = sub;
+            subsistemaSelect.appendChild(option);
+        });
+    }
+
+    subsistema.addEventListener("change", () => {
+        if (subsistema.value) {
+            otroSubsistema.disabled = true;
+            otroSubsistema.value = "";
+        } else {
+            otroSubsistema.disabled = false;
+        }
+    });
+
+    otroSubsistema.addEventListener("input", () => {
+        if (otroSubsistema.value.trim() !== "") {
+            subsistema.disabled = true;
+            subsistema.value = "";
+        } else {
+            subsistema.disabled = false;
+        }
+    });
+
+</script>

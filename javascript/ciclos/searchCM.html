@@ -1,0 +1,181 @@
+<script>
+
+    // ========== FUNCIONES BUSQUEDA CICLO DE MEJORA ==========
+
+    // Array para almacenar integrantes seleccionados
+    let integrantesSeleccionadosArray = [];
+
+    // ===== BUSQUEDA LIDER CICLO =====
+    function searchLiderCiclo(query) {
+        const resultsContainer = document.getElementById('liderCicloResults');
+
+        if (!query || query.length < 2) {
+            resultsContainer.style.display = 'none';
+            return;
+        }
+
+        const searchTerm = query.toLowerCase();
+        const filteredLeaders = leadersData.filter(leader => {
+            const texto = leader.info ? leader.info.toLowerCase() : "";
+            return texto.includes(searchTerm);
+        });
+
+        displayLiderCicloResults(filteredLeaders);
+    }
+
+    function displayLiderCicloResults(leaders) {
+        const resultsContainer = document.getElementById('liderCicloResults');
+
+        if (leaders.length === 0) {
+            resultsContainer.innerHTML = '<div class="search-result-item">No se encontraron resultados</div>';
+        } else {
+            resultsContainer.innerHTML = leaders.map(leader => `
+            <div class="search-result-item" onclick="selectLiderCiclo('${escapeHtml(leader.info)}', '${leader.cedula || ''}')">
+                <div class="search-result-name">${leader.info}</div>
+            </div>
+        `).join('');
+        }
+
+        resultsContainer.style.display = 'block';
+    }
+
+    function selectLiderCiclo(info, cedula) {
+        document.getElementById('liderCicloSearch').value = info;
+        document.getElementById('liderCiclo').value = info;
+        document.getElementById('liderCicloResults').style.display = 'none';
+    }
+
+    function showLiderCicloResults() {
+        const query = document.getElementById('liderCicloSearch').value;
+        if (query && query.length >= 2) {
+            searchLiderCiclo(query);
+        }
+    }
+
+    // ===== BUSQUEDA INTEGRANTES (MULTIPLE) =====
+    function searchIntegrantes(query) {
+        const resultsContainer = document.getElementById('integrantesResults');
+
+        if (!query || query.length < 2) {
+            resultsContainer.style.display = 'none';
+            return;
+        }
+
+        const searchTerm = query.toLowerCase();
+        const filteredLeaders = leadersData.filter(leader => {
+            const texto = leader.info ? leader.info.toLowerCase() : "";
+            return texto.includes(searchTerm);
+        });
+
+        displayIntegrantesResults(filteredLeaders);
+    }
+
+    function displayIntegrantesResults(leaders) {
+        const resultsContainer = document.getElementById('integrantesResults');
+
+        if (leaders.length === 0) {
+            resultsContainer.innerHTML = '<div class="search-result-item">No se encontraron resultados</div>';
+        } else {
+            resultsContainer.innerHTML = leaders.map(leader => {
+                const yaSeleccionado = integrantesSeleccionadosArray.some(i => i.info === leader.info);
+                const selectedClass = yaSeleccionado ? 'already-selected' : '';
+                return `
+                <div class="search-result-item ${selectedClass}" onclick="agregarIntegrante('${escapeHtml(leader.info)}', '${leader.cedula || ''}')">
+                    <div class="search-result-name">${leader.info}</div>
+                </div>
+            `;
+            }).join('');
+        }
+
+        resultsContainer.style.display = 'block';
+    }
+
+    function agregarIntegrante(info, cedula) {
+        // Verificar si ya esta seleccionado
+        if (integrantesSeleccionadosArray.some(i => i.info === info)) {
+            return;
+        }
+
+        // Agregar al array
+        integrantesSeleccionadosArray.push({ info: info, cedula: cedula });
+
+        // Actualizar UI
+        renderIntegrantesSeleccionados();
+        actualizarInputIntegrantes();
+
+        // Limpiar busqueda
+        document.getElementById('integrantesSearch').value = '';
+        document.getElementById('integrantesResults').style.display = 'none';
+    }
+
+    function eliminarIntegrante(index) {
+        integrantesSeleccionadosArray.splice(index, 1);
+        renderIntegrantesSeleccionados();
+        actualizarInputIntegrantes();
+    }
+
+    function renderIntegrantesSeleccionados() {
+        const container = document.getElementById('integrantesSeleccionados');
+
+        if (integrantesSeleccionadosArray.length === 0) {
+            container.innerHTML = '';
+            return;
+        }
+
+        container.innerHTML = integrantesSeleccionadosArray.map((integrante, index) => `
+        <div class="selected-tag">
+            <span class="tag-name">${integrante.info}</span>
+            <button type="button" class="tag-remove" onclick="eliminarIntegrante(${index})" title="Eliminar">×</button>
+        </div>
+    `).join('');
+    }
+
+    function actualizarInputIntegrantes() {
+        const input = document.getElementById('integrantesAnalisis');
+        input.value = integrantesSeleccionadosArray.map(i => i.info).join(', ');
+    }
+
+    function showIntegrantesResults() {
+        const query = document.getElementById('integrantesSearch').value;
+        if (query && query.length >= 2) {
+            searchIntegrantes(query);
+        }
+    }
+
+    // Funcion auxiliar para escapar HTML
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML.replace(/'/g, "\\'");
+    }
+
+    // Cerrar resultados al hacer clic fuera
+    document.addEventListener('click', function (e) {
+        // Cerrar resultados de lider ciclo
+        const liderContainer = document.querySelector('#liderCicloSearch')?.closest('.search-container');
+        if (liderContainer && !liderContainer.contains(e.target)) {
+            document.getElementById('liderCicloResults').style.display = 'none';
+        }
+
+        // Cerrar resultados de integrantes
+        const integrantesContainer = document.querySelector('#integrantesSearch')?.closest('.search-container');
+        if (integrantesContainer && !integrantesContainer.contains(e.target)) {
+            document.getElementById('integrantesResults').style.display = 'none';
+        }
+    });
+
+    // Limpiar integrantes al reiniciar formulario
+    function limpiarIntegrantesCiclo() {
+        integrantesSeleccionadosArray = [];
+        renderIntegrantesSeleccionados();
+        actualizarInputIntegrantes();
+
+        const liderSearch = document.getElementById('liderCicloSearch');
+        if (liderSearch) liderSearch.value = '';
+
+        const liderHidden = document.getElementById('liderCiclo');
+        if (liderHidden) liderHidden.value = '';
+    }
+
+</script>

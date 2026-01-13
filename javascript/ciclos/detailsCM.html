@@ -1,0 +1,80 @@
+<script>
+
+    // Ver detalle de ciclo
+    function verDetalleCiclo(cicloId) {
+        const ciclo = ciclosData.find(c => c.id === cicloId);
+        if (!ciclo) {
+            showAlert('error', 'Error', 'No se encontró el ciclo de mejora');
+            return;
+        }
+
+        cicloActual = ciclo;
+
+        // Llenar header del modal
+        document.getElementById('modalCicloId').textContent = ciclo.id || '-';
+        document.getElementById('modalCicloTitulo').textContent = ciclo.nombre || 'Sin nombre';
+
+        // <CHANGE> Corregido para usar las clases correctas del HTML
+        const estadoClass = getEstadoClass(ciclo.estado);
+        const estadoEl = document.getElementById('modalCicloEstado');
+        estadoEl.textContent = ciclo.estado || 'Abierto';
+        estadoEl.className = 'modal-ciclo-estado-badge estado-badge ' + estadoClass;
+
+        // Info general
+        document.getElementById('modalCicloFecha').textContent = formatearFechaCiclo(ciclo.fecha);
+        document.getElementById('modalCicloProceso').textContent = ciclo.proceso || '-';
+        document.getElementById('modalCicloEquipo').textContent = ciclo.equipo || '-';
+        document.getElementById('modalCicloAviso').textContent = ciclo.aviso || 'N/A';
+        document.getElementById('modalCicloLider').textContent = ciclo.lider || '-';
+        document.getElementById('modalCicloIntegrantes').textContent = ciclo.integrantes || '-';
+
+        // Foco de mejora
+        renderFocoDetalle(ciclo);
+
+        // Defecto
+        document.getElementById('modalCicloDefecto').textContent = ciclo.defecto || 'No especificado';
+
+        // Espina de pescado
+        renderEspinaResumen(ciclo);
+
+        // 5 Por Qué
+        renderPorquesResumen(ciclo);
+
+        // Plan de acción
+        renderPlanAccionResumen(ciclo);
+
+        // Cargar historial
+        cargarHistorialCiclo(cicloId);
+
+        // Estado actual en select
+        const selectEstado = document.getElementById('nuevoEstadoCiclo');
+        if (selectEstado) {
+            selectEstado.value = ciclo.estado || 'Abierto';
+        }
+
+        // Limpiar comentario
+        const comentarioEl = document.getElementById('comentarioCiclo');
+        if (comentarioEl) comentarioEl.value = '';
+
+        // Activar primera tab
+        cambiarTabCiclo('info');
+
+        // <CHANGE> Mostrar modal con la clase correcta
+        const modal = document.getElementById('modalDetalleCiclo');
+        if (modal) {
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+    }
+
+    // Cerrar modal
+    function cerrarModalCiclo() {
+        const modal = document.getElementById('modalDetalleCiclo');
+        if (modal) {
+            modal.classList.remove('active');
+        }
+        document.body.style.overflow = '';
+        cicloActual = null;
+    }
+
+</script>

@@ -1,0 +1,25 @@
+<script>
+    // Actualizar estadísticas
+    function actualizarEstadisticasCiclos(ciclos) {
+        const stats = { abierto: 0, progreso: 0, implementado: 0, cerrado: 0 };
+
+        (ciclos || []).forEach(ciclo => {
+            const estado = (ciclo.estado || 'Abierto').toLowerCase();
+            if (estado === 'abierto') stats.abierto++;
+            else if (estado === 'en progreso') stats.progreso++;
+            else if (estado === 'implementado') stats.implementado++;
+            else if (estado === 'cerrado') stats.cerrado++;
+        });
+
+        const elAbierto = document.getElementById('ciclos-stat-abierto');
+        const elProgreso = document.getElementById('ciclos-stat-progreso');
+        const elImplementado = document.getElementById('ciclos-stat-implementado');
+        const elCerrado = document.getElementById('ciclos-stat-cerrado');
+
+        if (elAbierto) elAbierto.textContent = stats.abierto;
+        if (elProgreso) elProgreso.textContent = stats.progreso;
+        if (elImplementado) elImplementado.textContent = stats.implementado;
+        if (elCerrado) elCerrado.textContent = stats.cerrado;
+    }
+
+</script>

@@ -1,0 +1,271 @@
+<script>
+    function handleLogin(event) {
+        event.preventDefault();
+
+        const cedula = document.getElementById('cedulaInput').value.trim();
+        const loginBtn = document.getElementById('loginBtn');
+        const loginBtnText = document.getElementById('loginBtnText');
+        const loginBtnSpinner = document.getElementById('loginBtnSpinner');
+        const loginError = document.getElementById('loginError');
+
+        if (!cedula) {
+            showLoginError('Por favor ingrese su cédula');
+            return;
+        }
+
+        // Mostrar spinner
+        loginBtn.disabled = true;
+        loginBtnText.style.display = 'none';
+        loginBtnSpinner.style.display = 'inline-block';
+        loginError.style.display = 'none';
+
+        // Validar cédula con el backend
+        google.script.run
+            .withSuccessHandler(function (result) {
+                if (result.success) {
+                    // Obtener el nombre del usuario
+                    google.script.run
+                        .withSuccessHandler(function (userData) {
+                            if (userData.success) {
+                                currentUser.cedula = cedula;
+                                currentUser.nombre = userData.nombre;
+                                currentUser.rol = result.rol || '';
+                                currentUser.proceso_user = result.proceso_user || '';
+                                currentUser.correo = result.correo || '';
+                                currentUser.empresa = result.empresa || '';
+
+                                // Guardar sesión en localStorage
+                                localStorage.setItem('userSession', JSON.stringify(currentUser));
+                                loadLeaders()
+                                // Mostrar la aplicación
+                                showApp();
+                                showAlert("success", "Sesión iniciada", "Bienvenido al sistema");
+                            } else {
+                                showLoginError('No se pudo obtener la información del usuario');
+                                resetLoginButton();
+                            }
+                        })
+                        .withFailureHandler(function (error) {
+                            console.error('Error al obtener nombre:', error);
+                            showLoginError('Error al obtener información del usuario');
+                            resetLoginButton();
+                        })
+                        .getNombreByCedula(cedula);
+                } else {
+                    showLoginError('Cédula no encontrada. Verifique e intente nuevamente.');
+                    resetLoginButton();
+                }
+            })
+            .withFailureHandler(function (error) {
+                console.error('Error en login:', error);
+                showLoginError('Error al validar la cédula. Intente nuevamente.');
+                resetLoginButton();
+            })
+            .validarCedula(cedula);
+    }
+
+    function showLoginError(message) {
+        const loginError = document.getElementById('loginError');
+        loginError.textContent = message;
+        loginError.style.display = 'block';
+    }
+
+    function resetLoginButton() {
+        const loginBtn = document.getElementById('loginBtn');
+        const loginBtnText = document.getElementById('loginBtnText');
+        const loginBtnSpinner = document.getElementById('loginBtnSpinner');
+
+        loginBtn.disabled = false;
+        loginBtnText.style.display = 'inline';
+        loginBtnSpinner.style.display = 'none';
+    }
+
+    function showApp() {
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('appContainer').style.display = 'block';
+        document.getElementById('userName').textContent = currentUser.nombre;
+        console.log(currentUser)
+
+        showReportForm('tarjeta');
+
+        document.querySelectorAll('.report-btn').forEach(btn => {
+            btn.classList.remove('active'); // quitar active de todos
+        });
+        const btnTA = document.querySelector('.report-btn[onclick*="tarjeta"]');
+        if (btnTA) btnTA.classList.add('active');
+
+        const nombreCedulaInput = document.getElementById('nombreCedula');
+        if (nombreCedulaInput) {
+            nombreCedulaInput.value = `${currentUser.nombre}`;
+            nombreCedulaInput.readOnly = true;
+        }
+
+        const nombreMecanicoInput = document.getElementById('nombreMecanico');
+        if (nombreMecanicoInput) {
+            nombreMecanicoInput.value = `${currentUser.nombre}`;
+            nombreMecanicoInput.readOnly = true;
+        }
+    }
+
+    function handleLogout() {
+        // 🔹 Elimina la sesión
+        localStorage.removeItem('userSession');
+        currentUser = { cedula: '', nombre: '', rol: '', proceso_user: '', correo: '', empresa: '' };
+
+        // 🔹 Resetear variables globales
+        if (typeof n2Reports !== "undefined") n2Reports = [];
+        if (typeof leadersData !== "undefined") leadersData = [];
+        if (typeof tarjetas !== "undefined") tarjetas = [];
+
+        // 🔹 Resetear formularios
+        document.querySelectorAll("form").forEach(form => form.reset());
+
+        // 🔹 Ocultar todos los formularios dinámicos
+        document.querySelectorAll(".report-form").forEach(form => {
+            form.style.display = "none";
+            form.classList.remove("active");
+        });
+
+        // 🔹 Resetear botones de reportes
+        document.querySelectorAll(".report-btn").forEach(btn => {
+            btn.classList.remove("active");
+        });
+
+        // 🔹 Vaciar contenedores de reportes
+        document.querySelectorAll(".cards-container").forEach(container => {
+            container.innerHTML = "";
+        });
+
+        // 🔹 Resetear contadores
+        document.querySelectorAll("[id$='-count']").forEach(countEl => {
+            countEl.textContent = "0";
+        });
+
+        // 🔹 Resetear búsqueda
+        const searchInput = document.getElementById("liderSearch");
+        if (searchInput) searchInput.value = "";
+
+        const searchResults = document.getElementById("searchResults");
+        if (searchResults) searchResults.style.display = "none";
+
+        // 🔹 Oculta la app y vuelve a mostrar el login
+        document.getElementById('appContainer').style.display = 'none';
+        document.getElementById('loginScreen').style.display = 'flex';
+        document.getElementById('cedulaInput').value = '';
+        document.getElementById('loginError').style.display = 'none';
+
+        // 🔹 Reset botón de login
+        resetLoginButton();
+
+        // 🔹 Alerta de confirmación
+        showAlert("success", "Sesión cerrada", "Has salido del sistema");
+    }
+
+    function checkSession() {
+        const savedSession = localStorage.getItem('userSession');
+
+        if (savedSession) {
+            try {
+                currentUser = JSON.parse(savedSession);
+                showApp();
+            } catch (error) {
+                console.error('Error al recuperar sesión:', error);
+                localStorage.removeItem('userSession');
+            }
+        }
+    }
+
+    function showPage(pageId, event) {
+        // Ocultar todas las páginas
+        document.querySelectorAll('.page').forEach(page => {
+            page.classList.remove('active');
+        });
+
+        // Remover clase active de todos los nav-tabs
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+
+        // Mostrar página seleccionada
+        const pageEl = document.getElementById(pageId);
+        if (pageEl) pageEl.classList.add('active');
+
+        // Lógica mejorada para marcar tab activo
+        if (event && event.target) {
+            event.target.classList.add('active');
+        } else {
+            // Si es una página del dropdown, marcar el dropdown como activo
+            if (pageId === 'consolidado' || pageId === 'realizar-reporte') {
+                const reportesDropdown = document.getElementById('reportesDropdownToggle');
+                if (reportesDropdown) reportesDropdown.classList.add('active');
+            } else if (pageId === 'n2' || pageId === 'tarjetas' || pageId === 'anormalidades' || pageId === 'ciclos') {
+                const gestionDropdown = document.getElementById('gestionDropdownToggle');
+                if (gestionDropdown) gestionDropdown.classList.add('active');
+            } else {
+                // Fallback: buscar el botón nav-tab que contiene el pageId
+                const fallbackTab = document.querySelector(`.nav-tab[onclick*="${pageId}"]`);
+                if (fallbackTab) fallbackTab.classList.add('active');
+            }
+        }
+
+        // Cerrar dropdowns cuando se selecciona una opción
+        if (pageId === 'consolidado' || pageId === 'realizar-reporte') {
+            hideReportesDropdown();
+        }
+        if (pageId === 'n2' || pageId === 'tarjetas' || pageId === 'anormalidades' || pageId === 'ciclos') {
+            hideGestionDropdown();
+        }
+
+        // Cargar datos según la página (tu código existente)
+        if (pageId === 'n2') {
+            loadN2Reports();
+            loadCommentsCount();
+        }
+        if (pageId === 'tarjetas') {
+            loadTarjetasReports();
+        }
+        if (pageId === 'anormalidades') {
+            loadMaquinasReports();
+        }
+        if (pageId === 'ciclos') {
+            loadCiclosMejora();
+        }
+        if (pageId === 'consolidado') {
+            loadConsolidadoReports();
+        }
+    }
+
+    function showReportForm(formType, event) {
+        // Ocultar todos los formularios
+        document.querySelectorAll('.report-form').forEach(form => {
+            form.classList.remove('active');
+            form.style.display = "none";
+        });
+
+        // Quitar la clase activa de todos los botones
+        document.querySelectorAll('.report-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+
+        // Mostrar el formulario seleccionado
+        const form = document.getElementById('form-' + formType);
+        if (form) {
+            form.classList.add('active');
+            form.style.display = "block";
+        }
+
+        // Marcar el botón clicado como activo
+        if (event && event.target) {
+            event.target.classList.add('active');
+        } else {
+            // fallback: intenta seleccionar el button cuyo onclick contenga "'formType'"
+            const fallbackBtn = document.querySelector(`.report-btn[onclick*="'${formType}'"]`)
+                || document.querySelector(`.report-btn[onclick*="${formType}"]`);
+            if (fallbackBtn) fallbackBtn.classList.add('active');
+        }
+
+        // Si el formulario es la tarjeta, establece la fecha de creación
+        const fechaField = document.getElementById('fechaCreacionTarjeta');
+        if (fechaField) setFechaCreacionTarjeta();
+    }
+</script>

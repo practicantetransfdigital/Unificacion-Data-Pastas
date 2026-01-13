@@ -1,0 +1,148 @@
+<script>
+
+    // <CHANGE> Cargar todos los reportes consolidados
+    function loadConsolidadoReports() {
+        showConsolidadoLoadingSpinner();
+
+        google.script.run
+            .withSuccessHandler(function (data) {
+                console.log('[v0] Consolidado cargado:', data);
+                consolidadoData = data;
+                displayConsolidadoReportsByProcess(data);
+            })
+            .withFailureHandler(function (err) {
+                console.error('[v0] Error al cargar consolidado:', err);
+                handleConsolidadoError(err);
+            })
+            .getConsolidadoReports();
+    }
+
+    // <CHANGE> Mostrar spinner en consolidado
+    function showConsolidadoLoadingSpinner() {
+        const container = document.getElementById('consolidadoContainer');
+        if (!container) return;
+
+        container.innerHTML = `
+        <div class="loading-spinner consolidado-skeleton">
+            ${Array(9).fill(0).map(() => `
+                <div class="skeleton-card-consolidado"></div>
+            `).join('')}
+        </div>
+    `;
+    }
+
+    // <CHANGE> Manejar errores del consolidado
+    function handleConsolidadoError(error) {
+        console.error('Error loading consolidado:', error);
+        const container = document.getElementById('consolidadoContainer');
+        if (container) {
+            container.innerHTML = `
+            <div class="consolidado-empty">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <h3>Error al cargar reportes</h3>
+                <p>${error.message || 'Intenta nuevamente'}</p>
+            </div>
+        `;
+        }
+    }
+
+    function displayConsolidadoReportsByProcess(data) {
+        const container = document.getElementById('consolidadoContainer');
+        if (!container) {
+            console.log('[v0] Contenedor consolidado no encontrado');
+            return;
+        }
+
+        loadProcesosFilter(data);
+
+        const reportesPorProceso = {};
+
+        // Agrupar N2 por proceso
+        if (data.n2 && Array.isArray(data.n2)) {
+            data.n2.forEach(report => {
+                const proceso = report.proceso || 'Sin proceso';
+                if (!reportesPorProceso[proceso]) reportesPorProceso[proceso] = [];
+                reportesPorProceso[proceso].push({ type: 'n2', ...report });
+            });
+        }
+
+        // Agrupar Tarjetas por zona de riesgo
+        if (data.tarjetas && Array.isArray(data.tarjetas)) {
+            data.tarjetas.forEach(report => {
+                const proceso = report.zonaRiesgo || 'Sin zona';
+                if (!reportesPorProceso[proceso]) reportesPorProceso[proceso] = [];
+                reportesPorProceso[proceso].push({ type: 'tarjeta', ...report });
+            });
+        }
+
+        // Agrupar Máquinas por proceso
+        if (data.maquinas && Array.isArray(data.maquinas)) {
+            data.maquinas.forEach(report => {
+                const proceso = report.proceso || 'Sin proceso';
+                if (!reportesPorProceso[proceso]) reportesPorProceso[proceso] = [];
+                reportesPorProceso[proceso].push({ type: 'maquina', ...report });
+            });
+        }
+
+        // Agrupar Ciclos por proceso
+        if (data.ciclos && Array.isArray(data.ciclos)) {
+            data.ciclos.forEach(report => {
+                const proceso = report.proceso || 'Sin proceso';
+                if (!reportesPorProceso[proceso]) reportesPorProceso[proceso] = [];
+                reportesPorProceso[proceso].push({ type: 'ciclo', ...report });
+            });
+        }
+
+        container.innerHTML = '';
+
+        if (Object.keys(reportesPorProceso).length === 0) {
+            container.innerHTML = `<div class="consolidado-empty"><h3> No hay reportes</h3><p>No se encontraron reportes en el sistema</p></div>`;
+            return;
+        }
+
+        // Ordenar procesos alfabéticamente
+        const procesosOrdenados = Object.keys(reportesPorProceso).sort();
+
+        procesosOrdenados.forEach(proceso => {
+            const reportes = reportesPorProceso[proceso];
+
+            const procesoSection = document.createElement('div');
+            procesoSection.className = 'consolidado-proceso-section';
+
+            // Contar reportes por tipo
+            const resumenN2 = reportes.filter(r => r.type === 'n2').length;
+            const resumenTarjetas = reportes.filter(r => r.type === 'tarjeta').length;
+            const resumenMaquinas = reportes.filter(r => r.type === 'maquina').length;
+            const resumenCiclos = reportes.filter(r => r.type === 'ciclo').length; // Nuevo
+            const totalCount = reportes.length;
+
+            const header = document.createElement('div');
+            header.className = 'consolidado-proceso-header';
+            header.innerHTML = `
+            <div class="consolidado-proceso-name">${proceso}</div>
+            <div class="consolidado-proceso-stats">
+                <span>Total: <strong>${totalCount}</strong></span>
+                ${resumenN2 > 0 ? `<span>N2: <strong>${resumenN2}</strong></span>` : ''}
+                ${resumenTarjetas > 0 ? `<span>Tarjetas: <strong>${resumenTarjetas}</strong></span>` : ''}
+                ${resumenMaquinas > 0 ? `<span>Máquinas: <strong>${resumenMaquinas}</strong></span>` : ''}
+                ${resumenCiclos > 0 ? `<span>Ciclos: <strong>${resumenCiclos}</strong></span>` : ''}
+            </div>
+        `;
+            procesoSection.appendChild(header);
+
+            const grid = document.createElement('div');
+            grid.className = 'consolidado-reports-grid';
+            reportes.forEach(report => {
+                grid.appendChild(createConsolidadoReportItem(report));
+            });
+            procesoSection.appendChild(grid);
+
+            container.appendChild(procesoSection);
+        });
+    }
+
+</script>

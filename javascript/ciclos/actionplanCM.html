@@ -1,0 +1,288 @@
+<script>
+    // ========== FUNCIONES PLAN DE ACCIÓN 5W+2H ==========
+
+    let contadorFilasAccion = 0;
+
+    // Obtener causas raíz automáticamente (prioridad: 5 Por Qué > Espina de Pescado)
+    function obtenerCausasRaizAutomaticas() {
+        const causas = [];
+
+        // Primero intentar obtener causas raíz del análisis 5 Por Qué
+        const seccion5Porques = document.getElementById('seccion5Porques');
+        const esta5PorquesVisible = seccion5Porques && seccion5Porques.style.display !== 'none';
+
+        if (esta5PorquesVisible) {
+            document.querySelectorAll('#tbody5Porques tr[data-row-key]').forEach(row => {
+                const raizInput = row.querySelector('.raiz-input');
+                if (raizInput && raizInput.value.trim()) {
+                    causas.push({
+                        fuente: '5 Por Qué',
+                        texto: raizInput.value.trim()
+                    });
+                }
+            });
+        }
+
+        // Si hay causas del 5 Por Qué, usarlas
+        if (causas.length > 0) {
+            return causas;
+        }
+
+        // Si no hay causas del 5 Por Qué, obtener de la espina de pescado
+        const categorias = ['ambiente', 'mano', 'materiales', 'tiempo', 'metodo', 'maquina'];
+        const categoriaLabelsAccion = {
+            'ambiente': 'Medio Ambiente',
+            'mano': 'Mano de Obra',
+            'materiales': 'Materiales',
+            'tiempo': 'Tiempo',
+            'metodo': 'Método',
+            'maquina': 'Máquina'
+        };
+
+        categorias.forEach(cat => {
+            const container = document.getElementById('causas-' + cat);
+            if (container) {
+                container.querySelectorAll('.cause-input-pro').forEach(input => {
+                    const valor = input.value.trim();
+                    if (valor) {
+                        causas.push({
+                            fuente: 'Espina - ' + categoriaLabelsAccion[cat],
+                            texto: valor
+                        });
+                    }
+                });
+            }
+        });
+
+        return causas;
+    }
+
+    // Obtener la siguiente causa raíz disponible
+    function obtenerSiguienteCausaRaiz() {
+        const causas = obtenerCausasRaizAutomaticas();
+        const filasExistentes = document.querySelectorAll('#tbodyPlanAccion tr[data-fila-accion]').length;
+
+        // Si hay más causas que filas, devolver la siguiente
+        if (filasExistentes < causas.length) {
+            return causas[filasExistentes];
+        }
+
+        // Si ya se usaron todas las causas, devolver null
+        return null;
+    }
+
+    // Agregar nueva fila de acción con causa raíz automática
+    function agregarFilaAccion() {
+        contadorFilasAccion++;
+        const tbody = document.getElementById('tbodyPlanAccion');
+        const emptyMsg = document.getElementById('planAccionEmpty');
+
+        if (emptyMsg) {
+            emptyMsg.style.display = 'none';
+        }
+
+        // Obtener causa raíz automática
+        const causaRaiz = obtenerSiguienteCausaRaiz();
+        const textoCausa = causaRaiz ? causaRaiz.texto : '';
+        const fuenteCausa = causaRaiz ? causaRaiz.fuente : '';
+
+        const newRow = document.createElement('tr');
+        newRow.setAttribute('data-fila-accion', contadorFilasAccion);
+        newRow.innerHTML = `
+        <td>
+            <div class="causa-raiz-cell" data-field="cual" data-fuente="${fuenteCausa}">
+                ${textoCausa || '<em style="color:#9ca3af;">Sin causa asignada</em>'}
+            </div>
+            <input type="hidden" class="causa-raiz-hidden" value="${textoCausa}">
+        </td>
+        <td>
+            <textarea class="accion-textarea" data-field="que" placeholder="Describa la solución específica..."></textarea>
+        </td>
+        <td>
+            <textarea class="accion-textarea" data-field="donde" placeholder="Proceso, línea, área..."></textarea>
+        </td>
+        <td>
+            <div class="accion-search-container">
+                <input type="text" 
+                    class="accion-search-input" 
+                    data-field="quien"
+                    placeholder="Buscar responsable..."
+                    autocomplete="off"
+                    oninput="searchResponsableAccion(this, ${contadorFilasAccion})"
+                    onfocus="showResponsableResults(${contadorFilasAccion})">
+                <div class="accion-search-results" id="resultsAccion${contadorFilasAccion}"></div>
+            </div>
+        </td>
+        <td>
+            <textarea class="accion-textarea" data-field="como" placeholder="Detalle del procedimiento..."></textarea>
+        </td>
+        <td>
+            <input type="date" class="accion-date" data-field="cuando">
+        </td>
+        <td>
+            <input type="text" class="accion-input" data-field="cuanto" placeholder="$ o recursos">
+        </td>
+        <td>
+            <button type="button" class="btn-eliminar-accion" onclick="eliminarFilaAccion(this)" title="Eliminar acción">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+            </button>
+        </td>
+    `;
+
+        tbody.appendChild(newRow);
+
+        // Mostrar alerta si no hay más causas disponibles
+        if (!causaRaiz) {
+            const causasDisponibles = obtenerCausasRaizAutomaticas();
+            if (causasDisponibles.length === 0) {
+                showAlert('warning', 'Sin Causas', 'No hay causas registradas. Complete la Espina de Pescado o el análisis 5 Por Qué primero.', 4000);
+            }
+        }
+    }
+
+    // Eliminar fila de acción
+    function eliminarFilaAccion(btn) {
+        const row = btn.closest('tr');
+        row.style.animation = 'fadeOut 0.2s ease';
+
+        setTimeout(() => {
+            row.remove();
+            verificarFilasAccionVacias();
+            // Reasignar causas raíz a las filas restantes
+            reasignarCausasRaiz();
+        }, 200);
+    }
+
+    // Reasignar causas raíz después de eliminar una fila
+    function reasignarCausasRaiz() {
+        const causas = obtenerCausasRaizAutomaticas();
+        const filas = document.querySelectorAll('#tbodyPlanAccion tr[data-fila-accion]');
+
+        filas.forEach((fila, index) => {
+            const celdaCausa = fila.querySelector('.causa-raiz-cell');
+            const inputOculto = fila.querySelector('.causa-raiz-hidden');
+
+            if (index < causas.length) {
+                const causa = causas[index];
+                celdaCausa.innerHTML = causa.texto;
+                celdaCausa.setAttribute('data-fuente', causa.fuente);
+                inputOculto.value = causa.texto;
+            } else {
+                celdaCausa.innerHTML = '<em style="color:#9ca3af;">Sin causa asignada</em>';
+                celdaCausa.setAttribute('data-fuente', '');
+                inputOculto.value = '';
+            }
+        });
+    }
+
+    // Verificar si no hay filas
+    function verificarFilasAccionVacias() {
+        const tbody = document.getElementById('tbodyPlanAccion');
+        const emptyMsg = document.getElementById('planAccionEmpty');
+
+        if (tbody && tbody.children.length === 0 && emptyMsg) {
+            emptyMsg.style.display = 'block';
+        }
+    }
+
+    // Búsqueda de responsable en la tabla
+    function searchResponsableAccion(input, filaId) {
+        const query = input.value;
+        const resultsContainer = document.getElementById('resultsAccion' + filaId);
+
+        if (!query || query.length < 2) {
+            resultsContainer.style.display = 'none';
+            return;
+        }
+
+        const searchTerm = query.toLowerCase();
+        const filteredLeaders = leadersData.filter(leader => {
+            const texto = leader.info ? leader.info.toLowerCase() : "";
+            return texto.includes(searchTerm);
+        });
+
+        if (filteredLeaders.length === 0) {
+            resultsContainer.innerHTML = '<div class="search-result-item">No se encontraron resultados</div>';
+        } else {
+            resultsContainer.innerHTML = filteredLeaders.map(leader => `
+            <div class="search-result-item" onclick="selectResponsableAccion('${leader.info}', ${filaId})">
+                ${leader.info}
+            </div>
+        `).join('');
+        }
+
+        resultsContainer.style.display = 'block';
+    }
+
+    // Mostrar resultados de búsqueda
+    function showResponsableResults(filaId) {
+        const input = document.querySelector(`tr[data-fila-accion="${filaId}"] .accion-search-input`);
+        if (input && input.value.length >= 2) {
+            searchResponsableAccion(input, filaId);
+        }
+    }
+
+    // Seleccionar responsable
+    function selectResponsableAccion(info, filaId) {
+        const input = document.querySelector(`tr[data-fila-accion="${filaId}"] .accion-search-input`);
+        const resultsContainer = document.getElementById('resultsAccion' + filaId);
+
+        if (input) {
+            input.value = info;
+        }
+        if (resultsContainer) {
+            resultsContainer.style.display = 'none';
+        }
+    }
+
+    // Cerrar resultados al hacer clic fuera
+    document.addEventListener('click', function (event) {
+        if (!event.target.closest('.accion-search-container')) {
+            document.querySelectorAll('.accion-search-results').forEach(container => {
+                container.style.display = 'none';
+            });
+        }
+    });
+
+    // Recopilar datos del plan de acción
+    function recopilarDatosPlanAccion() {
+        const acciones = [];
+
+        document.querySelectorAll('#tbodyPlanAccion tr[data-fila-accion]').forEach(row => {
+            const accion = {
+                cual: row.querySelector('.causa-raiz-hidden')?.value || '',
+                que: row.querySelector('[data-field="que"]')?.value || '',
+                donde: row.querySelector('[data-field="donde"]')?.value || '',
+                quien: row.querySelector('[data-field="quien"]')?.value || '',
+                como: row.querySelector('[data-field="como"]')?.value || '',
+                cuando: row.querySelector('[data-field="cuando"]')?.value || '',
+                cuanto: row.querySelector('[data-field="cuanto"]')?.value || ''
+            };
+
+            // Solo agregar si tiene al menos un campo lleno
+            if (Object.values(accion).some(v => v && v.trim())) {
+                acciones.push(accion);
+            }
+        });
+
+        return acciones;
+    }
+
+    // Limpiar plan de acción
+    function limpiarPlanAccion() {
+        const tbody = document.getElementById('tbodyPlanAccion');
+        const emptyMsg = document.getElementById('planAccionEmpty');
+
+        if (tbody) {
+            tbody.innerHTML = '';
+        }
+        if (emptyMsg) {
+            emptyMsg.style.display = 'block';
+        }
+
+        contadorFilasAccion = 0;
+    }
+
+</script>

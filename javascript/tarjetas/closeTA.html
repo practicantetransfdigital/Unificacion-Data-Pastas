@@ -1,0 +1,125 @@
+<script>
+
+/**
+ * Muestra modal para cerrar tarjeta con comentario
+ */
+    function showCloseTarjetaModal(rowIndex) {
+        // Eliminar modal existente
+        const existingModal = document.getElementById('closeTarjetaModal');
+        if (existingModal) existingModal.remove();
+
+        // Overlay
+        const overlay = document.createElement('div');
+        overlay.id = 'closeTarjetaModal';
+        overlay.style.cssText = `
+        position: fixed; top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: rgba(0,0,0,0.5); backdrop-filter: blur(5px);
+        display: flex; align-items: center; justify-content: center;
+        z-index: 10000;
+    `;
+
+        // Contenido del modal
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+        background: #fff; padding: 2rem;
+        border-radius: 16px; width: 90%; max-width: 500px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    `;
+
+        modal.innerHTML = `
+        <h2 style="margin-bottom: 1rem; font-size: 20px; font-weight: 600; color: #1e293b; text-align:center">
+            Cerrar Tarjeta de Anormalidad
+        </h2>
+        <p style="margin-bottom: 1.5rem; font-size: 14px; color: #64748b; text-align: center;">
+            Agregue un comentario sobre la solución o cierre de esta tarjeta
+        </p>
+        
+        <div style="margin-bottom: 1.5rem;">
+            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #374151;">
+                Responsable del cierre:
+            </label>
+            <input 
+                type="text" 
+                id="responsableCierre" 
+                value="${currentUser.nombre || currentUser.cedula || ''}"
+                readonly
+                style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 8px; background: #f9fafb; color: #6b7280;"
+            >
+            <p style="font-size: 12px; color: #6b7280; margin-top: 0.25rem;">
+                Este campo se completa automáticamente con su información
+            </p>
+        </div>
+        
+        <div style="margin-bottom: 1.5rem;">
+            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #374151;">
+                Comentario de cierre:
+            </label>
+            <textarea 
+                id="comentarioCierre" 
+                placeholder="Describa la solución implementada o razón del cierre..."
+                style="width: 100%; min-height: 120px; padding: 1rem; border: 2px solid #e2e8f0; border-radius: 10px; font-family: inherit; font-size: 14px; resize: vertical;"
+            ></textarea>
+        </div>
+        
+        <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
+            <button id="cancelCloseBtn" style="padding: 0.75rem 1.5rem; border: 1px solid #cbd5e1; border-radius: 8px; cursor: pointer; background: white; font-weight: 500;">
+                Cancelar
+            </button>
+            <button id="confirmCloseBtn" style="padding: 0.75rem 1.5rem; border: none; background: #dc3545; color: #fff; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                Cerrar Tarjeta
+            </button>
+        </div>
+    `;
+
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+
+        // Botón cancelar
+        modal.querySelector('#cancelCloseBtn').addEventListener('click', () => overlay.remove());
+
+        // Botón confirmar
+        modal.querySelector('#confirmCloseBtn').addEventListener('click', () => {
+            const comentario = modal.querySelector('#comentarioCierre').value.trim();
+            const responsableCierre = modal.querySelector('#responsableCierre').value.trim();
+
+            if (!comentario) {
+                showAlert('warning', 'Comentario requerido', 'Por favor agregue un comentario antes de cerrar la tarjeta');
+                return;
+            }
+
+            if (!responsableCierre) {
+                showAlert('warning', 'Responsable requerido', 'El responsable del cierre es obligatorio');
+                return;
+            }
+
+            overlay.remove();
+            closeTarjetaReport(rowIndex, comentario, responsableCierre);
+        });
+
+        // Cerrar modal clickeando afuera
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) overlay.remove();
+        });
+    }
+
+
+    /**
+     * Cierra una tarjeta con comentario
+     */
+    function closeTarjetaReport(rowIndex, comentario, responsableCierre) {
+        showAlert('info', 'Cerrando tarjeta...', 'Procesando el cierre de la tarjeta', 2000);
+
+        google.script.run
+            .withSuccessHandler(() => {
+                showAlert('success', '¡Tarjeta cerrada!', 'La tarjeta ha sido cerrada exitosamente');
+                loadTarjetasReports(); // Recargar tarjetas
+            })
+            .withFailureHandler(err => {
+                console.error('Error al cerrar tarjeta:', err);
+                showAlert('error', 'Error', 'No se pudo cerrar la tarjeta: ' + err.message);
+            })
+            .closeTarjetaReport(rowIndex, comentario, responsableCierre);
+    }
+
+</script>

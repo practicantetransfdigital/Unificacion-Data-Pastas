@@ -1,0 +1,86 @@
+<script>
+    // Load leaders from Google Sheets
+    function loadLeaders() {
+        google.script.run
+            .withSuccessHandler(function (leaders) {
+                leadersData = leaders;
+                populateLeadersDropdown(leaders);
+                console.log('Leaders loaded:', leadersData.length);
+            })
+            .withFailureHandler(handleError)
+            .getLeaders();
+    }
+
+    function populateLeadersDropdown(leaders) {
+        const select = document.getElementById('liderResponsable');
+        if (select) {
+            select.innerHTML = '<option value="">Líder responsable</option>';
+
+            leaders.forEach(leader => {
+                const option = document.createElement('option');
+                option.value = leader.cedula;
+                option.textContent = `${leader.nombre} - ${leader.cedula}`;
+                select.appendChild(option);
+            });
+        }
+    }
+
+    function searchLeaders(query) {
+        const resultsContainer = document.getElementById('searchResults');
+
+        if (!query || query.length < 2) {
+            resultsContainer.style.display = 'none';
+            return;
+        }
+
+        const searchTerm = query.toLowerCase();
+
+        const filteredLeaders = leadersData.filter(leader => {
+            const texto = leader.info ? leader.info.toLowerCase() : "";
+            return texto.includes(searchTerm);
+        });
+
+        displaySearchResults(filteredLeaders);
+    }
+
+    function displaySearchResults(leaders) {
+        const resultsContainer = document.getElementById('searchResults');
+
+        if (leaders.length === 0) {
+            resultsContainer.innerHTML = '<div class="search-result-item">No se encontraron resultados</div>';
+        } else {
+            resultsContainer.innerHTML = leaders.map(leader => `
+            <div class="search-result-item" onclick="selectLeader('${leader.info}')">
+                <div class="search-result-name">${leader.info}</div>
+            </div>
+        `).join('');
+        }
+
+        resultsContainer.style.display = 'block';
+    }
+
+
+    function selectLeader(info) {
+        document.getElementById('liderSearch').value = info;
+        document.getElementById('selectedLeaderCedula').value = info;
+        document.getElementById('searchResults').style.display = 'none';
+    }
+
+
+    function showSearchResults() {
+        const query = document.getElementById('liderSearch').value;
+        if (query.length >= 2) {
+            searchLeaders(query);
+        }
+    }
+
+    document.addEventListener('click', function (event) {
+        const searchContainer = document.querySelector('.search-container');
+        if (searchContainer && !searchContainer.contains(event.target)) {
+            const searchResults = document.getElementById('searchResults');
+            if (searchResults) {
+                searchResults.style.display = 'none';
+            }
+        }
+    });
+</script>

@@ -1,0 +1,217 @@
+<script>
+
+    function createTarjetaCard(tarjeta, isCerrada) {
+        const card = document.createElement('div');
+        card.className = 'report-card tarjeta-card';
+        card.setAttribute('data-row-index', tarjeta.rowIndex);
+        card.setAttribute('data-prioridad', tarjeta.prioridad);
+        card.setAttribute('data-tarjeta-id', tarjeta.id);
+
+        // 🔹 Color del borde según prioridad
+        const colores = { Alta: '#dc3545', Media: '#fd7e14', Baja: '#28a745' };
+        const borderColor = colores[tarjeta.prioridad] || '#6c757d';
+        card.style.borderLeftColor = borderColor;
+
+        // 🔹 Calcular días desde la creación
+        let diasDesdeCreacion = '';
+        if (tarjeta.fechaCreacion) {
+            const fechaCreacion = new Date(tarjeta.fechaCreacion);
+            const hoy = new Date();
+            const diffDays = Math.floor((hoy - fechaCreacion) / (1000 * 60 * 60 * 24));
+            diasDesdeCreacion = `Hace ${diffDays} día${diffDays !== 1 ? 's' : ''}`;
+        }
+
+        const sapBadge = tarjeta.requiereSAP === 'Si'
+            ? `<span class="sap-badge" style="background-color: #1e3a8a; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">SAP</span>`
+            : '';
+
+        // Usando texto en lugar de icono
+        const editButtonHtml = !isCerrada ? `
+  <button 
+    class="edit-responsable-btn" 
+    title="Cambiar responsable"
+    onclick="showChangeTarjetaResponsibleModal(${tarjeta.rowIndex}, '${escapeHtml(tarjeta.responsableSolucion || '')}')"
+    style="background:none; border:none; cursor:pointer; color:#0d6efd; padding:0 4px; margin-left:4px; font-size:11px; text-decoration:underline;"
+  >
+    <i class="fa-solid fa-pencil"></i>
+  </button>
+` : '';
+
+        card.innerHTML = `
+    <div class="card-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="card-id">${tarjeta.id || ''}</span>
+            <span class="card-priority" 
+                  style="background:${borderColor};color:white;padding:4px 8px;border-radius:4px;font-size:11px;font-weight:600;">
+                ${tarjeta.prioridad || 'Sin prioridad'}
+            </span>
+            ${sapBadge}
+        </div>
+        <span class="card-date">${diasDesdeCreacion}</span>
+    </div>
+
+    <div class="card-title">${tarjeta.ubicacion || 'Sin ubicación'}</div>
+    <div class="card-description">${tarjeta.descripcionProblema || 'Sin descripción'}</div>
+
+    <div class="card-meta">
+        <span class="card-process">${tarjeta.zonaRiesgo || 'Sin zona'}</span>
+        <span class="card-risk-type" style="font-size:11px;color:#6c757d;margin-left:10px;">
+            ${tarjeta.tipoRiesgo || ''}
+        </span>
+        <span class="comment-count" id="comment-count-tar-${tarjeta.id}" style="color:black; border-radius:8px; padding:2px 6px; font-size:10px; margin-left:8px;">0</span>
+    </div>
+
+    <div class="card-images" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;"></div>
+
+    <div class="card-footer" 
+         style="margin-top:8px;padding-top:8px;border-top:1px solid #e9ecef;font-size:12px;color:#6c757d;">
+        <div style="margin-bottom: 4px;">
+            <strong>Responsable:</strong> 
+            <span style="display:inline-block; vertical-align:middle;">
+              ${tarjeta.responsableSolucion || 'No asignado'}
+            </span>
+            ${editButtonHtml}
+        </div>
+        <div style="margin-bottom: 4px;"><strong>Responsable especifico:</strong> ${tarjeta.responsableNombreVisualizarReporte || 'Desconocido'}</div>
+        <div style="margin-bottom: 4px;"><strong>Creada por:</strong> ${tarjeta.nombreCedula || 'Desconocido'}</div>
+        <div style="margin-bottom: 4px;"><strong>Problema asociado:</strong> ${tarjeta.problemaAsociado || 'N/A'}</div>
+        <div style="margin-bottom: 4px;"><strong>Sistema de gestión:</strong> ${tarjeta.sistemaGestion || 'N/A'}</div>
+        <div style="margin-bottom: 4px;"><strong>Generada por:</strong> ${tarjeta.generadaPor || 'N/A'}</div>
+        ${tarjeta.requiereSAP === 'Si' ? `<div style="margin-bottom: 4px;"><strong style="color:#1e3a8a;">Requiere SAP:</strong> <span style="color:#1e3a8a; font-weight:600;">SÍ</span></div>` : ''}
+        ${tarjeta.estado === 'Cerrada'
+                ? `<div style="margin-bottom: 4px;"><strong style="color:#d9534f;">Comentario de Cierre:</strong> 
+                 <span style="color:#d9534f;">${tarjeta.comentarioCierre || 'N/A'}</span>
+               </div>
+               <div style="margin-bottom: 4px;"><strong style="color:#d9534f;">Cerrada por:</strong> 
+                 <span style="color:#d9534f;">${tarjeta.responsableCierre || 'N/A'}</span>
+               </div>`
+                : ''
+            }
+    </div>
+
+    <div class="card-actions">
+        <button class="card-action-btn" onclick="viewTarjetaDetails(${tarjeta.rowIndex})">Ver Detalles</button>
+        <button class="card-action-btn" onclick="showTarjetasCommentsModal('${tarjeta.id}')">Seguimiento</button>
+        ${!isCerrada
+                ? `<button class="card-action-btn card-close-btn" onclick="showCloseTarjetaModal(${tarjeta.rowIndex})">Cerrar Tarjeta</button>`
+                : ''
+            }
+    </div>
+  `;
+
+        const imagesContainer = card.querySelector('.card-images');
+
+        if (tarjeta.fotos && tarjeta.fotos.length > 0) {
+            // Contenedor de lista
+            const listContainer = document.createElement('div');
+            listContainer.className = 'photo-links-list';
+
+            // Header con contador
+            const listHeader = document.createElement('div');
+            listHeader.style.cssText = `
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 12px;
+      color: #6c757d;
+    `;
+            listHeader.innerHTML = `
+      <span class="photos-list-count">
+        <i class="fas fa-images"></i>
+        ${tarjeta.fotos.length} imagen(es)
+      </span>
+      <span style="font-size: 11px; color: #adb5bd;">
+        Click en el enlace para ver una imagen
+      </span>
+    `;
+            listContainer.appendChild(listHeader);
+
+            // Crear lista de links
+            tarjeta.fotos.forEach((url, i) => {
+                if (typeof url === 'string' && url.trim() !== '') {
+                    const linkItem = document.createElement('a');
+                    linkItem.href = url;
+                    linkItem.target = '_blank';
+                    linkItem.rel = 'noopener noreferrer';
+                    linkItem.className = 'photo-link-item';
+                    linkItem.title = `Ver imagen ${i + 1} en tamaño completo (Se abrirá en nueva pestaña)`;
+
+                    // Extraer nombre del archivo de la URL si es posible
+                    let fileName = `Imagen ${i + 1}`;
+                    try {
+                        const urlObj = new URL(url);
+                        const pathParts = urlObj.pathname.split('/');
+                        const lastPart = pathParts[pathParts.length - 1];
+                        if (lastPart && lastPart.includes('.')) {
+                            fileName = lastPart.split('?')[0];
+                        }
+                    } catch (e) {
+                        // Si no es URL válida, mantener nombre por defecto
+                    }
+
+                    linkItem.innerHTML = `
+          <div class="photo-link-icon">
+            <i class="fas fa-file-image"></i>
+          </div>
+          <div class="photo-link-text">
+            ${fileName}
+          </div>
+          <div class="photo-link-size">
+            Foto ${i + 1}
+          </div>
+          <div class="photo-link-external">
+            <i class="fas fa-external-link-alt"></i>
+          </div>
+        `;
+
+                    listContainer.appendChild(linkItem);
+                }
+            });
+
+            imagesContainer.appendChild(listContainer);
+
+        } else {
+            // Cuando no hay fotos
+            imagesContainer.innerHTML = `
+      <div class="no-photos-list">
+        <i class="far fa-image"></i>
+        No hay imágenes adjuntas a esta tarjeta
+      </div>
+    `;
+        }
+
+        return card;
+    }
+
+/**
+ * Muestra los detalles completos de una tarjeta
+ */
+    function viewTarjetaDetails(rowIndex) {
+        const tarjeta = tarjetasReports.find(t => t.rowIndex === rowIndex);
+        if (!tarjeta) return;
+
+        let detallesHTML = `
+        <br><strong>Zona de Riesgo:</strong> ${tarjeta.zonaRiesgo}\n <br><br>
+        <strong>Ubicación:</strong> ${tarjeta.ubicacion}\n <br><br>
+        <strong>Prioridad:</strong> ${tarjeta.prioridad}\n <br><br>
+        <strong>Descripción:</strong> ${tarjeta.descripcionProblema}\n <br><br>
+        <strong>Tipo de Riesgo:</strong> ${tarjeta.tipoRiesgo}\n <br><br>
+        <strong>Problema Asociado:</strong> ${tarjeta.problemaAsociado}\n <br><br>
+        ${tarjeta.sistemaGestion ? `<strong>Sistema de Gestión:</strong> ${tarjeta.sistemaGestion}\n <br><br>` : ''}
+        <strong>Responsable:</strong> ${tarjeta.responsableSolucion}\n <br><br>
+        <strong>Responsable especifico:</strong> ${tarjeta.responsableNombreVisualizarReporte}\n <br><br>
+        <strong>Generada por:</strong> ${tarjeta.nombreCedula}\n <br><br>
+        <strong>Fecha de Creación:</strong> ${formatDate(tarjeta.fechaCreacion)}\n <br><br>
+        <strong>Estado:</strong> ${tarjeta.estado}
+    `;
+
+        if (tarjeta.estado === 'Cerrada') {
+            detallesHTML += `\n <br><br><strong>Comentario de Cierre:</strong> ${tarjeta.comentarioCierre || 'N/A'}`;
+            detallesHTML += `\n <br><br><strong>Cerrada por:</strong> ${tarjeta.responsableCierre || 'N/A'}`;
+            detallesHTML += `\n <br><br><strong>Fecha de cierre:</strong> ${tarjeta.fechaCierreTarjeta || 'N/A'}`;
+        }
+
+        showAlert('info', 'Detalles de la Tarjeta', detallesHTML, 10000);
+    }
+
+</script>

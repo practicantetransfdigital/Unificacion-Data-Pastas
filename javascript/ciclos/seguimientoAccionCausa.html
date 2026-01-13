@@ -1,0 +1,344 @@
+<script>
+    // ========== FUNCIONES SEGUIMIENTO POR ACCIÓN-CAUSA ==========
+
+    function guardarSeguimientoAccion() {
+        if (!accionCausaActual) {
+            showAlert('error', 'Error', 'No hay acción seleccionada');
+            return;
+        }
+
+        const nuevoEstado = document.getElementById('nuevoEstadoAccion').value;
+        const comentario = document.getElementById('comentarioAccion').value.trim();
+
+        if (!comentario) {
+            showAlert('warning', 'Atención', 'Por favor agregue un comentario');
+            return;
+        }
+
+        const btn = document.querySelector('.btn-guardar-seguimiento');
+        const originalHTML = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<svg class="spinner-icon" width="16" height="16" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" opacity="0.25"/></svg> Guardando...';
+
+        const seguimiento = {
+            cicloId: accionCausaActual.cicloId,
+            causaIndex: accionCausaActual.causaIndex,
+            causaTexto: accionCausaActual.causaTexto,
+            estado: nuevoEstado,
+            comentario: comentario,
+            autor: currentUser ? currentUser.nombre : 'Usuario'
+        };
+
+        google.script.run
+            .withSuccessHandler(function (result) {
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+
+                if (result.success) {
+                    showAlert('success', 'Éxito', 'Seguimiento guardado correctamente');
+                    document.getElementById('comentarioAccion').value = '';
+                    cargarHistorialAccionCausa(accionCausaActual.cicloId, accionCausaActual.causaIndex);
+                } else {
+                    showAlert('error', 'Error', result.message || 'No se pudo guardar');
+                }
+            })
+            .withFailureHandler(function (error) {
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+                showAlert('error', 'Error', 'Error al guardar: ' + error.message);
+            })
+            .guardarSeguimientoAccionCausa(seguimiento);
+    }
+
+    function cargarHistorialAccionCausa(cicloId, causaIndex) {
+        const timeline = document.getElementById('timelineAccion');
+        if (!timeline) return;
+
+        // Mostrar skeleton loader
+        timeline.innerHTML = `
+        <div class="skeleton-loader">
+            <div class="skeleton-item"></div>
+            <div class="skeleton-item"></div>
+            <div class="skeleton-item"></div>
+        </div>
+    `;
+
+        // Cargar datos con timeout para evitar bloqueo
+        setTimeout(() => {
+            google.script.run
+                .withSuccessHandler(function (historial) {
+                    // Usar requestAnimationFrame para render suave
+                    requestAnimationFrame(() => {
+                        renderHistorialAccionCausa(historial);
+                    });
+                })
+                .withFailureHandler(function (error) {
+                    timeline.innerHTML = `
+                    <div class="error-message">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>Error al cargar historial</p>
+                        <button onclick="cargarHistorialAccionCausa('${cicloId}', ${causaIndex})" class="btn-retry">
+                            Reintentar
+                        </button>
+                    </div>
+                `;
+                })
+                .getHistorialAccionCausa(cicloId, causaIndex);
+        }, 300); // Pequeño delay para priorizar la UI
+    }
+
+    function renderHistorialAccionCausa(historial) {
+        const timeline = document.getElementById('timelineAccion');
+
+        if (!historial || historial.length === 0) {
+            timeline.innerHTML = `
+      <div style="
+        text-align: center;
+        padding: 20px;
+        color: #666;
+        font-style: italic;
+      ">
+        <i class="fas fa-history" style="font-size: 24px; margin-bottom: 10px; display: block; color: #ccc;"></i>
+        No hay registros de seguimiento aún
+      </div>
+    `;
+            return;
+        }
+
+        let html = '';
+        historial.forEach(registro => {
+            const fecha = new Date(registro.fecha);
+            const fechaStr = fecha.toLocaleDateString('es-MX', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            // Determinar clase de estado
+            const estadoClass = registro.estado === 'Completado' ? 'completado' :
+                registro.estado === 'En Progreso' ? 'en-progreso' :
+                    registro.estado === 'Cerrado' ? 'cerrado' : 'abierto';
+
+            html += `
+      <div style="
+        margin-bottom: 15px;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border-left: 4px solid ${registro.estado === 'Completado' ? '#28a745' :
+                    registro.estado === 'En Progreso' ? '#007bff' :
+                        registro.estado === 'Cerrado' ? '#6c757d' : '#17a2b8'
+                };
+      ">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+          <span style="font-size: 12px; color: #666;">
+            <i class="far fa-calendar" style="margin-right: 5px;"></i>
+            ${fechaStr}
+          </span>
+          <span style="
+            background: ${registro.estado === 'Completado' ? '#28a745' :
+                    registro.estado === 'En Progreso' ? '#007bff' :
+                        registro.estado === 'Cerrado' ? '#6c757d' : '#17a2b8'
+                };
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+          ">
+            ${registro.estado}
+          </span>
+        </div>
+        <div style="margin-bottom: 8px; font-size: 14px;">
+          ${registro.comentario || '<em style="color: #999;">Sin comentario</em>'}
+        </div>
+        <div style="font-size: 12px; color: #666;">
+          <i class="fas fa-user" style="margin-right: 5px;"></i>
+          ${registro.autor || 'Sistema'}
+        </div>
+      </div>
+    `;
+        });
+
+        timeline.innerHTML = html;
+    }
+
+    function abrirSeguimientoAccion(causaIndex, causaTexto, cicloId) {
+        // Mostrar loader inmediatamente
+        showAlert('info', 'Cargando...', 'Abriendo seguimiento', 1500);
+
+        // Establecer datos mínimos primero
+        accionCausaActual = {
+            id: parseInt(causaIndex),
+            nombre: causaTexto,
+            cicloId: cicloId || (cicloActual ? cicloActual.id : null),
+            causaIndex: parseInt(causaIndex),
+            causaTexto: causaTexto
+        };
+
+        // Validación rápida
+        if (!accionCausaActual.cicloId) {
+            showAlert('error', 'Error', 'No se encontró el ciclo');
+            return;
+        }
+
+        // Crear modal (usando caché)
+        const modal = crearModalSeguimientoAccion();
+
+        // Establecer datos básicos inmediatamente
+        document.getElementById('seguimientoCicloId').textContent = accionCausaActual.cicloId;
+        document.getElementById('seguimientoCausaTexto').textContent = causaTexto || 'Acción específica';
+        document.getElementById('nuevoEstadoAccion').value = 'Abierto'; // Valor por defecto
+        document.getElementById('comentarioAccion').value = '';
+
+        // Mostrar modal inmediatamente
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+
+        // Cargar datos en segundo plano (sin bloquear la UI)
+        setTimeout(() => {
+            // Obtener estado real (async)
+            google.script.run
+                .withSuccessHandler(function (estadoActual) {
+                    if (estadoActual && document.getElementById('nuevoEstadoAccion')) {
+                        document.getElementById('nuevoEstadoAccion').value = estadoActual;
+                    }
+                })
+                .getEstadoAccionCausa(accionCausaActual.cicloId, causaIndex);
+
+            // Cargar historial
+            cargarHistorialAccionCausa(accionCausaActual.cicloId, causaIndex);
+        }, 100);
+    }
+
+    let modalSeguimientoCache = null;
+    let modalInitialized = false;
+
+    function crearModalSeguimientoAccion() {
+        // Usar caché del modal
+        if (modalSeguimientoCache && document.body.contains(modalSeguimientoCache)) {
+            return modalSeguimientoCache;
+        }
+
+        // Crear modal simple
+        const modalHTML = `
+    <div id="modalSeguimientoAccion" class="modal-overlay-seguimiento" style="display:none;">
+        <div class="modal-seguimiento-content">
+            <button class="modal-seguimiento-close">&times;</button>
+            
+            <div class="modal-seguimiento-header">
+                <div class="modal-header-info">
+                    <span class="modal-seguimiento-id-badge" id="seguimientoCicloId">CM-001</span>
+                    <span class="modal-seguimiento-causa-badge" id="seguimientoCausaTexto">Causa raíz</span>
+                </div>
+                <h3 class="modal-seguimiento-title">Seguimiento de Acción-Causa</h3>
+            </div>
+
+            <div class="seguimiento-form-box">
+                <h4>Actualizar Estado</h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Nuevo Estado</label>
+                        <select class="form-select" id="nuevoEstadoAccion">
+                            <option value="Abierto">Abierto</option>
+                            <option value="En Progreso">En Progreso</option>
+                            <option value="Implementado">Implementado</option>
+                            <option value="Cerrado">Cerrado</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Comentario</label>
+                    <textarea class="form-textarea" id="comentarioAccion" 
+                              placeholder="Agregue un comentario sobre el cambio de estado o avance de la acción..." 
+                              rows="3"></textarea>
+                </div>
+                <button type="button" class="btn-guardar-seguimiento">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+                        <polyline points="17,21 17,13 7,13 7,21"/>
+                        <polyline points="7,3 7,8 15,8"/>
+                    </svg>
+                    Guardar Seguimiento
+                </button>
+            </div>
+
+            <div class="historial-section">
+                <h4>Historial de Seguimiento</h4>
+                <div class="timeline-wrapper" id="timelineAccion"></div>
+            </div>
+        </div>
+    </div>
+    `;
+
+        // Agregar al DOM una sola vez
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+        // Guardar referencia en caché
+        modalSeguimientoCache = document.getElementById('modalSeguimientoAccion');
+
+        // Configurar listeners solo una vez
+        if (!modalInitialized) {
+            setupModalListeners();
+            modalInitialized = true;
+        }
+
+        return modalSeguimientoCache;
+    }
+
+    function cerrarModalSeguimiento() {
+        const modal = modalSeguimientoCache;
+        if (!modal) return;
+
+        // Animación de salida
+        modal.style.opacity = '0';
+        modal.style.transform = 'scale(0.95)';
+
+        setTimeout(() => {
+            modal.style.display = 'none';
+            // Restaurar para la próxima apertura
+            modal.style.opacity = '1';
+            modal.style.transform = 'scale(1)';
+            document.body.style.overflow = 'auto';
+            accionCausaActual = null;
+
+            // Limpiar contenido pesado
+            const timeline = document.getElementById('timelineAccion');
+            if (timeline) timeline.innerHTML = '';
+        }, 200);
+    }
+
+    function setupModalListeners() {
+        const modal = modalSeguimientoCache;
+        if (!modal) return;
+
+        // Cerrar modal con botón X
+        const closeBtn = modal.querySelector('.modal-seguimiento-close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', cerrarModalSeguimiento);
+        }
+
+        // Cerrar modal haciendo clic fuera
+        modal.addEventListener('click', function (e) {
+            if (e.target === modal) {
+                cerrarModalSeguimiento();
+            }
+        });
+
+        // Guardar seguimiento
+        const saveBtn = modal.querySelector('.btn-guardar-seguimiento');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', guardarSeguimientoAccion);
+        }
+
+        // Cerrar con ESC
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && modal.style.display !== 'none') {
+                cerrarModalSeguimiento();
+            }
+        });
+    }
+
+</script>

@@ -1,0 +1,113 @@
+<script>
+
+    function loadN2Reports() {
+        showLoadingSpinner();
+
+        google.script.run
+            .withSuccessHandler(function (reports) {
+                console.log('[FRONTEND] getN2Reports devolvió:', reports, Array.isArray(reports));
+                displayN2Reports(reports);
+                loadCommentsCount();
+            })
+            .withFailureHandler(function (err) {
+                console.error('[FRONTEND] Error al llamar getN2Reports:', err);
+                handleN2Error(err);
+            })
+            .getN2Reports();
+    }
+
+    function displayN2Reports(reports) {
+        console.log('[v0] Reports received from backend:', reports);
+
+        if (!Array.isArray(reports)) {
+            reports = [];
+        }
+
+        // 🔹 Aquí guardamos todos los reportes para poder buscarlos después
+        n2Reports = reports;
+
+        console.log('[v0] Guardados en n2Reports:', n2Reports.length);
+
+        // Limpiar contenedores
+        const containers = document.querySelectorAll('.cards-container');
+        containers.forEach(container => {
+            container.innerHTML = '';
+        });
+
+        // Agrupar y mostrar...
+        const reportsByStatus = {
+            'Pendiente': [],
+            'En Progreso': [],
+            'En Revision': [],
+            'Completado': []
+        };
+
+        reports.forEach(report => {
+            const status = report.estado || 'Pendiente';
+            if (reportsByStatus[status]) {
+                reportsByStatus[status].push(report);
+            }
+        });
+
+        Object.entries(reportsByStatus).forEach(([status, statusReports]) => {
+            const containerId = status.toLowerCase().replace(' ', '-') + '-cards';
+            const countId = status.toLowerCase().replace(' ', '-') + '-count';
+
+            const container = document.getElementById(containerId);
+            const countElement = document.getElementById(countId);
+
+            if (container && countElement) {
+                countElement.textContent = statusReports.length;
+
+                if (statusReports.length === 0) {
+                    container.innerHTML = `
+                    <div class="empty-column">
+                        <span>No hay reportes</span>
+                    </div>
+                `;
+                } else {
+                    statusReports.forEach(report => {
+                        container.appendChild(createReportCard(report));
+                    });
+                }
+            }
+        });
+    }
+
+    function updateReportCounts() {
+        const statuses = ['Pendiente', 'En Progreso', 'En Revision', 'Completado'];
+
+        statuses.forEach(status => {
+            const containerId = status.toLowerCase().replace(' ', '-') + '-cards';
+            const countId = status.toLowerCase().replace(' ', '-') + '-count';
+
+            const container = document.getElementById(containerId);
+            const countElement = document.getElementById(countId);
+
+            if (container && countElement) {
+                // 🔹 Cuenta solo las tarjetas visibles
+                const visibleCards = container.querySelectorAll('.report-card:not([style*="display: none"])');
+                countElement.textContent = visibleCards.length;
+            }
+        });
+    }
+
+    function handleN2Error(error) {
+        console.error('Error loading N2 reports:', error);
+        const containers = document.querySelectorAll('.cards-container');
+        containers.forEach(container => {
+            container.innerHTML = `
+                <div class="empty-column">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="8" x2="12" y2="12"/>
+                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    <span>Error al cargar reportes</span>
+                </div>
+            `;
+        });
+        showAlert('error', 'Error', 'No se pudieron cargar los reportes: ' + error.message);
+    }
+
+</script>

@@ -1,0 +1,193 @@
+<script>
+
+  //FILTRO POR PROCESO
+
+  function applyCombinedFilters() {
+    const selectedProcess = document.getElementById("ProcessFilter").value;
+    const selectedRespo = document.getElementById("ProcessRespo").value;
+    const searchQuery = document.getElementById("searchByName").value.toLowerCase();
+    const selectedReportFilter = document.getElementById("reportFilter").value;
+
+    if (!Array.isArray(n2Reports) || n2Reports.length === 0) return;
+
+    // 🔹 Empezamos filtrando desde los datos base
+    let filteredReports = [...n2Reports];
+
+    // 1️⃣ FILTRO: Tipo de Reporte (basado en currentUser)
+    switch (selectedReportFilter) {
+      case "myReports": // creados por el usuario
+        filteredReports = filteredReports.filter(r =>
+          r.nombreCedula && r.nombreCedula.includes(currentUser.cedula)
+        );
+        break;
+
+      case "assignedToMe": // donde el usuario es líder responsable
+        filteredReports = filteredReports.filter(r =>
+          r.liderResponsable && r.liderResponsable.includes(currentUser.cedula)
+        );
+        break;
+
+      case "myProcess": // del proceso del usuario
+        filteredReports = filteredReports.filter(r =>
+          r.proceso && r.proceso.toLowerCase() === currentUser.proceso_user.toLowerCase()
+        );
+        break;
+
+      default:
+        // mostrar todos
+        break;
+    }
+
+    // 2️⃣ FILTRO: Proceso (ProcessFilter)
+    if (selectedProcess !== "allProcess") {
+      const procesoName = selectedProcess.replace("Process", "");
+      filteredReports = filteredReports.filter(r =>
+        r.proceso && r.proceso.trim() === procesoName
+      );
+    }
+
+    // 3️⃣ FILTRO: Responsable de Proceso (ProcessRespo)
+    if (selectedRespo !== "all") {
+      filteredReports = filteredReports.filter(r =>
+        r.procesoResponsable && r.procesoResponsable.trim() === selectedRespo
+      );
+    }
+
+    // 4️⃣ FILTRO: Búsqueda por nombre (campo visible en la tarjeta)
+    if (searchQuery) {
+      filteredReports = filteredReports.filter(r =>
+        (r.liderResponsable && r.liderResponsable.toLowerCase().includes(searchQuery)) ||
+        (r.descripcion && r.descripcion.toLowerCase().includes(searchQuery))
+      );
+    }
+
+    console.log("🔍 Verificación de Base64 en reportes filtrados:");
+    filteredReports.forEach((report, index) => {
+      if (report.fotos && report.fotos.length > 0) {
+        console.log(`   Reporte ${index} (${report.id}): ${report.fotos.length} fotos`);
+        console.log(`   Primera foto es Base64: ${report.fotos[0].startsWith('data:image')}`);
+      }
+    });
+
+    console.log(`✅ ${filteredReports.length} reportes tras filtros combinados`);
+
+    // 🔹 Renderizar solo los reportes filtrados
+    updateVisibleReportsWithDOM(filteredReports);
+    loadCommentsCount();
+    updateReportCounts();
+  }
+
+  function updateVisibleReportsWithDOM(filteredReports) {
+    const containers = document.querySelectorAll('.cards-container');
+    containers.forEach(c => {
+      // Limpiar contenedor correctamente
+      while (c.firstChild) {
+        c.removeChild(c.firstChild);
+      }
+    });
+
+    if (!filteredReports.length) {
+      containers.forEach(c => {
+        const emptyDiv = document.createElement('div');
+        emptyDiv.className = 'empty-column';
+        emptyDiv.innerHTML = '<span>No hay reportes</span>';
+        c.appendChild(emptyDiv);
+      });
+      updateReportCounts();
+      return;
+    }
+
+    const reportsByStatus = {
+      'Pendiente': [],
+      'En Progreso': [],
+      'En Revision': [],
+      'Completado': []
+    };
+
+    filteredReports.forEach(r => {
+      const status = r.estado || 'Pendiente';
+      if (reportsByStatus[status]) reportsByStatus[status].push(r);
+    });
+
+    // 🔹 USAR appendChild con elementos DOM reales
+    Object.entries(reportsByStatus).forEach(([status, list]) => {
+      const containerId = status.toLowerCase().replace(' ', '-') + '-cards';
+      const countId = status.toLowerCase().replace(' ', '-') + '-count';
+      const container = document.getElementById(containerId);
+      const count = document.getElementById(countId);
+
+      if (container && count) {
+        count.textContent = list.length;
+
+        // Limpiar contenedor
+        while (container.firstChild) {
+          container.removeChild(container.firstChild);
+        }
+
+        if (list.length) {
+          list.forEach(r => {
+            // 🔹 IMPORTANTE: Usar el elemento DOM directamente
+            const cardElement = createReportCard(r);
+            container.appendChild(cardElement);
+          });
+        } else {
+          const emptyDiv = document.createElement('div');
+          emptyDiv.className = 'empty-column';
+          emptyDiv.innerHTML = '<span>No hay reportes</span>';
+          container.appendChild(emptyDiv);
+        }
+      }
+    });
+
+    updateReportCounts();
+  }
+
+
+  function updateVisibleReports(filteredReports) {
+    const containers = document.querySelectorAll('.cards-container');
+    containers.forEach(c => c.innerHTML = ''); // limpiar sin eliminar estructura
+
+    if (!filteredReports.length) {
+      containers.forEach(c => {
+        c.innerHTML = `
+        <div class="empty-column">
+          <span>No hay reportes</span>
+        </div>
+      `;
+      });
+      updateReportCounts();
+      return;
+    }
+
+    // agrupar por estado como siempre
+    const reportsByStatus = {
+      'Pendiente': [],
+      'En Progreso': [],
+      'En Revision': [],
+      'Completado': []
+    };
+
+    filteredReports.forEach(r => {
+      const status = r.estado || 'Pendiente';
+      if (reportsByStatus[status]) reportsByStatus[status].push(r);
+    });
+
+    // render normal
+    Object.entries(reportsByStatus).forEach(([status, list]) => {
+      const containerId = status.toLowerCase().replace(' ', '-') + '-cards';
+      const countId = status.toLowerCase().replace(' ', '-') + '-count';
+      const container = document.getElementById(containerId);
+      const count = document.getElementById(countId);
+
+      if (container && count) {
+        count.textContent = list.length;
+        container.innerHTML = list.length
+          ? list.map(r => createReportCard(r).outerHTML).join('')
+          : `<div class="empty-column"><span>No hay reportes</span></div>`;
+      }
+    });
+
+    updateReportCounts();
+  }
+
+</script>

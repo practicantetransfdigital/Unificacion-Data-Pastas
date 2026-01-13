@@ -1,0 +1,224 @@
+<script>
+    
+        function filterConsolidadoByName() {
+        const selectedProceso = document.getElementById('consolidadoProcesoFilter').value;
+        const selectedType = document.getElementById('ConsolidadoFilter').value;
+        const searchTerm = document.getElementById('consolidadoSearch').value.toLowerCase();
+        const container = document.getElementById('consolidadoContainer');
+        const procesoSections = container.querySelectorAll('.consolidado-proceso-section');
+
+        clearEmptyMessages();
+
+        let visibles = 0;
+
+        procesoSections.forEach(section => {
+            const procesoName = section.querySelector('.consolidado-proceso-name').textContent;
+            const reportItems = section.querySelectorAll('.consolidado-report-item');
+
+            const matchesProceso = selectedProceso === 'all' || procesoName === selectedProceso;
+
+            let hasVisibleReports = false;
+
+            reportItems.forEach(item => {
+                const tipoReporte = item.querySelector('.consolidado-report-type')?.textContent.trim() || '';
+                const nombrePersona = item.querySelector('.consolidado-person-name')?.textContent.toLowerCase() || '';
+
+                const matchesType = selectedType === 'all' ||
+                    (selectedType === 'N2' && tipoReporte === 'N2') ||
+                    (selectedType === 'Tarjetas de Anormalidades' && tipoReporte === 'Tarjeta') ||
+                    (selectedType === 'Anormalidades Criticas' && tipoReporte === 'Máquina') ||
+                    (selectedType === 'Ciclos de Mejora' && tipoReporte === 'Ciclos de Mejora'); // Nuevo
+
+                const matchesName = searchTerm === '' || nombrePersona.includes(searchTerm);
+
+                if (matchesProceso && matchesType && matchesName) {
+                    item.style.display = 'block';
+                    hasVisibleReports = true;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+
+            if (matchesProceso && hasVisibleReports) {
+                section.style.display = 'block';
+                visibles++;
+            } else {
+                section.style.display = 'none';
+            }
+        });
+
+        if (visibles === 0) {
+            showConsolidadoEmptyMessage(selectedProceso, selectedType, searchTerm);
+        }
+    }
+
+    function filterConsolidadoByRespo() {
+        const selectedProceso = document.getElementById('consolidadoProcesoFilter').value;
+        const selectedType = document.getElementById('ConsolidadoFilter').value;
+        const searchTerm = document.getElementById('consolidadoSearch').value.toLowerCase();
+        const respoSearchTerm = document.getElementById('consolidadoRespoSearch').value.toLowerCase(); // Nuevo: búsqueda por responsable
+
+        const container = document.getElementById('consolidadoContainer');
+        const procesoSections = container.querySelectorAll('.consolidado-proceso-section');
+
+        clearEmptyMessages();
+
+        let visibles = 0;
+
+        procesoSections.forEach(section => {
+            const procesoName = section.querySelector('.consolidado-proceso-name').textContent;
+            const reportItems = section.querySelectorAll('.consolidado-report-item');
+
+            const matchesProceso = selectedProceso === 'all' || procesoName === selectedProceso;
+
+            let hasVisibleReports = false;
+
+            reportItems.forEach(item => {
+                const tipoReporte = item.querySelector('.consolidado-report-type')?.textContent.trim() || '';
+                const nombrePersona = item.querySelector('.consolidado-person-name')?.textContent.toLowerCase() || '';
+                const nombreRespo = item.querySelector('.consolidado-respo-name')?.textContent.toLowerCase() || '';
+
+                const matchesType = selectedType === 'all' ||
+                    (selectedType === 'N2' && tipoReporte === 'N2') ||
+                    (selectedType === 'Tarjetas de Anormalidades' && tipoReporte === 'Tarjeta') ||
+                    (selectedType === 'Anormalidades Criticas' && tipoReporte === 'Máquina') ||
+                    (selectedType === 'Ciclos de Mejora' && tipoReporte === 'Ciclos de Mejora');
+
+                // Búsqueda por nombre de persona
+                const matchesName = searchTerm === '' || nombrePersona.includes(searchTerm);
+
+                // NUEVO: Búsqueda por responsable
+                const matchesRespo = respoSearchTerm === '' || nombreRespo.includes(respoSearchTerm);
+
+                // Combinar todos los filtros
+                if (matchesProceso && matchesType && matchesName && matchesRespo) {
+                    item.style.display = 'block';
+                    hasVisibleReports = true;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+
+            if (matchesProceso && hasVisibleReports) {
+                section.style.display = 'block';
+                visibles++;
+            } else {
+                section.style.display = 'none';
+            }
+        });
+
+        if (visibles === 0) {
+            showConsolidadoEmptyMessageWithRespo(selectedProceso, selectedType, searchTerm, respoSearchTerm);
+        }
+    }
+
+    function applyTypesFilter() {
+        filterConsolidadoByName();
+        filterConsolidadoByRespo();
+    }
+
+    let procesosDisponibles = [];
+
+    function loadProcesosFilter(data) {
+        const procesoFilter = document.getElementById('consolidadoProcesoFilter');
+        if (!procesoFilter) return;
+
+        procesoFilter.innerHTML = '<option value="all">Todos los procesos/zonas</option>';
+
+        const procesosSet = new Set();
+
+        // Procesar N2
+        if (data.n2 && Array.isArray(data.n2)) {
+            data.n2.forEach(report => {
+                if (report.proceso) procesosSet.add(report.proceso);
+            });
+        }
+
+        // Procesar Tarjetas
+        if (data.tarjetas && Array.isArray(data.tarjetas)) {
+            data.tarjetas.forEach(report => {
+                if (report.zonaRiesgo) procesosSet.add(report.zonaRiesgo);
+            });
+        }
+
+        // Procesar Máquinas
+        if (data.maquinas && Array.isArray(data.maquinas)) {
+            data.maquinas.forEach(report => {
+                if (report.proceso) procesosSet.add(report.proceso);
+            });
+        }
+
+        // Procesar Ciclos (NUEVO)
+        if (data.ciclos && Array.isArray(data.ciclos)) {
+            data.ciclos.forEach(report => {
+                if (report.proceso) procesosSet.add(report.proceso);
+            });
+        }
+
+        procesosDisponibles = Array.from(procesosSet).sort();
+
+        procesosDisponibles.forEach(proceso => {
+            const option = document.createElement('option');
+            option.value = proceso;
+            option.textContent = proceso;
+            procesoFilter.appendChild(option);
+        });
+    }
+
+    function filterConsolidadoByProcess() {
+        const selectedProceso = document.getElementById('consolidadoProcesoFilter').value;
+        const selectedType = document.getElementById('ConsolidadoFilter').value;
+        const searchTerm = document.getElementById('consolidadoSearch').value.toLowerCase();
+        const container = document.getElementById('consolidadoContainer');
+        const procesoSections = container.querySelectorAll('.consolidado-proceso-section');
+
+        clearEmptyMessages();
+
+        let visibles = 0;
+
+        procesoSections.forEach(section => {
+            const procesoName = section.querySelector('.consolidado-proceso-name').textContent;
+            const reportItems = section.querySelectorAll('.consolidado-report-item');
+
+            // Verificar si el proceso coincide con el filtro
+            const matchesProceso = selectedProceso === 'all' || procesoName === selectedProceso;
+
+            let hasVisibleReports = false;
+
+            // Filtrar cada reporte individualmente
+            reportItems.forEach(item => {
+                const tipoReporte = item.querySelector('.consolidado-report-type')?.textContent.trim() || '';
+                const nombrePersona = item.querySelector('.consolidado-person-name')?.textContent.toLowerCase() || '';
+
+                const matchesType = selectedType === 'all' ||
+                    (selectedType === 'N2' && tipoReporte === 'N2') ||
+                    (selectedType === 'Tarjetas de Anormalidades' && tipoReporte === 'Tarjeta') ||
+                    (selectedType === 'Anormalidades Criticas' && tipoReporte === 'Máquina');
+                (selectedType === 'Ciclos de Mejora' && tipoReporte === 'Ciclos de Mejora');
+
+                const matchesName = searchTerm === '' || nombrePersona.includes(searchTerm);
+
+                // Mostrar u ocultar cada reporte individualmente
+                if (matchesProceso && matchesType && matchesName) {
+                    item.style.display = 'block';
+                    hasVisibleReports = true;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+
+            // Mostrar/ocultar la sección completa
+            if (matchesProceso && hasVisibleReports) {
+                section.style.display = 'block';
+                visibles++;
+            } else {
+                section.style.display = 'none';
+            }
+        });
+
+        if (visibles === 0) {
+            showConsolidadoEmptyMessage(selectedProceso, selectedType, searchTerm);
+        }
+    }
+
+</script>

@@ -1,0 +1,89 @@
+<script>
+
+    function clearEmptyMessages() {
+        const container = document.getElementById('consolidadoContainer');
+        const emptyMessages = container.querySelectorAll('.consolidado-empty');
+        emptyMessages.forEach(msg => msg.remove());
+    }
+
+
+    function showConsolidadoEmptyMessage(selectedProceso, selectedType, searchTerm) {
+        const container = document.getElementById('consolidadoContainer');
+        const empty = document.createElement('div');
+        empty.className = 'consolidado-empty';
+
+        let message = '';
+
+        if (selectedProceso !== 'all' && selectedType !== 'all' && searchTerm !== '') {
+            message = `No se encontraron reportes del proceso "${selectedProceso}", tipo "${selectedType}" y nombre "${searchTerm}"`;
+        } else if (selectedProceso !== 'all' && selectedType !== 'all') {
+            message = `No se encontraron reportes del proceso "${selectedProceso}" y tipo "${selectedType}"`;
+        } else if (selectedProceso !== 'all' && searchTerm !== '') {
+            message = `No se encontraron reportes del proceso "${selectedProceso}" y nombre "${searchTerm}"`;
+        } else if (selectedType !== 'all' && searchTerm !== '') {
+            message = `No se encontraron reportes del tipo "${selectedType}" y nombre "${searchTerm}"`;
+        } else if (selectedProceso !== 'all') {
+            message = `No se encontraron reportes del proceso "${selectedProceso}"`;
+        } else if (selectedType !== 'all') {
+            message = `No se encontraron reportes del tipo "${selectedType}"`;
+        } else if (searchTerm !== '') {
+            message = `No se encontraron reportes del nombre "${searchTerm}"`;
+        } else {
+            message = 'No se encontraron reportes en el sistema';
+        }
+
+        empty.innerHTML = `<h3> Sin resultados</h3><p>${message}</p>`;
+        container.appendChild(empty);
+    }
+
+    function showConsolidadoEmptyMessageWithRespo(selectedProceso, selectedType, searchTerm, respoSearchTerm) {
+        const container = document.getElementById('consolidadoContainer');
+        const empty = document.createElement('div');
+        empty.className = 'consolidado-empty';
+
+        let message = '';
+
+        // Lógica para mensajes combinados
+        if (searchTerm && respoSearchTerm && selectedProceso !== 'all' && selectedType !== 'all') {
+            message = `No se encontraron reportes del proceso "${selectedProceso}", tipo "${selectedType}", nombre "${searchTerm}" y responsable "${respoSearchTerm}"`;
+        } else if (respoSearchTerm && selectedProceso !== 'all' && selectedType !== 'all') {
+            message = `No se encontraron reportes del proceso "${selectedProceso}", tipo "${selectedType}" y responsable "${respoSearchTerm}"`;
+        } else if (respoSearchTerm && selectedProceso !== 'all') {
+            message = `No se encontraron reportes del proceso "${selectedProceso}" y responsable "${respoSearchTerm}"`;
+        } else if (respoSearchTerm && selectedType !== 'all') {
+            message = `No se encontraron reportes del tipo "${selectedType}" y responsable "${respoSearchTerm}"`;
+        } else if (respoSearchTerm && searchTerm) {
+            message = `No se encontraron reportes del nombre "${searchTerm}" y responsable "${respoSearchTerm}"`;
+        } else if (respoSearchTerm) {
+            message = `No se encontraron reportes del responsable "${respoSearchTerm}"`;
+        } else if (selectedProceso !== 'all' && selectedType !== 'all' && searchTerm) {
+            message = `No se encontraron reportes del proceso "${selectedProceso}", tipo "${selectedType}" y nombre "${searchTerm}"`;
+        } else if (selectedProceso !== 'all' && selectedType !== 'all') {
+            message = `No se encontraron reportes del proceso "${selectedProceso}" y tipo "${selectedType}"`;
+        } else if (selectedProceso !== 'all' && searchTerm) {
+            message = `No se encontraron reportes del proceso "${selectedProceso}" y nombre "${searchTerm}"`;
+        } else if (selectedType !== 'all' && searchTerm) {
+            message = `No se encontraron reportes del tipo "${selectedType}" y nombre "${searchTerm}"`;
+        } else if (selectedProceso !== 'all') {
+            message = `No se encontraron reportes del proceso "${selectedProceso}"`;
+        } else if (selectedType !== 'all') {
+            message = `No se encontraron reportes del tipo "${selectedType}"`;
+        } else if (searchTerm) {
+            message = `No se encontraron reportes del nombre "${searchTerm}"`;
+        } else {
+            message = 'No se encontraron reportes en el sistema';
+        }
+
+        empty.innerHTML = `<h3> Sin resultados</h3><p>${message}</p>`;
+        container.appendChild(empty);
+    }
+
+    function clearConsolidadoFilters() {
+        document.getElementById('consolidadoProcesoFilter').value = 'all';
+        document.getElementById('ConsolidadoFilter').value = 'all';
+        document.getElementById('consolidadoSearch').value = '';
+        document.getElementById('consolidadoRespoSearch').value = ''; // Limpiar búsqueda de responsable
+        filterConsolidadoByRespo();
+    }
+
+</script>

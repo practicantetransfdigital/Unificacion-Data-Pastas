@@ -1,0 +1,51 @@
+<script>
+
+    // Agregar nueva causa a una categoría
+    function agregarCausa(categoria) {
+        const container = document.getElementById('causas-' + categoria);
+        if (!container) return;
+
+        const newCause = document.createElement('div');
+        newCause.className = 'cause-row';
+        newCause.innerHTML = `
+        <input type="text" class="cause-input-pro" data-category="${categoria}" placeholder="Causa...">
+        <button type="button" class="cause-remove-btn" onclick="eliminarCausa(this)">×</button>
+    `;
+
+        container.appendChild(newCause);
+
+        // Agregar listener al nuevo input
+        const newInput = newCause.querySelector('input');
+        newInput.addEventListener('input', actualizarTabla5Porques);
+        newInput.focus();
+    }
+
+    // Eliminar una causa
+    function eliminarCausa(btn) {
+        const causeRow = btn.closest('.cause-row');
+        const container = causeRow.parentElement;
+
+        // Mantener al menos un input por categoría
+        if (container.querySelectorAll('.cause-row').length > 1) {
+            causeRow.style.animation = 'fadeOut 0.2s ease';
+            setTimeout(() => {
+                causeRow.remove();
+                actualizarTabla5Porques();
+            }, 200);
+        }
+    }
+
+    // Recopilar causas de una categoría específica
+    function recopilarCausas(categoria) {
+        const container = document.getElementById('causas-' + categoria);
+        if (!container) return [];
+
+        const causas = [];
+        container.querySelectorAll('.cause-input-pro').forEach(input => {
+            const valor = input.value.trim();
+            if (valor) causas.push(valor);
+        });
+        return causas;
+    }
+
+</script>

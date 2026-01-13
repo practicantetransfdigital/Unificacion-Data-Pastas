@@ -1,0 +1,137 @@
+<script>
+
+    /**
+ * Muestra/oculta el formulario de registro con animación deslizante horizontal
+ */
+    function toggleRegisterForm() {
+        const registerContainer = document.getElementById('registerContainer');
+        const cardsWrapper = document.querySelector('.cards-wrapper');
+
+        // Toggle de las clases para la animación
+        registerContainer.classList.toggle('active');
+        cardsWrapper.classList.toggle('register-active');
+
+        // Limpiar mensajes de error/éxito al cambiar
+        document.getElementById('registerError').style.display = 'none';
+        document.getElementById('registerSuccess').style.display = 'none';
+        document.getElementById('loginError').style.display = 'none';
+    }
+
+    /**
+     * Maneja el registro de un nuevo usuario
+     */
+    function handleRegister(event) {
+        event.preventDefault();
+
+        const registerBtn = document.getElementById('registerBtn');
+        const registerBtnText = document.getElementById('registerBtnText');
+        const registerBtnSpinner = document.getElementById('registerBtnSpinner');
+        const registerError = document.getElementById('registerError');
+        const registerSuccess = document.getElementById('registerSuccess');
+
+        // Obtener valores del formulario
+        const formData = {
+            nombres: document.getElementById('regNombres').value.trim(),
+            apellidos: document.getElementById('regApellidos').value.trim(),
+            cedula: document.getElementById('regCedula').value.trim(),
+            correo: document.getElementById('regCorreo').value.trim(),
+            proceso: document.getElementById('regProceso').value,
+            empresa: document.getElementById('regEmpresa').value
+        };
+
+        // Validaciones básicas
+        if (!formData.nombres || !formData.apellidos || !formData.cedula ||
+            !formData.correo || !formData.proceso || !formData.empresa) {
+            showRegisterError('Por favor complete todos los campos');
+            return;
+        }
+
+        // Validar formato de cédula (solo números)
+        if (!/^\d+$/.test(formData.cedula)) {
+            showRegisterError('La cédula debe contener solo números');
+            return;
+        }
+
+        // Validar formato de correo
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.correo)) {
+            showRegisterError('Por favor ingrese un correo válido');
+            return;
+        }
+
+        // Mostrar spinner
+        registerBtn.disabled = true;
+        registerBtnText.style.display = 'none';
+        registerBtnSpinner.style.display = 'inline-block';
+        registerError.style.display = 'none';
+        registerSuccess.style.display = 'none';
+
+        // Enviar datos al backend
+        google.script.run
+            .withSuccessHandler(function (result) {
+                if (result.success) {
+                    // Mostrar mensaje de éxito
+                    registerSuccess.textContent = '¡Registro exitoso! Ya puede iniciar sesión con su cédula.';
+                    registerSuccess.style.display = 'block';
+
+                    // Limpiar formulario
+                    document.getElementById('registerForm').reset();
+
+                    // Después de 3 segundos, volver al login
+                    setTimeout(function () {
+                        toggleRegisterForm();
+                        // Pre-llenar la cédula en el login
+                        document.getElementById('cedulaInput').value = formData.cedula;
+                    }, 3000);
+                } else {
+                    showRegisterError(result.message || 'Error al registrar. Intente nuevamente.');
+                }
+                resetRegisterButton();
+            })
+            .withFailureHandler(function (error) {
+                console.error('Error en registro:', error);
+                showRegisterError('Error al registrar: ' + error.message);
+                resetRegisterButton();
+            })
+            .registrarUsuario(formData);
+    }
+
+    /**
+     * Muestra un mensaje de error en el registro
+     */
+    function showRegisterError(message) {
+        const registerError = document.getElementById('registerError');
+        registerError.textContent = message;
+        registerError.style.display = 'block';
+    }
+
+    /**
+     * Resetea el botón de registro a su estado original
+     */
+    function resetRegisterButton() {
+        const registerBtn = document.getElementById('registerBtn');
+        const registerBtnText = document.getElementById('registerBtnText');
+        const registerBtnSpinner = document.getElementById('registerBtnSpinner');
+
+        registerBtn.disabled = false;
+        registerBtnText.style.display = 'inline';
+        registerBtnSpinner.style.display = 'none';
+    }
+
+    const buttonStateManager = {
+        bloquear: function (boton, textoOriginal) {
+            boton.dataset.originalText = textoOriginal || boton.textContent;
+            boton.disabled = true;
+            boton.textContent = 'Enviando...';
+            boton.style.opacity = '0.7';
+            boton.style.cursor = 'not-allowed';
+        },
+
+        desbloquear: function (boton) {
+            boton.disabled = false;
+            boton.textContent = boton.dataset.originalText || 'Enviar';
+            boton.style.opacity = '1';
+            boton.style.cursor = 'pointer';
+        }
+    };
+
+</script>

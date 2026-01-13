@@ -1,0 +1,136 @@
+<script>
+    // ========== FUNCIONES FOCO DE MEJORA ==========
+
+    // Mostrar/ocultar sección según foco seleccionado
+    function mostrarFocoMejora(tipo) {
+        // Ocultar todos los contenidos
+        document.getElementById('focoIndicador').style.display = 'none';
+        document.getElementById('focoProceso').style.display = 'none';
+        document.getElementById('focoError').style.display = 'none';
+
+        // Mostrar el seleccionado
+        if (tipo === 'indicador') {
+            document.getElementById('focoIndicador').style.display = 'block';
+        } else if (tipo === 'proceso') {
+            document.getElementById('focoProceso').style.display = 'block';
+        } else if (tipo === 'error') {
+            document.getElementById('focoError').style.display = 'block';
+        }
+    }
+
+    // Calcular brecha de indicador
+    function calcularBrechaIndicador() {
+        const resultadoActual = parseFloat(document.getElementById('resultadoActual').value) || 0;
+        const meta = parseFloat(document.getElementById('metaIndicador').value) || 0;
+        const direccion = document.getElementById('direccionIndicador').value;
+
+        let brecha = 0;
+        let texto = '';
+
+        if (resultadoActual && meta) {
+            if (direccion === 'sube') {
+                brecha = meta - resultadoActual;
+                texto = brecha >= 0
+                    ? `Aumentar ${brecha.toFixed(2)} unidades (de ${resultadoActual} a ${meta})`
+                    : `Ya superamos la meta por ${Math.abs(brecha).toFixed(2)} unidades`;
+            } else if (direccion === 'baja') {
+                brecha = resultadoActual - meta;
+                texto = brecha >= 0
+                    ? `Reducir ${brecha.toFixed(2)} unidades (de ${resultadoActual} a ${meta})`
+                    : `Ya estamos por debajo de la meta por ${Math.abs(brecha).toFixed(2)} unidades`;
+            } else {
+                brecha = Math.abs(meta - resultadoActual);
+                texto = `Brecha: ${brecha.toFixed(2)} unidades`;
+            }
+        }
+
+        document.getElementById('brechaIndicador').value = texto;
+    }
+
+    // Calcular reducción de flujo
+    function calcularReduccionFlujo() {
+        const valorActual = parseFloat(document.getElementById('valorActualFlujo').value) || 0;
+        const meta = parseFloat(document.getElementById('metaFlujo').value) || 0;
+
+        if (valorActual && meta) {
+            const reduccion = valorActual - meta;
+            const porcentaje = ((reduccion / valorActual) * 100).toFixed(1);
+
+            if (reduccion > 0) {
+                document.getElementById('reduccionFlujo').value = `Reducir ${reduccion.toFixed(2)} unidades (${porcentaje}% de mejora)`;
+            } else if (reduccion < 0) {
+                document.getElementById('reduccionFlujo').value = `El valor actual ya es menor que la meta`;
+            } else {
+                document.getElementById('reduccionFlujo').value = `Sin cambio`;
+            }
+        } else {
+            document.getElementById('reduccionFlujo').value = '';
+        }
+    }
+
+    // Calcular brecha de recurrencia
+    function calcularBrechaRecurrencia() {
+        const frecuenciaActual = parseInt(document.getElementById('frecuenciaActual').value) || 0;
+
+        if (frecuenciaActual > 0) {
+            document.getElementById('brechaRecurrencia').value = `${frecuenciaActual} ocurrencias a eliminar (llevar a cero)`;
+        } else {
+            document.getElementById('brechaRecurrencia').value = '';
+        }
+    }
+
+    // Toggle para campo "Otro" en métrica de flujo
+    function toggleMetricaOtro() {
+        const select = document.getElementById('metricaFlujo');
+        const container = document.getElementById('metricaOtroContainer');
+
+        if (select.value === 'otro') {
+            container.style.display = 'block';
+        } else {
+            container.style.display = 'none';
+            document.getElementById('metricaOtro').value = '';
+        }
+    }
+
+    // Limpiar campos de foco de mejora al reiniciar
+    function limpiarFocoMejora() {
+        // Desmarcar radios
+        document.querySelectorAll('input[name="focoMejora"]').forEach(radio => {
+            radio.checked = false;
+        });
+
+        // Ocultar contenidos
+        document.getElementById('focoIndicador').style.display = 'none';
+        document.getElementById('focoProceso').style.display = 'none';
+        document.getElementById('focoError').style.display = 'none';
+
+        // Limpiar campos de indicador
+        document.getElementById('nombreKPI').value = '';
+        document.getElementById('direccionIndicador').value = '';
+        document.getElementById('resultadoActual').value = '';
+        document.getElementById('metaIndicador').value = '';
+        document.getElementById('brechaIndicador').value = '';
+        document.getElementById('ahorroIndicadorDinero').value = '';
+        document.getElementById('ahorroIndicadorPorcentaje').value = '';
+
+        // Limpiar campos de proceso
+        document.getElementById('procesoSimplificar').value = '';
+        document.getElementById('metricaFlujo').value = '';
+        document.getElementById('metricaOtro').value = '';
+        document.getElementById('metricaOtroContainer').style.display = 'none';
+        document.getElementById('valorActualFlujo').value = '';
+        document.getElementById('metaFlujo').value = '';
+        document.getElementById('reduccionFlujo').value = '';
+        document.getElementById('ahorroTiempoTotal').value = '';
+        document.getElementById('impactoProcesoDinero').value = '';
+
+        // Limpiar campos de error
+        document.getElementById('declaracionProblema').value = '';
+        document.getElementById('evidenciaFallo').value = '';
+        document.getElementById('frecuenciaActual').value = '';
+        document.getElementById('brechaRecurrencia').value = '';
+        document.getElementById('objetivoReduccionRiesgo').value = '';
+        document.getElementById('impactoCostoIndirecto').value = '';
+    }
+
+</script>

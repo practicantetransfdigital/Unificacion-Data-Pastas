@@ -1,0 +1,152 @@
+<script>
+
+    function loadTarjetasReports() {
+        showTarjetasLoadingSpinner();
+
+        google.script.run
+            .withSuccessHandler(function (tarjetas) {
+                window.tarjetasBase = tarjetas;
+                tarjetasReports = tarjetas;
+
+                displayTarjetasReports(tarjetas);
+                loadTarjetasCommentsCount();
+            })
+            .withFailureHandler(function (err) {
+                handleTarjetasError(err);
+            })
+            .getTarjetasReports();
+    }
+
+    /**
+     * Muestra spinner de carga en las tarjetas
+     */
+    function showTarjetasLoadingSpinner() {
+        const containers = ['abiertas-cards', 'cerradas-cards'];
+
+        containers.forEach(containerId => {
+            const container = document.getElementById(containerId);
+            if (container) {
+                container.innerHTML = `
+                <div class="loading-spinner-tarjetas">
+                    ${Array(6).fill(0).map(() => `
+                        <div class="skeleton-card-simple"></div>
+                    `).join('')}
+                </div>
+            `;
+            }
+        });
+    }
+
+    function displayTarjetasReports(tarjetas) {
+        console.log('[v0] Mostrando tarjetas (con hipervínculos):', tarjetas.length);
+
+        if (!Array.isArray(tarjetas)) {
+            tarjetas = [];
+        }
+
+        // Guardar tarjetas globalmente
+        tarjetasReports = tarjetas;
+
+        // Limpiar contenedores
+        const abiertasContainer = document.getElementById('abiertas-cards');
+        const cerradasContainer = document.getElementById('cerradas-cards');
+
+        if (abiertasContainer) abiertasContainer.innerHTML = '';
+        if (cerradasContainer) cerradasContainer.innerHTML = '';
+
+        // Separar por estado
+        const abiertas = tarjetas.filter(t => t.estado !== 'Cerrada');
+        const cerradas = tarjetas.filter(t => t.estado === 'Cerrada');
+
+        // Actualizar contadores
+        const abiertasCount = document.getElementById('abiertas-count');
+        const cerradasCount = document.getElementById('cerradas-count');
+
+        if (abiertasCount) abiertasCount.textContent = abiertas.length;
+        if (cerradasCount) cerradasCount.textContent = cerradas.length;
+
+        // Mostrar tarjetas abiertas CON HIPERVÍNCULOS
+        if (abiertas.length === 0 && abiertasContainer) {
+            abiertasContainer.innerHTML = `
+      <div class="empty-column">
+        <span>No hay tarjetas abiertas</span>
+      </div>
+    `;
+        } else {
+            abiertas.forEach(tarjeta => {
+                if (abiertasContainer) {
+                    abiertasContainer.appendChild(createTarjetaCard(tarjeta, false));
+                }
+            });
+        }
+
+        // Mostrar tarjetas cerradas CON HIPERVÍNCULOS
+        if (cerradas.length === 0 && cerradasContainer) {
+            cerradasContainer.innerHTML = `
+      <div class="empty-column">
+        <span>No hay tarjetas cerradas</span>
+      </div>
+    `;
+        } else {
+            cerradas.forEach(tarjeta => {
+                if (cerradasContainer) {
+                    cerradasContainer.appendChild(createTarjetaCard(tarjeta, true));
+                }
+            });
+        }
+    }
+
+    /**
+     * Maneja errores al cargar tarjetas
+     */
+    function handleTarjetasError(error) {
+        console.error('Error loading tarjetas:', error);
+        const containers = ['abiertas-cards', 'cerradas-cards'];
+        containers.forEach(containerId => {
+            const container = document.getElementById(containerId);
+            if (container) {
+                container.innerHTML = `
+                <div class="empty-column">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="8" x2="12" y2="12"/>
+                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    <span>Error al cargar tarjetas</span>
+                </div>
+            `;
+            }
+        });
+        showAlert('error', 'Error', 'No se pudieron cargar las tarjetas: ' + error.message);
+    }
+
+    function validarLongitudUbicacion(input) {
+        const maxLength = 36;
+        let currentLength = input.value.length;
+
+        // Cortar si excede el límite
+        if (currentLength > maxLength) {
+            input.value = input.value.substring(0, maxLength);
+            currentLength = maxLength;
+        }
+
+        // Actualizar contador
+        const counter = document.getElementById('contador-ubicacion');
+        if (counter) {
+            counter.textContent = `${currentLength}/${maxLength}`;
+
+            // Cambiar color según el límite
+            if (currentLength >= maxLength) {
+                counter.style.color = '#dc2626';
+                counter.style.fontWeight = '600';
+            } else if (currentLength >= 30) { // Aviso cuando esté cerca del límite
+                counter.style.color = '#f59e0b';
+                counter.style.fontWeight = '500';
+            } else {
+                counter.style.color = '#64748b';
+                counter.style.fontWeight = '400';
+            }
+        }
+    }
+
+</script>

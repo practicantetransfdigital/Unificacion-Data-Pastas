@@ -1,0 +1,186 @@
+<script>
+
+    function submitTarjetaForm(event) {
+        event.preventDefault();
+
+        const submitBtn = event.target.querySelector('.submit-btn');
+        buttonStateManager.bloquear(submitBtn, 'Enviar Tarjeta');
+
+        if (!validarUbicacionAntesDeEnviar()) {
+            buttonStateManager.desbloquear(submitBtn);
+            return;
+        }
+
+        const formData = {
+            zonaRiesgo: document.getElementById('zonaRiesgo').value,
+            nombreCedula: document.getElementById('nombreCedula').value,
+            ubicacion: document.getElementById('ubicacion').value,
+            prioridad: document.getElementById('prioridad').value,
+            descripcionProblema: document.getElementById('descripcionProblema').value,
+            tipoRiesgo: document.getElementById('tipoRiesgo').value,
+            problemaAsociado: document.getElementById('problemaAsociado').value,
+            sistemaGestion: document.getElementById('sistemaGestion').value,
+            responsableSolucion: document.getElementById('responsableSolucion').value,
+            generadaPor: document.getElementById('generadaPor').value,
+            fechaCreacionTarjeta: document.getElementById('fechaCreacionTarjeta').value,
+            requiereSAP: document.getElementById('requiereSAP').value,
+            fotos: selectedFiles || []
+        };
+
+        console.log("📸 Fotos a enviar:", formData.fotos.length);
+
+        showAlert('info', 'Enviando...', 'Procesando su tarjeta de anormalidad, por favor espere', 3000);
+
+        google.script.run
+            .withSuccessHandler(function (response) {
+                buttonStateManager.desbloquear(submitBtn);
+                handleTarjetaSubmitSuccess(response);
+            })
+            .withFailureHandler(function (error) {
+                buttonStateManager.desbloquear(submitBtn);
+                handleError(error);
+            })
+            .submitTarjetaReport(formData);
+    }
+
+    function handleTarjetaSubmitSuccess(result) {
+        if (result.success) {
+            showAlert('success', '¡Éxito!', 'Tarjeta de anormalidad enviada exitosamente');
+
+            const tarjetaForm = document.getElementById('tarjetaForm');
+            if (tarjetaForm) {
+                tarjetaForm.reset();
+                limpiarDropZone();
+
+                // Restaurar campo Nombre + Cédula
+                const nombreCedulaField = document.getElementById('nombreCedula');
+                if (nombreCedulaField && typeof currentUser !== 'undefined') {
+                    nombreCedulaField.value = currentUser.nombre;
+                }
+
+                // Restaurar Fecha de creación - CORREGIDO
+                setTimeout(() => {
+                    setFechaCreacionTarjeta();
+                }, 100);
+            }
+
+        } else {
+            showAlert('error', 'Error', result.message || 'Error al enviar la tarjeta');
+        }
+    }
+
+    function setFechaCreacionTarjeta() {
+        const fechaInput = document.getElementById("fechaCreacionTarjeta");
+        if (!fechaInput) return;
+
+        const now = new Date();
+
+        // Formatear fecha en formato: DD/MM/YYYY HH:MM:SS
+        const day = String(now.getDate()).padStart(2, '0');
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const year = now.getFullYear();
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+
+        const fechaFormateada = `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+
+        fechaInput.value = fechaFormateada;
+    }
+
+    if (document.getElementById('fechaCreacionTarjeta')) {
+        setFechaCreacionTarjeta();
+    }
+
+    // Mapas de opciones por riesgo
+    const problemasPorRiesgo = {
+        "Riesgo a las personas": [
+            "Incidente",
+            "Acto inseguro",
+            "Condición insegura"
+        ],
+        "Riesgo ambiental": [
+            "Incidentes ambientales",
+            "Acto Inseguro ambientales",
+            "Condición básica"
+        ],
+        "Riesgo de inocuidad": [
+            "Defecto",
+            "Acto y/o comportamiento",
+            "Condición básica"
+        ],
+        "Riesgo de falla de equipo": [
+            "Condición de operación",
+            "Condiciones básicas"
+        ],
+        "Riesgo de calidad": [
+            "Defecto",
+            "Acto y/o comportamiento",
+            "Condición básica"
+        ]
+    };
+
+    const sistemasPorRiesgo = {
+        "Riesgo a las personas": [
+            "Seguridad y salud en el trabajo",
+            "Seguridad vial"
+        ]
+    };
+
+    // Referencias a los selects y al contenedor del sistema de gestión
+    const tipoRiesgo = document.getElementById("tipoRiesgo");
+    const problemaAsociado = document.getElementById("problemaAsociado");
+    const sistemaGestion = document.getElementById("sistemaGestion");
+    const sistemaGestionGroup = sistemaGestion.closest(".form-group"); // Ocultamos el grupo completo
+
+    // Ocultar al inicio
+    sistemaGestionGroup.style.display = "none";
+
+    tipoRiesgo.addEventListener("change", function () {
+        const riesgo = this.value;
+        console.log("👉 Riesgo seleccionado:", riesgo);
+
+        problemaAsociado.innerHTML = '<option value="">Selecciona un problema</option>';
+        sistemaGestion.innerHTML = '<option value="">Selecciona el sistema</option>';
+
+        if (riesgo && problemasPorRiesgo[riesgo]) {
+            console.log("✅ Opciones encontradas:", problemasPorRiesgo[riesgo]);
+
+            // Cargar problemas
+            problemasPorRiesgo[riesgo].forEach(opcion => {
+                const opt = document.createElement("option");
+                opt.value = opcion;
+                opt.textContent = opcion;
+                problemaAsociado.appendChild(opt);
+            });
+
+            // Si es Riesgo a las personas, mostrar y cargar sistemas
+            if (sistemasPorRiesgo[riesgo]) {
+                sistemaGestionGroup.style.display = "block"; // mostrar
+                sistemasPorRiesgo[riesgo].forEach(opcion => {
+                    const opt = document.createElement("option");
+                    opt.value = opcion;
+                    opt.textContent = opcion;
+                    sistemaGestion.appendChild(opt);
+                });
+            } else {
+                sistemaGestionGroup.style.display = "none"; // ocultar
+            }
+
+        } else {
+            console.warn("⚠ No hay opciones para el riesgo:", riesgo);
+            sistemaGestionGroup.style.display = "none";
+        }
+    });
+
+    function validarUbicacionAntesDeEnviar() {
+        const ubicacion = document.getElementById('ubicacion');
+        if (ubicacion.value.length > 36) {
+            showAlert('error', 'Ubicación muy larga', 'La ubicación no puede tener más de 36 caracteres');
+            ubicacion.focus();
+            return false;
+        }
+        return true;
+    }
+
+</script>
