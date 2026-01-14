@@ -1,5 +1,4 @@
 <script>
-
     // ========== FUNCIONES CICLO DE MEJORA ==========
 
     // Mapeo de categorías para mostrar en la tabla
@@ -62,13 +61,11 @@
         }
     }
 
-    // Enviar formulario de Ciclo de Mejora
-    function submitCicloForm(event) {
-        event.preventDefault();
+function submitCicloForm(event) {
+    event.preventDefault();
 
-        const submitBtn = event.target.querySelector('.submit-btn');
-        buttonStateManager.bloquear(submitBtn, 'Enviar Ciclo de Mejora');
-
+    try {
+        // Recopilar todos los datos
         const now = new Date();
         const year = now.getFullYear();
         const month = String(now.getMonth() + 1).padStart(2, "0");
@@ -77,6 +74,17 @@
         const minute = String(now.getMinutes()).padStart(2, "0");
         const fechaLocal = `${year}-${month}-${day} ${hour}:${minute}`;
 
+        // Validar campos requeridos
+        const cicloId = document.getElementById('cicloMejoraId').value;
+        const proceso = document.getElementById('procesoCiclo').value;
+        const defectoPrincipal = document.getElementById('defectoPrincipal').value;
+        
+        if (!cicloId || !proceso || !defectoPrincipal) {
+            showAlert('error', 'Campos requeridos', 'Por favor complete todos los campos obligatorios');
+            return;
+        }
+
+        // Recopilar datos de espina de pescado
         const espinaPescado = {
             medioAmbiente: recopilarCausas('ambiente'),
             manoDeObra: recopilarCausas('mano'),
@@ -86,6 +94,7 @@
             maquina: recopilarCausas('maquina')
         };
 
+        // Recopilar 5 Porqués si están activos
         const seccion5Porques = document.getElementById('seccion5Porques');
         let analisis5Porques = null;
 
@@ -93,11 +102,11 @@
             analisis5Porques = recopilarDatosTabla5Porques();
         }
 
-        // <CHANGE> Obtener foco de mejora seleccionado
+        // Obtener foco de mejora seleccionado
         const focoSeleccionado = document.querySelector('input[name="focoMejora"]:checked');
         const tipoFoco = focoSeleccionado ? focoSeleccionado.value : '';
 
-        // <CHANGE> Recopilar datos según el foco
+        // Recopilar datos según el foco
         let datosFoco = {};
         if (tipoFoco === 'indicador') {
             datosFoco = {
@@ -135,37 +144,34 @@
             };
         }
 
-        const formData = {
-            cicloId: document.getElementById('cicloMejoraId').value,
-            nombreCiclo: document.getElementById('nombreCicloMejora').value,
+        // Guardar los datos en variable global con validación
+        cicloDataParaEnviar = {
+            cicloId: cicloId,
+            nombreCiclo: document.getElementById('nombreCicloMejora').value || 'Sin nombre',
             fecha: fechaLocal,
             avisoMantenimiento: document.getElementById('avisoMantenimiento').value,
-            proceso: document.getElementById('procesoCiclo').value,
+            proceso: proceso,
             equipoMaquina: document.getElementById('equipoMaquina').value,
             lider: document.getElementById('liderCicloSearch').value,
             integrantes: document.getElementById('integrantesAnalisis').value,
-            // <CHANGE> Agregar foco de mejora
             focoMejora: datosFoco,
-            defecto: document.getElementById('defectoPrincipal').value,
+            defecto: defectoPrincipal,
             espinaPescado: espinaPescado,
             analisis5Porques: analisis5Porques,
             planAccion: recopilarDatosPlanAccion(),
-            creadoPor: currentUser ? currentUser.nombre : ''
+            creadoPor: currentUser ? currentUser.nombre : 'Usuario no identificado'
         };
 
-        showAlert('info', 'Enviando...', 'Procesando su ciclo de mejora, por favor espere', 3000);
+        console.log('Datos del ciclo preparados:', cicloDataParaEnviar.cicloId);
+        
+        // Mostrar modal de confirmación
+        mostrarModalCiclo(cicloDataParaEnviar);
 
-        google.script.run
-            .withSuccessHandler(function (response) {
-                buttonStateManager.desbloquear(submitBtn);
-                handleCicloSubmitSuccess(response);
-            })
-            .withFailureHandler(function (error) {
-                buttonStateManager.desbloquear(submitBtn);
-                handleError(error);
-            })
-            .submitCicloMejora(formData);
+    } catch (error) {
+        console.error('Error al preparar datos del ciclo:', error);
+        showAlert('error', 'Error', 'Hubo un problema al preparar los datos del ciclo: ' + error.message);
     }
+}
 
     function handleCicloSubmitSuccess(result) {
         if (result.success) {

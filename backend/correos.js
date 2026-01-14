@@ -379,7 +379,7 @@ function programarEnvioCorreos(fila, data, fotosLinks) {
     // Crear trigger para ejecutar después de 10 segundos
     ScriptApp.newTrigger('enviarCorreoConRetraso')
       .timeBased()
-      .after(10000) // 10 segundos
+      .after(5000) // 10 segundos
       .create();
     
     console.log(`Correo programado para fila ${fila} (en 10 segundos)`);

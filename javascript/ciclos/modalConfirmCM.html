@@ -1,0 +1,162 @@
+<script>
+
+function mostrarModalCiclo(datos) {
+    try {
+        // Verificar que los datos existan
+        if (!datos) {
+            showAlert('error', 'Error', 'No hay datos para mostrar en el modal');
+            return;
+        }
+
+        console.log('Mostrando modal con datos:', datos.cicloId);
+        
+        // Llenar los detalles en el modal
+        document.getElementById('modalCicloId').textContent = datos.cicloId || '--';
+        document.getElementById('modalCicloProceso').textContent = datos.proceso || 'No especificado';
+        document.getElementById('modalCicloLider').textContent = datos.lider || 'No asignado';
+        document.getElementById('modalCicloDefecto').textContent = datos.defecto || 'No definido';
+        
+        // Mostrar el modal
+        const modal = document.getElementById('confirmCicloModal');
+        if (!modal) {
+            console.error('Modal no encontrado en el DOM');
+            showAlert('error', 'Error', 'No se pudo mostrar el modal de confirmación');
+
+            enviarCicloDirectamente(datos);
+            return;
+        }
+        
+        modal.style.display = 'flex';
+        
+        // Resetear checkbox y deshabilitar botón
+        const checkbox = document.getElementById('confirmCicloCheckbox');
+        const btn = document.getElementById('confirmSendCicloBtn');
+        
+        if (checkbox && btn) {
+            checkbox.checked = false;
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+            
+            // Agregar listener al checkbox
+            checkbox.onchange = function() {
+                btn.disabled = !this.checked;
+                btn.style.opacity = this.checked ? '1' : '0.5';
+            };
+        }
+        
+    } catch (error) {
+        console.error('Error al mostrar modal:', error);
+        showAlert('error', 'Error', 'No se pudo mostrar el modal: ' + error.message);
+        // Enviar directamente como fallback
+        if (datos) {
+            enviarCicloDirectamente(datos);
+        }
+    }
+}
+
+
+function enviarCicloDirectamente(datos) {
+    console.log('Enviando ciclo directamente (fallback):', datos.cicloId);
+    
+    showAlert('info', 'Enviando...', 'Procesando ciclo de mejora...', 3000);
+    
+    const submitBtn = document.querySelector('#cicloForm .submit-btn');
+    if (submitBtn) {
+        buttonStateManager.bloquear(submitBtn, 'Enviando...');
+    }
+    
+    google.script.run
+        .withSuccessHandler(function (response) {
+            if (submitBtn) {
+                buttonStateManager.desbloquear(submitBtn);
+            }
+            handleCicloSubmitSuccess(response);
+        })
+        .withFailureHandler(function (error) {
+            if (submitBtn) {
+                buttonStateManager.desbloquear(submitBtn);
+            }
+            handleError(error);
+        })
+        .submitCicloMejora(datos);
+}
+
+
+function cerrarModalCicloConfirmacion() {
+    try {
+        const modal = document.getElementById('confirmCicloModal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+        
+    } catch (error) {
+        console.error('Error al cerrar modal:', error);
+    }
+}
+
+function enviarCicloConfirmado() {
+    console.log('Intentando enviar ciclo...');
+    
+    // Verificar que cicloDataParaEnviar exista
+    if (!cicloDataParaEnviar || !cicloDataParaEnviar.cicloId) {
+        console.error('cicloDataParaEnviar es null o no tiene cicloId:', cicloDataParaEnviar);
+        showAlert('error', 'Error', 'No se encontraron datos para enviar. Por favor intente nuevamente.');
+        
+        try {
+            const formData = new FormData(document.getElementById('cicloForm'));
+            cicloDataParaEnviar = {
+                cicloId: document.getElementById('cicloMejoraId').value,
+                nombreCiclo: document.getElementById('nombreCicloMejora').value,
+                proceso: document.getElementById('procesoCiclo').value,
+                defecto: document.getElementById('defectoPrincipal').value,
+                creadoPor: currentUser ? currentUser.nombre : 'Usuario'
+            };
+            console.log('Datos recuperados como fallback:', cicloDataParaEnviar);
+        } catch (fallbackError) {
+            console.error('Error en fallback:', fallbackError);
+            showAlert('error', 'Error crítico', 'Por favor recargue la página e intente nuevamente.');
+            cerrarModalCicloConfirmacion();
+            return;
+        }
+    }
+    
+    console.log('Enviando ciclo ID:', cicloDataParaEnviar.cicloId);
+  
+    cerrarModalCicloConfirmacion();
+    
+    showAlert('info', 'Enviando...', 'Procesando su ciclo de mejora, por favor espere', 3000);
+    
+    // Obtener botón de submit original para manejar su estado
+    const submitBtn = document.querySelector('#cicloForm .submit-btn');
+    if (submitBtn) {
+        buttonStateManager.bloquear(submitBtn, 'Enviando...');
+    }
+    
+    // Enviar datos al servidor
+    google.script.run
+        .withSuccessHandler(function (response) {
+            console.log('Respuesta del servidor:', response);
+            
+            if (submitBtn) {
+                buttonStateManager.desbloquear(submitBtn);
+            }
+            
+            // Limpiar los datos SOLO después de éxito
+            cicloDataParaEnviar = null;
+            
+            handleCicloSubmitSuccess(response);
+        })
+        .withFailureHandler(function (error) {
+            console.error('Error del servidor:', error);
+            
+            if (submitBtn) {
+                buttonStateManager.desbloquear(submitBtn);
+            }
+            
+            handleError(error);
+        })
+        .submitCicloMejora(cicloDataParaEnviar);
+}
+
+
+</script>

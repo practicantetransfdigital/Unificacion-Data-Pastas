@@ -1323,7 +1323,7 @@
                 <div class="board-header">
                     <h1>T.A</h1>
                     <div class="board-actions">
-            <button class="refresh-btn" onclick="loadTarjetasReports()">
+                        <button class="refresh-btn" onclick="loadTarjetasReports()">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
                     <path d="M21 3v5h-5"/>
@@ -1332,18 +1332,18 @@
                 </svg>
             </button>
 
-            <button class="refresh-btn" onclick="openStatsForTarjetas()">
+                        <button class="refresh-btn" onclick="openStatsForTarjetas()">
                 <i class="fa-solid fa-chart-pie"></i>
             </button>
 
-            <select id="tarjetaPrioridadFilter" onchange="applyTarjetaPrioridadFilter()">
+                        <select id="tarjetaPrioridadFilter" onchange="applyTarjetaPrioridadFilter()">
                 <option value="all">Todas las prioridades</option>
                 <option value="Alta">Alta</option>
                 <option value="Media">Media</option>
                 <option value="Baja">Baja</option>
             </select>
 
-        <select id="filtroResponsable" onchange="applyTarjetaFilters()">
+                        <select id="filtroResponsable" onchange="applyTarjetaFilters()">
             <option value="">Todos los responsables</option>
             <option value="Jefe del Area Seleccionada">Jefe del Area Seleccionada</option>
             <option value="Jefe Aseguramiento de Calidad">Jefe Aseguramiento de Calidad</option>
@@ -1434,7 +1434,7 @@
             style="padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; flex: 1; max-width: 120px; font-size: 11px;"
         >
 
-        <input
+                        <input
             type="text"
             id="searchNombreResponsable"
             placeholder="Nombre de responsable..."
@@ -1606,7 +1606,7 @@
             <!-- MODAL DETALLE CICLO -->
             <div class="modal-overlay-ciclo" id="modalDetalleCiclo">
                 <div class="modal-ciclo-content">
-                    <button class="modal-ciclo-close" onclick="cerrarModalCiclo()">&times;</button>
+                    <button class="modal-ciclo-close" onclick="cerrarModalCicloConfirmacion()">&times;</button>
 
                     <div class="modal-ciclo-header-info">
                         <span class="modal-ciclo-id-badge" id="modalCicloId">CM-001</span>
@@ -1819,7 +1819,7 @@
                 <option value="all">Todos los procesos</option>
                 
             </select>
-            <input
+                        <input
                 type="text"
                 id="consolidadoRespoSearch"
                 placeholder="Buscar por responsable..."
@@ -1841,6 +1841,86 @@
                     <!-- Los reportes consolidados se cargarán aquí -->
                 </div>
             </div>
+
+            <!-- Modal de Confirmación Ciclo de Mejora -->
+            <div id="confirmCicloModal" class="modal-overlay-ciclo" style="display: none;">
+                <div class="modal-content" style="border-radius: 36px; overflow: hidden; padding: 0px;">
+                    <div
+                        style="background: linear-gradient(135deg, #0f307f 0%, #1e40af 100%); padding: 1.5rem; text-align: center; position: relative;">
+                        <button onclick="cerrarModalCicloConfirmacion()" class="modal-ciclo-close" style="position: absolute; top: 1rem; right: 1rem;">
+        &times;
+      </button>
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 0.75rem;">
+                            <div
+                                style="width: 48px; height: 48px; background: rgba(255, 255, 255, 0.15); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-question-circle" style="font-size: 24px; color: white;"></i>
+                            </div>
+                            <h3
+                                style="margin: 0; color: white; font-size: 20px; font-weight: 700; letter-spacing: -0.02em;">
+                                Confirmar Envío
+                            </h3>
+                            <p style="margin: 0; color: rgba(255, 255, 255, 0.85); font-size: 14px; line-height: 1.4;">
+                                ¿Estás seguro de enviar el Ciclo de Mejora?
+                            </p>
+                        </div>
+                    </div>
+
+                    <div style="padding: 1.5rem; background: white;">
+                        <div
+                            style="margin-bottom: 1.5rem; padding: 1rem; background: #fff7ed; border-radius: 8px; border-left: 4px solid #f59e0b;">
+                            <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
+                                <i class="fas fa-exclamation-triangle" style="color: #f59e0b; font-size: 16px; margin-top: 2px;"></i>
+                                <div>
+                                    <p
+                                        style="margin: 0; color: #92400e; font-size: 13px; font-weight: 500; line-height: 1.4;">
+                                        <strong>Revisa que todo esté correctamente diligenciado y analizado</strong><br>
+              Verifica especialmente el análisis de causas y el plan de acción.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Checkbox de Confirmación -->
+                        <div
+                            style="margin-bottom: 1.5rem; padding: 1rem; background: #f0f9ff; border-radius: 8px; border: 1px solid #bae6fd;">
+                            <label style="display: flex; align-items: flex-start; gap: 0.75rem; cursor: pointer; margin: 0;">
+          <input type="checkbox" id="confirmCicloCheckbox" 
+                 style="margin-top: 3px; width: 18px; height: 18px; cursor: pointer; accent-color: #0f307f;">
+          <div style="flex: 1;">
+            <div style="font-size: 13px; font-weight: 600; color: #0369a1; margin-bottom: 0.25rem;">
+              Confirmo que he revisado toda la información
+            </div>
+            <div style="font-size: 12px; color: #64748b; line-height: 1.4;">
+              He verificado que todos los datos estén correctos, el análisis es adecuado y el plan de acción es viable.
+            </div>
+          </div>
+        </label>
+                        </div>
+                    </div>
+
+                    <div
+                        style="padding: 1rem 1.5rem; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+                        <div style="font-size: 12px; color: #64748b; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-shield-alt" style="color: #0f307f; font-size: 14px;"></i>
+                            <span>Esta acción no se puede deshacer</span>
+                        </div>
+
+                        <div style="display: flex; gap: 0.75rem;">
+                            <button onclick="cerrarModalCicloConfirmacion()"
+                style="padding: 0.625rem 1.25rem; background: white; border: 1px solid #cbd5e1; border-radius: 8px; color: #475569; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+          Cancelar
+        </button>
+                            <button id="confirmSendCicloBtn" onclick="enviarCicloConfirmado()"
+                style="padding: 10px; background: linear-gradient(135deg, #0f307f 0%, #1e40af 100%); color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; opacity: 0.5;"
+                disabled>
+          <i class="fas fa-paper-plane" style="margin-right: 8px;"></i>
+          Sí, Enviar
+        </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
 
         </main>
     </div>
@@ -1896,6 +1976,7 @@
     <?!= include('javascript/ciclos/seguimientoCausa'); ?>
     <?!= include('javascript/ciclos/statsCM'); ?>
     <?!= include('javascript/ciclos/tabsCM'); ?>
+    <?!= include('javascript/ciclos/modalConfirmCM'); ?>
 
     <?!= include('javascript/consolidado/consolidadoFilters'); ?>
     <?!= include('javascript/consolidado/consolidadoEmpty'); ?>
@@ -1903,4 +1984,5 @@
     <?!= include('javascript/consolidado/loadConsolidado'); ?>
 
 </body>
+
 </html>
